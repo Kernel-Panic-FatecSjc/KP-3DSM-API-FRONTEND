@@ -3,9 +3,12 @@ import React, { useState } from 'react';
 import styles from './App.module.css';
 
 export default function Page() {
+  const handleClick = () => {
+    console.log("Entrando");
+  };
+
   return (
-    <div className={styles.container}>
-      
+    <div className={styles.container}> 
       <div className={styles.containerSide}>
         <img 
             src="/images/logoGSW.svg"
@@ -20,11 +23,30 @@ export default function Page() {
 
       <div className={styles.containerRight}>
         <h2 className={styles.tituloLogin}>Login</h2>
-        <input className={styles.inputStyle} type='text' />
-        <input className={styles.inputStyle} type='text' />
-        <button className={styles.ButtonStyle} type="submit">Entrar</button>
+        <div className={styles.inputWrapper}>
+          <img
+          src="/images/usuario.svg"
+          className={styles.iconInput}
+          />
+          <input 
+          className={styles.inputStyle}
+          type='text'
+          placeholder='Digite seu usuário:'
+          />
+        </div>
+        <div className={styles.inputWrapper}>
+          <img
+          src="/images/cadeado.svg"
+          className={styles.iconInput}
+          />
+          <input 
+          className={styles.inputStyle} 
+          type='password' 
+          placeholder='Digite sua senha:'
+          />
+        </div>
+        <button className={styles.ButtonStyle} type="submit" onClick={handleClick}>Entrar</button>
       </div>
-
     </div>
   );
 }
