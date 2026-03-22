@@ -1,0 +1,213 @@
+.page {
+    background: #F7F9FC;
+    min-height: 100vh;
+    font-family: "Roboto", sans-serif;
+    font-size: 13px;
+    color: #002963;
+}
+
+/* OPÇÕES de filtro */
+.filtros {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 22px 28px 18px;
+}
+
+.filtroBtn {
+    background: #E8EFF9;
+    border: none;
+    color: #0A4FA8;
+    font-size: 13px;
+    font-family: "Roboto", sans-serif;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.filtroBtnAtivo {
+    background: #002963;
+    color: #FFAE25;
+    font-weight: 700;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 41, 99, 0.25);
+}
+
+/* HORAS semanal e mensal */
+.semanaHeader {
+    padding: 0 28px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.semanaData {
+    font-size: 20px;
+    font-weight: 700;
+    color: #002963;
+}
+
+.semanaDivider {
+    width: 1px;
+    height: 18px;
+    background: #D0DDEF;
+}
+
+.semanaStat {
+    font-size: 12px;
+    color: #0A4FA8;
+    font-weight: 500;
+}
+
+.semanaStat strong {
+    color: #002963;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* ATIVIDADES - inicio, fim e total */
+.tabelaHeader {
+    display: grid;
+    grid-template-columns: 1fr 100px 100px 90px;
+    padding: 0 28px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0A4FA8;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.colAtividade {
+    text-align: left;
+}
+
+/* CARDS */
+.cardWrapper {
+    padding: 0 28px 10px;
+}
+
+.card {
+    background: #FFFFFF;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 1fr 100px 100px 90px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    border: 1.5px solid #E8EFF9;
+}
+
+.cardDestacado {
+    border: 1.5px solid #FFC85A;
+    background: #FFFDF7;
+}
+
+.cardBreadcrumb {
+    font-size: 11px;
+    color: #0A4FA8;
+    font-weight: 500;
+    margin-bottom: 4px;
+    opacity: 0.7;
+}
+
+.cardTitulo {
+    font-size: 15px;
+    font-weight: 700;
+    color: #002963;
+    margin-bottom: 8px;
+}
+
+.cardTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.cardTag {
+    font-size: 11px;
+    color: #003A8C;
+    background: #E8EFF9;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.cardAcoes {
+    display: flex;
+    gap: 6px;
+}
+
+.btnEditar {
+    background: #FFF3D6;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: #CC8A1A;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: "Roboto", sans-serif;
+}
+
+.btnExcluir {
+    background: #FFF3D6;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: #CC8A1A;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: "Roboto", sans-serif;
+}
+
+.cardHorario {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 700;
+    color: #002963;
+    background: #E8EFF9;
+    border-radius: 10px;
+    padding: 10px 0;
+}
+
+.cardDestacado .cardHorario {
+    background: #FFF3D6;
+    color: #CC8A1A;
+}
+
+.cardTotal {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #FFAE25;
+}
+
+
+/* BOTÃO adicionar */
+.btnAdicionar {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: #FFAE25;
+    color: #002963;
+    font-size: 28px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Roboto", sans-serif;
+}
+
+.btnAdicionar:hover {
+    background: #CC8A1A;
+}
