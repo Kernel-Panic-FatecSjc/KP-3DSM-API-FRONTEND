@@ -1,0 +1,179 @@
+.container{
+  width: 100%;
+  padding: 20px 40px;
+}
+
+.tabelaContainer{
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+}
+
+.tabela th {
+  text-align: left;
+  padding: 18px;
+  color: #012643;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.tabela td {
+  padding: 18px;
+  font-size: 14px;
+}
+
+.tabela tbody tr:nth-child(odd) {
+  background-color: #f5f5fb;
+}
+
+.tabela tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+.tabela tbody tr {
+  border-radius: 8px;
+}
+
+.tabela tbody tr:hover {
+  background-color: #ececf5;
+}
+
+.ativo {
+  background-color: #e6f7ed;
+  color: #1a9c5f;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.inativo {
+  background-color: #fdeaea;
+  color: #d93025;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.acoes{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+
+.modalConteudo {
+  background-color: white;
+  padding: 30px;
+  width: 520px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+}
+
+.row {
+  display: flex;
+  gap: 15px;
+}
+
+.inputWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputStyle,
+.selectStyle {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.botoes {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.cancelar {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+}
+
+.confirmar {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #012643;
+  color: white;
+  cursor: pointer;
+}
+
+.botaoFecharModal {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.botaoAbrirModal{
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  background-color: #012643;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 40px;
+}
+
+.botaoAbrirEdicao{
+  background-color: #012643;
+  color: white;
+}
+
+.botaoExcluir{
+  background-color: #d93025;
+  color: white;
+}
+
+.titulo, .tituloModal{
+  color: #012643;
+}
