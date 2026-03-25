@@ -1,0 +1,38 @@
+.container {
+  display: flex;
+  align-items: center;
+  background: #012643;
+  height: 70px;
+  padding: 0 20px;
+}
+
+.menu {
+  display: flex;
+  gap: 30px;
+  margin-left: 30px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+.active {
+  background: white;
+  color: #012643;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.user {
+  color: white;
+  margin-left: auto;
+}
