@@ -11,6 +11,9 @@ interface Card {
   responsavel: string;
   inicio: string;
   fim: string;
+  tipoAtividade: string;
+  dataLancamento: string;
+  justificativa?: string;
 }
 
 function calcularTotal(inicio: string, fim: string): number {
@@ -28,6 +31,14 @@ function formatarHoras(minutos: number): string {
   return `${h}h ${m}min`;
 }
 
+function hojeISO(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+function isRetroativo(data: string): boolean {
+  return data !== '' && data < hojeISO();
+}
+
 const cardInicial = {
   nomeProjeto: '',
   tituloSessao: '',
@@ -35,6 +46,9 @@ const cardInicial = {
   responsavel: '',
   inicio: '',
   fim: '',
+  tipoAtividade: '',
+  dataLancamento: hojeISO(),
+  justificativa: '',
 };
 
 export default function Page() {
@@ -49,6 +63,8 @@ export default function Page() {
       responsavel: 'José Ricardo',
       inicio: '08:00',
       fim: '09:30',
+      tipoAtividade: 'REUNIAO',
+      dataLancamento: hojeISO(),
     },
     {
       id: 2,
@@ -58,8 +74,19 @@ export default function Page() {
       responsavel: 'Daniele',
       inicio: '10:00',
       fim: '12:00',
+      tipoAtividade: 'FEATURE',
+      dataLancamento: hojeISO(),
     },
   ]);
+
+  const [aguardando, setAguardando] = useState<Card[]>([]);
+
+  const enviar = (id: number) => {
+    const card = cards.find(c => c.id === id);
+    if (!card) return;
+    setAguardando(prev => [...prev, card]);
+    setCards(prev => prev.filter(c => c.id !== id));
+  };
 
   const [modalAberto, setModalAberto] = useState(false);
   const [cardEditando, setCardEditando] = useState<Card | null>(null);
@@ -80,6 +107,9 @@ export default function Page() {
       responsavel: card.responsavel,
       inicio: card.inicio,
       fim: card.fim,
+      tipoAtividade: card.tipoAtividade,
+      dataLancamento: card.dataLancamento,
+      justificativa: card.justificativa || '',
     });
     setModalAberto(true);
   };
@@ -91,6 +121,9 @@ export default function Page() {
   };
 
   const salvar = () => {
+    if (isRetroativo(form.dataLancamento) && !form.justificativa?.trim()) return;
+    if (!form.tipoAtividade) return;
+
     if (cardEditando) {
       setCards(prev =>
         prev.map(c => (c.id === cardEditando.id ? { ...cardEditando, ...form } : c))
@@ -106,9 +139,11 @@ export default function Page() {
   };
 
   const totalGeral = cards.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+  const retroativo = isRetroativo(form.dataLancamento);
 
   return (
     <div className={styles.page}>
+      {/* OPÇÕES de filtro */}
       <div className={styles.filtros}>
         <button className={`${styles.filtroBtn} ${styles.filtroBtnAtivo}`}>Entrada/Saída</button>
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/aguardando-aprovacao')}>Aguardando aprovação</button>
@@ -117,6 +152,7 @@ export default function Page() {
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/historico')}>Histórico</button>
       </div>
 
+      {/* HORAS semanal e mensal */}
       <div className={styles.semanaHeader}>
         <span className={styles.semanaData}>17 Fevereiro 2025</span>
         <div className={styles.semanaDivider} />
@@ -126,6 +162,7 @@ export default function Page() {
       </div>
 
       <div className={styles.cardWrapper}>
+        {/* ATIVIDADES - inicio, fim e total */}
         <div className={styles.tabelaHeader}>
           <span className={styles.colAtividade}>Atividade</span>
           <span>Início</span>
@@ -133,6 +170,7 @@ export default function Page() {
           <span>Total</span>
         </div>
 
+        {/* CARDS */}
         {cards.map((card) => (
           <div key={card.id} className={styles.card}>
             <div>
@@ -141,10 +179,12 @@ export default function Page() {
               <div className={styles.cardTags}>
                 <span className={styles.cardTag}>{card.descricao}</span>
                 <span className={styles.cardTag}>{card.responsavel}</span>
+                <span className={styles.cardTag}>{card.tipoAtividade}</span>
               </div>
               <div className={styles.cardAcoes}>
                 <button className={styles.btnEditar} onClick={() => abrirModalEdicao(card)}>Editar</button>
                 <button className={styles.btnExcluir} onClick={() => excluir(card.id)}>Excluir</button>
+                <button style={btnEnviar} onClick={() => enviar(card.id)}>Enviar</button>
               </div>
             </div>
             <div className={styles.cardHorario}>{card.inicio}</div>
@@ -163,6 +203,40 @@ export default function Page() {
             <h3 style={{ color: '#012643', marginBottom: '16px', fontFamily: 'Roboto, sans-serif' }}>
               {cardEditando ? 'Editar registro' : 'Novo registro'}
             </h3>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={labelStyle}>Data do lançamento</label>
+              <input
+                style={inputStyle}
+                type="date"
+                max={hojeISO()}
+                value={form.dataLancamento}
+                onChange={e => setForm(prev => ({ ...prev, dataLancamento: e.target.value, justificativa: '' }))}
+              />
+            </div>
+
+            {retroativo && (
+              <div style={{ marginBottom: '12px', background: '#FFF8E1', borderRadius: '8px', padding: '10px 12px' }}>
+                <span style={{ fontSize: '12px', color: '#E65100', fontWeight: 600 }}>
+                  Lançamento retroativo — aguardará aprovação do Gerente
+                </span>
+              </div>
+            )}
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={labelStyle}>Tipo de atividade</label>
+              <select
+                style={inputStyle}
+                value={form.tipoAtividade}
+                onChange={e => setForm(prev => ({ ...prev, tipoAtividade: e.target.value }))}
+              >
+                <option value="">Selecione...</option>
+                <option value="FEATURE">Feature</option>
+                <option value="CORRECAO_BUG">Correção de Bug</option>
+                <option value="REUNIAO">Reunião</option>
+                <option value="DOCUMENTACAO">Documentação</option>
+              </select>
+            </div>
 
             {(['nomeProjeto', 'tituloSessao', 'descricao', 'responsavel'] as const).map((campo) => (
               <div key={campo} style={{ marginBottom: '12px' }}>
@@ -201,9 +275,29 @@ export default function Page() {
               Total: <strong style={{ color: '#012643' }}>{formatarHoras(calcularTotal(form.inicio, form.fim))}</strong>
             </div>
 
+            {retroativo && (
+              <div style={{ marginBottom: '12px' }}>
+                <label style={labelStyle}>Justificativa <span style={{ color: '#E65100' }}>*</span></label>
+                <textarea
+                  style={{ ...inputStyle, resize: 'vertical', minHeight: '72px' }}
+                  value={form.justificativa}
+                  onChange={e => setForm(prev => ({ ...prev, justificativa: e.target.value }))}
+                  placeholder="Explique o motivo do lançamento retroativo"
+                />
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={fecharModal} style={btnCancelar}>Cancelar</button>
-              <button onClick={salvar} style={btnSalvar}>Salvar</button>
+              <button
+                onClick={salvar}
+                style={{
+                  ...btnSalvar,
+                  opacity: (retroativo && !form.justificativa?.trim()) || !form.tipoAtividade ? 0.5 : 1,
+                }}
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>
@@ -233,6 +327,8 @@ const modal: React.CSSProperties = {
   width: '100%',
   maxWidth: '420px',
   fontFamily: 'Roboto, sans-serif',
+  maxHeight: '90vh',
+  overflowY: 'auto',
 };
 
 const labelStyle: React.CSSProperties = {
@@ -252,6 +348,7 @@ const inputStyle: React.CSSProperties = {
   color: '#012643',
   outline: 'none',
   fontFamily: 'Roboto, sans-serif',
+  boxSizing: 'border-box',
 };
 
 const btnSalvar: React.CSSProperties = {
@@ -275,5 +372,17 @@ const btnCancelar: React.CSSProperties = {
   color: '#0A4FA8',
   fontWeight: 600,
   cursor: 'pointer',
-  fontFamily: 'Roboto", sans-serif',
+  fontFamily: 'Roboto, sans-serif',
+};
+
+const btnEnviar: React.CSSProperties = {
+  background: 'transparent',
+  border: '1.5px solid #0A4FA8',
+  borderRadius: '8px',
+  padding: '4px 12px',
+  fontSize: '12px',
+  color: '#0A4FA8',
+  fontWeight: 600,
+  cursor: 'pointer',
+  fontFamily: 'Roboto, sans-serif',
 };
