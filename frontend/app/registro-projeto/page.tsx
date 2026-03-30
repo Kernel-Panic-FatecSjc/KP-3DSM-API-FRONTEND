@@ -7,12 +7,16 @@ function page() {
 
     const addInput = () => {
     setDevs([...devs, '']);
-    };
+  };
 
     const alterarValor = (index: any , value: any) => {
         const novosDevs = [...devs];
         novosDevs[index] = value;
         setDevs(novosDevs);
+  };
+
+    const handleClick = () => {
+    console.log("Adicionando");
   };
 
   return (
@@ -79,7 +83,9 @@ function page() {
         />
         </div>
         <p>Orçamento</p>
-        <button>Adicionar</button>
+        <div className={styles.buttonWrapper}>
+          <button type='submit' className={styles.ButtonStyle} onClick={handleClick} >Adicionar</button>
+        </div>
       </div>
     </div>
   )
