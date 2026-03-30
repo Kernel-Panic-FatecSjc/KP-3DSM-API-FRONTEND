@@ -1,0 +1,243 @@
+.page {
+    background: #F7F9FC;
+    min-height: 100vh;
+    font-family: "Roboto", sans-serif;
+    font-size: 13px;
+    color: #012643;
+}
+
+/* OPÇÕES de filtro */
+.filtros {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 24px 28px 20px;
+    max-width: 960px;
+}
+
+.filtroBtn {
+    background: #FFFFFF;
+    border: 1.5px solid #D0DDEF;
+    color: #0A4FA8;
+    font-size: 13px;
+    font-family: "Roboto", sans-serif;
+    padding: 9px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(1, 38, 67, 0.08);
+}
+
+.filtroBtnAtivo {
+    background: #012643;
+    color: #FFFFFF;
+    font-weight: 700;
+    border: 1.5px solid #012643;
+    box-shadow: 0 2px 8px rgba(1, 38, 67, 0.25);
+}
+
+/* HORAS semanal e mensal */
+.semanaHeader {
+    padding: 24px 28px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.semanaData {
+    font-size: 18px;
+    font-weight: 700;
+    color: #012643;
+}
+
+.semanaDivider {
+    width: 1px;
+    height: 18px;
+    background: #D0DDEF;
+}
+
+.semanaStat {
+    font-size: 12px;
+    color: #0A4FA8;
+    font-weight: 500;
+}
+
+.semanaStat strong {
+    color: #012643;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* ATIVIDADES - inicio, fim e total */
+.tabelaHeader {
+    display: grid;
+    grid-template-columns: 1fr 100px 100px 110px;
+    padding: 0 20px 8px;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0A4FA8;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1.5px solid #E8EFF9;
+    margin-bottom: 10px;
+}
+
+.colAtividade {
+    text-align: left;
+}
+
+/* CARDS */
+.cardWrapper {
+    padding: 0 28px 80px;
+    max-width: 960px;
+}
+
+.card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: grid;
+    grid-template-columns: 1fr 100px 100px 110px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    border: 1.5px solid #E8EFF9;
+    box-shadow: 0 1px 4px rgba(1, 38, 67, 0.05);
+    transition: box-shadow 0.15s;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(1, 38, 67, 0.1);
+}
+
+.cardBreadcrumb {
+    font-size: 10px;
+    color: #0A4FA8;
+    font-weight: 600;
+    margin-bottom: 3px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cardTitulo {
+    font-size: 14px;
+    font-weight: 700;
+    color: #012643;
+    margin-bottom: 6px;
+}
+
+.cardTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+}
+
+.cardTag {
+    font-size: 11px;
+    color: #0A4FA8;
+    background: #E8EFF9;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.cardAcoes {
+    display: flex;
+    gap: 6px;
+}
+
+.btnEditar {
+    background: #0A4FA8;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: #FFFFFF;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: "Roboto", sans-serif;
+}
+
+.btnExcluir {
+    background: #0A4FA8;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: #FFFFFF;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: "Roboto", sans-serif;
+}
+
+.cardHorario {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #012643;
+    background: #E8EFF9;
+    border-radius: 10px;
+    padding: 10px 0;
+}
+
+.cardDestacado .cardHorario {
+    background: #D6E4F0;
+    color: #012643;
+}
+
+.cardTotal {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0A4FA8;
+}
+
+/* BOTÃO adicionar */
+/* .btnAdicionar {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #012643;
+    color: #FFFFFF;
+    font-size: 26px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Roboto", sans-serif;
+    box-shadow: 0 4px 12px rgba(1, 38, 67, 0.3);
+    transition: background 0.15s;
+} */
+
+.btnAdicionar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #012643;
+    color: #FFFFFF;
+    font-size: 26px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    font-family: "Roboto", sans-serif;
+    box-shadow: 0 4px 12px rgba(1, 38, 67, 0.3);
+    transition: background 0.15s;
+
+    margin-top: 20px;
+    margin-left: auto;
+    display: block;
+}
+
+.btnAdicionar:hover {
+    background: #0A4FA8;
+}
