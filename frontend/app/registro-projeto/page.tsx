@@ -45,7 +45,7 @@ function page() {
           type='text'
         />
         </div>
-        <div className={styles.containerInput}>
+        <div className={styles.containerInputTop}>
         <p>Desenvolvedores:</p>
         <div className={styles.devWrapper}>
             {devs.map((dev, index) => (
@@ -82,7 +82,7 @@ function page() {
           type='text'
         />
         </div>
-        <p>Orçamento</p>
+        <button type='submit' className={styles.ButtonStyle} onClick={handleClick} >Orçamento</button>
         <div className={styles.buttonWrapper}>
           <button type='submit' className={styles.ButtonStyle} onClick={handleClick} >Adicionar</button>
         </div>
