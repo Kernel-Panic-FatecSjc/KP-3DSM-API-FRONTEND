@@ -88,6 +88,15 @@
     cursor: pointer;
 }
 
+.iconLeft {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    cursor: pointer;
+}
+
 .inputStyle {
     width: 100%;
     padding-right: 40px;

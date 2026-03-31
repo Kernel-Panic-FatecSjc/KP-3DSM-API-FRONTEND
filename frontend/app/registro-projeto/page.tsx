@@ -19,6 +19,11 @@ function page() {
     console.log("Adicionando");
   };
 
+    const removerInput = (index: number) => {
+    const novosDevs = devs.filter((_, i) => i !== index);
+    setDevs(novosDevs);
+  };
+  
   return (
 
     <div className={styles.container}>
@@ -48,24 +53,32 @@ function page() {
         <div className={styles.containerInputTop}>
         <p>Desenvolvedores:</p>
         <div className={styles.devWrapper}>
-            {devs.map((dev, index) => (
+          {devs.map((dev, index) => (
             <div key={index} className={styles.inputWrapper}>
-                <input
+              <input
                 className={styles.inputStyle}
                 type="text"
                 value={dev}
                 onChange={(e) => alterarValor(index, e.target.value)}
+              />
+              {index > 0 && (
+              <img
+                src="/images/iconLixeira.svg"
+                className={styles.iconLeft}
+                onClick={() => removerInput(index)}
                 />
+              )}
 
-                {index === devs.length - 1 && (
+              {index === devs.length - 1 && (
                 <img
-                    src="/images/iconMais.svg"
-                    className={styles.iconRight}
-                    onClick={addInput}
+                  src="/images/iconMais.svg"
+                  className={styles.iconRight}
+                  onClick={addInput}
                 />
-                )}
+              )}
+
             </div>
-            ))}
+          ))}
         </div>
         </div>
         <div className={styles.containerInput}>
@@ -82,7 +95,6 @@ function page() {
           type='text'
         />
         </div>
-        <button type='submit' className={styles.ButtonStyle} onClick={handleClick} >Orçamento</button>
         <div className={styles.buttonWrapper}>
           <button type='submit' className={styles.ButtonStyle} onClick={handleClick} >Adicionar</button>
         </div>
