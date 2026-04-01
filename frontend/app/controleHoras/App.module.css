@@ -72,7 +72,7 @@
 /* ATIVIDADES - inicio, fim e total */
 .tabelaHeader {
     display: grid;
-    grid-template-columns: 1fr 100px 100px 110px;
+    grid-template-columns: 1fr 100px 100px 110px 100px;
     padding: 0 20px 8px;
     gap: 10px;
     font-size: 11px;
@@ -100,7 +100,7 @@
     border-radius: 12px;
     padding: 14px 20px;
     display: grid;
-    grid-template-columns: 1fr 100px 100px 110px;
+    grid-template-columns: 1fr 100px 100px 110px 100px;
     align-items: center;
     gap: 10px;
     margin-bottom: 8px;
@@ -196,28 +196,6 @@
     font-weight: 700;
     color: #0A4FA8;
 }
-
-/* BOTÃO adicionar */
-/* .btnAdicionar {
-    position: fixed;
-    bottom: 28px;
-    right: 28px;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: #012643;
-    color: #FFFFFF;
-    font-size: 26px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "Roboto", sans-serif;
-    box-shadow: 0 4px 12px rgba(1, 38, 67, 0.3);
-    transition: background 0.15s;
-} */
 
 .btnAdicionar {
     width: 52px;

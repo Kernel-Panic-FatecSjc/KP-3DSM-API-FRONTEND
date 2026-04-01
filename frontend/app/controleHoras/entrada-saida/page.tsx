@@ -143,7 +143,6 @@ export default function Page() {
 
   return (
     <div className={styles.page}>
-      {/* OPÇÕES de filtro */}
       <div className={styles.filtros}>
         <button className={`${styles.filtroBtn} ${styles.filtroBtnAtivo}`}>Entrada/Saída</button>
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/aguardando-aprovacao')}>Aguardando aprovação</button>
@@ -152,7 +151,6 @@ export default function Page() {
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/historico')}>Histórico</button>
       </div>
 
-      {/* HORAS semanal e mensal */}
       <div className={styles.semanaHeader}>
         <span className={styles.semanaData}>17 Fevereiro 2025</span>
         <div className={styles.semanaDivider} />
@@ -162,15 +160,14 @@ export default function Page() {
       </div>
 
       <div className={styles.cardWrapper}>
-        {/* ATIVIDADES - inicio, fim e total */}
         <div className={styles.tabelaHeader}>
           <span className={styles.colAtividade}>Atividade</span>
           <span>Início</span>
           <span>Fim</span>
           <span>Total</span>
+          <span>Ações</span>
         </div>
 
-        {/* CARDS */}
         {cards.map((card) => (
           <div key={card.id} className={styles.card}>
             <div>
@@ -181,19 +178,35 @@ export default function Page() {
                 <span className={styles.cardTag}>{card.responsavel}</span>
                 <span className={styles.cardTag}>{card.tipoAtividade}</span>
               </div>
-              <div className={styles.cardAcoes}>
-                <button className={styles.btnEditar} onClick={() => abrirModalEdicao(card)}>Editar</button>
-                <button className={styles.btnExcluir} onClick={() => excluir(card.id)}>Excluir</button>
-                <button style={btnEnviar} onClick={() => enviar(card.id)}>Enviar</button>
-              </div>
             </div>
             <div className={styles.cardHorario}>{card.inicio}</div>
             <div className={styles.cardHorario}>{card.fim}</div>
             <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
+            <div className={styles.cardAcoes}>
+              <button style={btnIcone} title="Editar" onClick={() => abrirModalEdicao(card)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A4FA8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button style={btnIcone} title="Excluir" onClick={() => excluir(card.id)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </button>
+              <button style={btnIcone} title="Enviar" onClick={() => enviar(card.id)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A4FA8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            </div>
           </div>
         ))}
 
-        {/* BOTÃO CORRIGIDO */}
         <button className={styles.btnAdicionar} onClick={abrirModalNovo}>+</button>
       </div>
 
@@ -231,10 +244,11 @@ export default function Page() {
                 onChange={e => setForm(prev => ({ ...prev, tipoAtividade: e.target.value }))}
               >
                 <option value="">Selecione...</option>
-                <option value="FEATURE">Feature</option>
+                <option value="ANALISE">Análise</option>
+                <option value="DESENVOLVIMENTO">Desenvolvimento</option>
+                <option value="TESTES">Testes</option>
                 <option value="CORRECAO_BUG">Correção de Bug</option>
-                <option value="REUNIAO">Reunião</option>
-                <option value="DOCUMENTACAO">Documentação</option>
+                <option value="FEATURE">Feature</option>
               </select>
             </div>
 
@@ -375,14 +389,12 @@ const btnCancelar: React.CSSProperties = {
   fontFamily: 'Roboto, sans-serif',
 };
 
-const btnEnviar: React.CSSProperties = {
+const btnIcone: React.CSSProperties = {
   background: 'transparent',
-  border: '1.5px solid #0A4FA8',
-  borderRadius: '8px',
-  padding: '4px 12px',
-  fontSize: '12px',
-  color: '#0A4FA8',
-  fontWeight: 600,
+  border: 'none',
   cursor: 'pointer',
-  fontFamily: 'Roboto, sans-serif',
+  padding: '4px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 };
