@@ -9,16 +9,72 @@ export default function Page() {
   };
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalAtualizar, setModalAtualizar] = useState(false);
+  const [filtroNome, setFiltroNome] = useState('');
+  const [contratoSelecionado, setContratoSelecionado] = useState('');
+  const [nivelSelecionado, setNivelSelecionado] = useState('');
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
+
+  type Usuario = {
+    nome: string;
+    email: string;
+    nivel: string;
+    contrato: string;
+    valorHora: string;
+    status: string;
+  };
 
   const funcMock = [
     {nome: "Guilherme Briggs", email: "guilherme@gmail.com", nivel: "Júnior", contrato: "CLT", valorHora: "R$4,95", status: "Ativo"},
     {nome: "Guilherme Briggs", email: "guilherme@gmail.com", nivel: "Júnior", contrato: "CLT", valorHora: "R$4,95", status: "Nao Ativo"}
   ]
 
+  const usuariosFiltrados = funcMock.filter((usuario) => {
+    const nomeOk = usuario.nome.toLowerCase().includes(filtroNome.toLowerCase());
+
+    const contratoOk =
+      contratoSelecionado === '' || usuario.contrato === contratoSelecionado;
+
+    const nivelOk =
+      nivelSelecionado === '' || usuario.nivel === nivelSelecionado;
+
+    return nomeOk && contratoOk && nivelOk;
+  });
 
   return (
     <div className={styles.container}>
     <h1 className={styles.titulo}>Página de Usuários</h1>
+    
+
+      <div className={styles.filtros}>
+        <input
+          type="text" 
+          placeholder="Buscar por nome..."
+          value={filtroNome}
+          onChange={(e) => setFiltroNome(e.target.value)}
+          className={styles.inputFiltro}
+        />
+        <select
+          value={contratoSelecionado}
+          onChange={(e) => setContratoSelecionado(e.target.value)}
+          className={styles.selectFiltro}
+        >
+          <option value="">Todos os contratos</option>
+          <option value="CLT">CLT</option>
+          <option value="PJ">PJ</option>
+          <option value="PJ/Hora">PJ/Hora</option>
+        </select>
+
+        <select
+          value={nivelSelecionado}
+          onChange={(e) => setNivelSelecionado(e.target.value)}
+          className={styles.selectFiltro}
+        >
+          <option value="">Todos os níveis</option>
+          <option value="Júnior">Júnior</option>
+          <option value="Pleno">Pleno</option>
+          <option value="Senior">Senior</option>
+        </select>
+      </div>
     <div className={styles.tabelaContainer}>
       <table className={styles.tabela}>
         <thead>
@@ -33,7 +89,7 @@ export default function Page() {
           </tr>
         </thead>
         <tbody>
-          {funcMock.map((usuario, index) => (
+          {usuariosFiltrados.map((usuario, index) => (
             <tr key={index}>
               <td>{usuario.nome}</td>
               <td>{usuario.email}</td>
@@ -46,8 +102,23 @@ export default function Page() {
                 </span>
               </td>
               <td className={styles.acoes}>
-                <button className={styles.botaoAbrirEdicao} onClick={() => setModalAtualizar(true)}>+</button>
-                <button className={styles.botaoExcluir} onClick={() => setModalCadastro(true)}>+</button>
+                  <button className={styles.botaoAbrirEdicao} onClick={() => {
+                    setUsuarioSelecionado(usuario);
+                    setModalAtualizar(true);
+                  }}>
+                  <img
+                      src="/images/atualizar.svg"
+                      className={styles.imagemBotao}
+                      alt="Recusar Horas"
+                    />  
+                </button>
+                <button className={styles.botaoExcluir}>
+                  <img
+                      src="/images/deletar.svg"
+                      className={styles.imagemBotao}
+                      alt="Recusar Horas"
+                    />  
+                </button>
               </td>
             </tr>
           ))}
@@ -129,12 +200,20 @@ export default function Page() {
 
           <div className={styles.inputWrapper}>
             <label>Nome</label>
-            <input className={styles.inputStyle} type="text" placeholder="Nome" />
+            <input
+              className={styles.inputStyle}
+              type="text"
+              defaultValue={usuarioSelecionado?.nome}
+            />
           </div>
 
           <div className={styles.inputWrapper}>
             <label>Email</label>
-            <input className={styles.inputStyle} type="email" placeholder="nome@gmail.com" />
+            <input
+            className={styles.inputStyle}
+            type="email"
+            defaultValue={usuarioSelecionado?.email}
+          />
           </div>
 
           <div className={styles.inputWrapper}>
@@ -145,14 +224,22 @@ export default function Page() {
           <div className={styles.row}>
             <div className={styles.inputWrapper}>
               <label>Valor Custo por Hora</label>
-              <input className={styles.inputStyle} type="number" placeholder="R$" />
+              <input
+                className={styles.inputStyle}
+                type="text"
+                defaultValue={usuarioSelecionado?.valorHora}
+              />
             </div>
 
             <div className={styles.inputWrapper}>
               <label>Tipo de Contrato</label>
-              <select className={styles.selectStyle}>
+              <select
+                className={styles.selectStyle}
+                defaultValue={usuarioSelecionado?.contrato}
+              >
                 <option>CLT</option>
                 <option>PJ</option>
+                <option>PJ/Hora</option>
               </select>
             </div>
           </div>
@@ -160,7 +247,10 @@ export default function Page() {
           <div className={styles.row}>
             <div className={styles.inputWrapper}>
               <label>Nível de Experiência</label>
-              <select className={styles.selectStyle}>
+              <select
+                className={styles.selectStyle}
+                defaultValue={usuarioSelecionado?.nivel}
+              >
                 <option>Júnior</option>
                 <option>Pleno</option>
                 <option>Senior</option>
@@ -169,7 +259,10 @@ export default function Page() {
 
             <div className={styles.inputWrapper}>
               <label>Status</label>
-              <select className={styles.selectStyle}>
+              <select
+                className={styles.selectStyle}
+                defaultValue={usuarioSelecionado?.status}
+              >
                 <option>Ativo</option>
                 <option>Não Ativo</option>
               </select>
