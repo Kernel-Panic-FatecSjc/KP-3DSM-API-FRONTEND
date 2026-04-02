@@ -37,12 +37,81 @@
     box-shadow: 0 2px 8px rgba(1, 38, 67, 0.25);
 }
 
-/* HORAS semanal e mensal */
+/* HORAS semanal e mensal + filtros de projeto/data */
 .semanaHeader {
     padding: 24px 28px 16px;
     display: flex;
     align-items: center;
     gap: 16px;
+    justify-content: space-between;
+    max-width: 960px;
+}
+
+.semanaHeaderInfo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.semanaHeaderFiltros {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filtroSelect {
+    background: #FFFFFF;
+    border: 1.5px solid #D0DDEF;
+    color: #012643;
+    font-size: 12px;
+    font-family: "Roboto", sans-serif;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: 0 1px 4px rgba(1, 38, 67, 0.06);
+    outline: none;
+    height: 34px;
+}
+
+.filtroSelect:focus {
+    border-color: #0A4FA8;
+}
+
+.filtroData {
+    background: #FFFFFF;
+    border: 1.5px solid #D0DDEF;
+    color: #012643;
+    font-size: 12px;
+    font-family: "Roboto", sans-serif;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: 0 1px 4px rgba(1, 38, 67, 0.06);
+    outline: none;
+    height: 34px;
+}
+
+.filtroData:focus {
+    border-color: #0A4FA8;
+}
+
+.filtroBtnLimpar {
+    background: transparent;
+    border: none;
+    color: #0A4FA8;
+    font-size: 11px;
+    font-family: "Roboto", sans-serif;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 4px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.filtroBtnLimpar:hover {
+    background: #E8EFF9;
 }
 
 .semanaData {

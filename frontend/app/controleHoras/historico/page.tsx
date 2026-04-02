@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +11,7 @@ interface Card {
   responsavel: string;
   inicio: string;
   fim: string;
+  dataLancamento: string;
 }
 
 function calcularTotal(inicio: string, fim: string): number {
@@ -27,6 +29,12 @@ function formatarHoras(minutos: number): string {
   return `${h}h ${m}min`;
 }
 
+function formatarData(data: string): string {
+  if (!data) return '';
+  const [ano, mes, dia] = data.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
 const cards: Card[] = [
   {
     id: 1,
@@ -36,6 +44,7 @@ const cards: Card[] = [
     responsavel: 'José Ricardo',
     inicio: '08:00',
     fim: '10:00',
+    dataLancamento: '2025-02-17',
   },
   {
     id: 2,
@@ -45,6 +54,7 @@ const cards: Card[] = [
     responsavel: 'Daniele',
     inicio: '09:30',
     fim: '12:00',
+    dataLancamento: '2025-02-17',
   },
   {
     id: 3,
@@ -54,6 +64,7 @@ const cards: Card[] = [
     responsavel: 'Frida',
     inicio: '13:00',
     fim: '15:30',
+    dataLancamento: '2025-02-10',
   },
   {
     id: 4,
@@ -63,6 +74,7 @@ const cards: Card[] = [
     responsavel: 'Hanna',
     inicio: '14:00',
     fim: '16:00',
+    dataLancamento: '2025-02-10',
   },
   {
     id: 5,
@@ -72,14 +84,25 @@ const cards: Card[] = [
     responsavel: 'José Ricardo',
     inicio: '16:00',
     fim: '17:30',
+    dataLancamento: '2025-02-03',
   },
 ];
 
 export default function Page() {
   const router = useRouter();
 
-  const totalGeral = cards
-    .reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+  const [filtroProjeto, setFiltroProjeto] = useState('');
+  const [filtroData, setFiltroData] = useState('');
+
+  const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
+
+  const cardsFiltrados = cards.filter(c => {
+    const matchProjeto = filtroProjeto === '' || c.nomeProjeto === filtroProjeto;
+    const matchData = filtroData === '' || c.dataLancamento === filtroData;
+    return matchProjeto && matchData;
+  });
+
+  const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
 
   return (
     <div className={styles.page}>
@@ -92,33 +115,62 @@ export default function Page() {
         <button className={`${styles.filtroBtn} ${styles.filtroBtnAtivo}`}>Histórico</button>
       </div>
 
-      {/* HORAS semanal e mensal */}
+      {/* HORAS semanal e mensal + filtros de projeto/data */}
       <div className={styles.semanaHeader}>
-        <span className={styles.semanaData}>17 Fevereiro 2025</span>
-        <div className={styles.semanaDivider} />
-        <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
-        <div className={styles.semanaDivider} />
-        <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+        <div className={styles.semanaHeaderInfo}>
+          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <div className={styles.semanaDivider} />
+          <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
+          <div className={styles.semanaDivider} />
+          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+        </div>
+        <div className={styles.semanaHeaderFiltros}>
+          <select
+            className={styles.filtroSelect}
+            value={filtroProjeto}
+            onChange={e => setFiltroProjeto(e.target.value)}
+          >
+            <option value="">Todos os projetos</option>
+            {projetos.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <input
+            className={styles.filtroData}
+            type="date"
+            value={filtroData}
+            onChange={e => setFiltroData(e.target.value)}
+          />
+          {(filtroProjeto !== '' || filtroData !== '') && (
+            <button
+              className={styles.filtroBtnLimpar}
+              onClick={() => { setFiltroProjeto(''); setFiltroData(''); }}
+            >
+              Limpar
+            </button>
+          )}
+        </div>
       </div>
 
       <div className={styles.cardWrapper}>
         {/* ATIVIDADES - inicio, fim e total */}
-        <div className={styles.tabelaHeader}>
-          <span className={styles.colAtividade}>Atividade</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px', padding: '0 20px 8px', gap: '10px', fontSize: '11px', fontWeight: 700, color: '#0A4FA8', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1.5px solid #E8EFF9', marginBottom: '10px' }}>
+          <span style={{ textAlign: 'left' }}>Atividade</span>
           <span>Início</span>
           <span>Fim</span>
           <span>Total</span>
+          <span>Lançamento</span>
         </div>
 
-        {cards.length === 0 && (
+        {cardsFiltrados.length === 0 && (
           <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>
             Nenhum registro no histórico.
           </p>
         )}
 
         {/* CARDS */}
-        {cards.map((card) => (
-          <div key={card.id} className={styles.card}>
+        {cardsFiltrados.map((card) => (
+          <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px', alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
             <div>
               <div className={styles.cardBreadcrumb}>{card.nomeProjeto}</div>
               <div className={styles.cardTitulo}>{card.tituloSessao}</div>
@@ -130,6 +182,7 @@ export default function Page() {
             <div className={styles.cardHorario}>{card.inicio}</div>
             <div className={styles.cardHorario}>{card.fim}</div>
             <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
+            <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
           </div>
         ))}
       </div>

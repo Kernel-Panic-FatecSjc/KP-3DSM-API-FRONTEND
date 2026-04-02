@@ -31,6 +31,12 @@ function formatarHoras(minutos: number): string {
   return `${h}h ${m}min`;
 }
 
+function formatarData(data: string): string {
+  if (!data) return '';
+  const [ano, mes, dia] = data.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
 function hojeISO(): string {
   return new Date().toISOString().split('T')[0];
 }
@@ -138,11 +144,23 @@ export default function Page() {
     setCards(prev => prev.filter(c => c.id !== id));
   };
 
-  const totalGeral = cards.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+  const [filtroProjeto, setFiltroProjeto] = useState('');
+  const [filtroData, setFiltroData] = useState('');
+
+  const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
+
+  const cardsFiltrados = cards.filter(c => {
+    const matchProjeto = filtroProjeto === '' || c.nomeProjeto === filtroProjeto;
+    const matchData = filtroData === '' || c.dataLancamento === filtroData;
+    return matchProjeto && matchData;
+  });
+
+  const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
   const retroativo = isRetroativo(form.dataLancamento);
 
   return (
     <div className={styles.page}>
+      {/* OPÇÕES de filtro */}
       <div className={styles.filtros}>
         <button className={`${styles.filtroBtn} ${styles.filtroBtnAtivo}`}>Entrada/Saída</button>
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/aguardando-aprovacao')}>Aguardando aprovação</button>
@@ -151,25 +169,56 @@ export default function Page() {
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/historico')}>Histórico</button>
       </div>
 
+      {/* HORAS semanal e mensal + filtros de projeto/data */}
       <div className={styles.semanaHeader}>
-        <span className={styles.semanaData}>17 Fevereiro 2025</span>
-        <div className={styles.semanaDivider} />
-        <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
-        <div className={styles.semanaDivider} />
-        <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+        <div className={styles.semanaHeaderInfo}>
+          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <div className={styles.semanaDivider} />
+          <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
+          <div className={styles.semanaDivider} />
+          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+        </div>
+        <div className={styles.semanaHeaderFiltros}>
+          <select
+            className={styles.filtroSelect}
+            value={filtroProjeto}
+            onChange={e => setFiltroProjeto(e.target.value)}
+          >
+            <option value="">Todos os projetos</option>
+            {projetos.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <input
+            className={styles.filtroData}
+            type="date"
+            value={filtroData}
+            onChange={e => setFiltroData(e.target.value)}
+          />
+          {(filtroProjeto !== '' || filtroData !== '') && (
+            <button
+              className={styles.filtroBtnLimpar}
+              onClick={() => { setFiltroProjeto(''); setFiltroData(''); }}
+            >
+              Limpar
+            </button>
+          )}
+        </div>
       </div>
 
       <div className={styles.cardWrapper}>
-        <div className={styles.tabelaHeader}>
-          <span className={styles.colAtividade}>Atividade</span>
+        {/* ATIVIDADES - inicio, fim e total */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px 100px', padding: '0 20px 8px', gap: '10px', fontSize: '11px', fontWeight: 700, color: '#0A4FA8', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1.5px solid #E8EFF9', marginBottom: '10px' }}>
+          <span style={{ textAlign: 'left' }}>Atividade</span>
           <span>Início</span>
           <span>Fim</span>
           <span>Total</span>
+          <span>Lançamento</span>
           <span>Ações</span>
         </div>
 
-        {cards.map((card) => (
-          <div key={card.id} className={styles.card}>
+        {cardsFiltrados.map((card) => (
+          <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px 100px', alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
             <div>
               <div className={styles.cardBreadcrumb}>{card.nomeProjeto}</div>
               <div className={styles.cardTitulo}>{card.tituloSessao}</div>
@@ -182,6 +231,7 @@ export default function Page() {
             <div className={styles.cardHorario}>{card.inicio}</div>
             <div className={styles.cardHorario}>{card.fim}</div>
             <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
+            <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
             <div className={styles.cardAcoes}>
               <button style={btnIcone} title="Editar" onClick={() => abrirModalEdicao(card)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A4FA8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
