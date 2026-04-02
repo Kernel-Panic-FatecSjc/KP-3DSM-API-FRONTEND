@@ -10,7 +10,7 @@ export default function Page() {
             descricao: 'Projeto para gerenciamento de vendas online',
             prazo: '2026-04-15',
             dataCriacao: '2026-03-01',
-            status: 'todo'
+            status: 'fazer'
         },
         {
             id: '002',
@@ -32,7 +32,7 @@ export default function Page() {
 
     const getStatusColor = (status:any) => {
         switch (status) {
-            case 'todo':
+            case 'fazer':
                 return '#9CA3AF';
             case 'doing':
                 return '#3B82F6';
@@ -79,7 +79,7 @@ export default function Page() {
                                 handleStatusChange(projeto.id, e.target.value)
                             }
                         >
-                            <option value="todo">To Do</option>
+                            <option value="fazer">A fazer</option>
                             <option value="doing">Em produção</option>
                             <option value="done">Feito</option>
                         </select>
