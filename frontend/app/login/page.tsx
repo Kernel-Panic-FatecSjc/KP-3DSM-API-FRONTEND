@@ -31,7 +31,7 @@ export default function Page() {
           <input 
           className={styles.inputStyle}
           type='text'
-          placeholder='Digite seu usuário:'
+          placeholder='Digite seu email:'
           />
         </div>
         <div className={styles.inputWrapper}>
