@@ -1,4 +1,5 @@
-import "./globals.css"
+import "./globals.css";
+import NavigationBar from "@/components/layout/navegationBar/navegationBar";
 
 export default function RootLayout({
   children,
@@ -6,9 +7,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-    >
-      <body>{children}</body>
+    <html lang="pt-br">
+      <body>
+        <header style={{ position: 'relative', zIndex: 9999 }}>
+          <NavigationBar />
+        </header>
+        <main className="main-wrapper">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }
