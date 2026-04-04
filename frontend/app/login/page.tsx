@@ -31,6 +31,7 @@ export default function Page() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('cargo', data.cargo);
       localStorage.setItem('email', data.email);
+      localStorage.setItem('usuarioId', String(data.id));
 
     } catch (error) {
       console.error('Erro:', error);

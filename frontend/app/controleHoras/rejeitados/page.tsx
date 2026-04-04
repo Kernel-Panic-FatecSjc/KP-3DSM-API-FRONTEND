@@ -8,7 +8,7 @@ import {
 } from '../../services/controleHoras';
 
 // usuarioId fixo até o auth estar integrado
-const USUARIO_ID = 1;
+const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
 
 // nomeProjeto mockado até tarefa-service + projeto-service estarem integrados
 const MOCK_NOME_PROJETO = 'Aerocode';
