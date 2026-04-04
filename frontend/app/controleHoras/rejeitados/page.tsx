@@ -1,7 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
+import {
+    filtrarHoras,
+    buscarUsuarioPorId,
+} from '../../services/controleHoras';
+
+// usuarioId fixo até o auth estar integrado
+const USUARIO_ID = 1;
+
+// nomeProjeto mockado até tarefa-service + projeto-service estarem integrados
+const MOCK_NOME_PROJETO = 'Aerocode';
 
 interface Card {
     id: number;
@@ -14,6 +24,31 @@ interface Card {
     dataLancamento: string;
     motivoReprovacao: string;
 }
+
+const cardsMockados: Card[] = [
+    {
+        id: -1,
+        nomeProjeto: 'Aerocode',
+        tituloSessao: 'Reunião de planejamento',
+        descricao: 'Frontend',
+        responsavel: 'José Ricardo',
+        inicio: '08:00',
+        fim: '10:00',
+        dataLancamento: '2025-02-17',
+        motivoReprovacao: 'Horário inconsistente com o registro do sistema.',
+    },
+    {
+        id: -2,
+        nomeProjeto: 'Aerocode',
+        tituloSessao: 'Implementação de tela de login',
+        descricao: 'Frontend',
+        responsavel: 'Daniele',
+        inicio: '09:30',
+        fim: '12:00',
+        dataLancamento: '2025-02-10',
+        motivoReprovacao: 'Atividade já registrada em outra sessão.',
+    },
+];
 
 function calcularTotal(inicio: string, fim: string): number {
     if (!inicio || !fim) return 0;
@@ -36,37 +71,54 @@ function formatarData(data: string): string {
     return `${dia}/${mes}/${ano}`;
 }
 
-const cards: Card[] = [
-    {
-        id: 1,
-        nomeProjeto: 'Aerocode',
-        tituloSessao: 'Reunião de planejamento',
-        descricao: 'Frontend',
-        responsavel: 'José Ricardo',
-        inicio: '08:00',
-        fim: '10:00',
-        dataLancamento: '2025-02-17',
-        motivoReprovacao: 'Horário inconsistente com o registro do sistema.',
-    },
-    {
-        id: 2,
-        nomeProjeto: 'Aerocode',
-        tituloSessao: 'Implementação de tela de login',
-        descricao: 'Frontend',
-        responsavel: 'Daniele',
-        inicio: '09:30',
-        fim: '12:00',
-        dataLancamento: '2025-02-10',
-        motivoReprovacao: 'Atividade já registrada em outra sessão.',
-    },
-];
-
 export default function Page() {
     const router = useRouter();
 
+    const [cardsAPI, setCardsAPI] = useState<Card[]>([]);
+    const [carregando, setCarregando] = useState(true);
+    const [erro, setErro] = useState<string | null>(null);
     const [filtroProjeto, setFiltroProjeto] = useState('');
     const [filtroData, setFiltroData] = useState('');
 
+    useEffect(() => {
+        const carregar = async () => {
+            try {
+                setCarregando(true);
+                setErro(null);
+                const dados = await filtrarHoras({ usuarioId: USUARIO_ID, estado: 'REJEITADO' });
+                const comDados: Card[] = await Promise.all(
+                    dados.map(async (h) => {
+                        let responsavel = '';
+                        try {
+                            const usuario = await buscarUsuarioPorId(h.usuarioId);
+                            responsavel = usuario.nome;
+                        } catch {
+                            responsavel = String(h.usuarioId);
+                        }
+                        return {
+                            id: Number(h.id),
+                            nomeProjeto: MOCK_NOME_PROJETO, // substituir quando tarefa-service + projeto-service estiverem integrados
+                            tituloSessao: h.tituloSessao,
+                            descricao: h.descricao || '',
+                            responsavel,
+                            inicio: h.inicio.substring(0, 5),
+                            fim: h.fim.substring(0, 5),
+                            dataLancamento: h.dataLancamento,
+                            motivoReprovacao: h.motivoRejeicao || '',
+                        };
+                    })
+                );
+                setCardsAPI(comDados);
+            } catch {
+                setErro('Não foi possível carregar os registros.');
+            } finally {
+                setCarregando(false);
+            }
+        };
+        carregar();
+    }, []);
+
+    const cards = [...cardsAPI, ...cardsMockados];
     const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
 
     const cardsFiltrados = cards.filter(c => {
@@ -135,10 +187,12 @@ export default function Page() {
                     <span>Lançamento</span>
                 </div>
 
-                {cardsFiltrados.length === 0 && (
-                    <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>
-                        Nenhum registro rejeitado.
-                    </p>
+                {carregando && (
+                    <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>
+                )}
+
+                {erro && (
+                    <p style={{ color: '#C0392B', padding: '16px 0', fontSize: '13px' }}>{erro}</p>
                 )}
 
                 {/* CARDS */}
