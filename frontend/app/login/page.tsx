@@ -3,8 +3,38 @@ import React, { useState } from 'react';
 import styles from './App.module.css';
 
 export default function Page() {
-  const handleClick = () => {
-    console.log("Entrando");
+
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+
+  const handleClick = async () => {
+    try {
+      const response = await fetch('http://localhost:8081/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          senha,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login inválido');
+      }
+
+      const data = await response.json();
+
+      console.log(data)
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('cargo', data.cargo);
+      localStorage.setItem('email', data.email);
+
+    } catch (error) {
+      console.error('Erro:', error);
+    }
   };
 
   return (
@@ -28,10 +58,12 @@ export default function Page() {
           src="/images/usuario.svg"
           className={styles.iconInput}
           />
-          <input 
-          className={styles.inputStyle}
-          type='text'
-          placeholder='Digite seu usuário:'
+          <input
+            className={styles.inputStyle}
+            type='text'
+            placeholder='Digite seu email:'
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div className={styles.inputWrapper}>
@@ -39,10 +71,12 @@ export default function Page() {
           src="/images/cadeado.svg"
           className={styles.iconInput}
           />
-          <input 
-          className={styles.inputStyle} 
-          type='password' 
-          placeholder='Digite sua senha:'
+          <input
+            className={styles.inputStyle}
+            type='password'
+            placeholder='Digite sua senha:'
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
           />
         </div>
         <button className={styles.ButtonStyle} type="submit" onClick={handleClick}>Entrar</button>
