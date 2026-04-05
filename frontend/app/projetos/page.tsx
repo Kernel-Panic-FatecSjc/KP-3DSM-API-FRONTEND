@@ -30,9 +30,9 @@ export default function Page() {
     switch (status) {
       case "fazer":
         return "#9CA3AF";
-      case "doing":
+      case "fazendo":
         return "#3B82F6";
-      case "done":
+      case "feito":
         return "#10B981";
       default:
         return "#9CA3AF";
@@ -76,8 +76,8 @@ export default function Page() {
               onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
             >
               <option value="fazer">A fazer</option>
-              <option value="doing">Em produção</option>
-              <option value="done">Feito</option>
+              <option value="fazendo">Em produção</option>
+              <option value="feito">Feito</option>
             </select>
 
             <div className={styles.info}>
