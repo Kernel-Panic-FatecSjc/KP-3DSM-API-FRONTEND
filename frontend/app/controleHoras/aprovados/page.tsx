@@ -1,7 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
+import {
+  filtrarHoras,
+  buscarUsuarioPorId,
+} from '../../services/controleHoras';
+
+// usuarioId fixo até o auth estar integrado
+const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
+
+// nomeProjeto mockado até tarefa-service + projeto-service estarem integrados
+const MOCK_NOME_PROJETO = 'Aerocode';
 
 interface Card {
   id: number;
@@ -13,6 +23,49 @@ interface Card {
   fim: string;
   dataLancamento: string;
 }
+
+const cardsMockados: Card[] = [
+  {
+    id: -1,
+    nomeProjeto: 'Aerocode',
+    tituloSessao: 'Configuração do ambiente Docker',
+    descricao: 'DevOps',
+    responsavel: 'José Ricardo',
+    inicio: '07:30',
+    fim: '09:30',
+    dataLancamento: '2025-02-17',
+  },
+  {
+    id: -2,
+    nomeProjeto: 'Aerocode',
+    tituloSessao: 'Desenvolvimento de dashboard',
+    descricao: 'Frontend',
+    responsavel: 'Daniele',
+    inicio: '10:00',
+    fim: '12:30',
+    dataLancamento: '2025-02-17',
+  },
+  {
+    id: -3,
+    nomeProjeto: 'Aerocode',
+    tituloSessao: 'Criação de endpoints REST',
+    descricao: 'Backend',
+    responsavel: 'Frida',
+    inicio: '13:30',
+    fim: '16:00',
+    dataLancamento: '2025-02-10',
+  },
+  {
+    id: -4,
+    nomeProjeto: 'Aerocode',
+    tituloSessao: 'Documentação da API',
+    descricao: 'Backend',
+    responsavel: 'Hanna',
+    inicio: '14:00',
+    fim: '15:30',
+    dataLancamento: '2025-02-10',
+  },
+];
 
 function calcularTotal(inicio: string, fim: string): number {
   if (!inicio || !fim) return 0;
@@ -35,55 +88,53 @@ function formatarData(data: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-const cards: Card[] = [
-  {
-    id: 1,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Configuração do ambiente Docker',
-    descricao: 'DevOps',
-    responsavel: 'José Ricardo',
-    inicio: '07:30',
-    fim: '09:30',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: 2,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Desenvolvimento de dashboard',
-    descricao: 'Frontend',
-    responsavel: 'Daniele',
-    inicio: '10:00',
-    fim: '12:30',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: 3,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Criação de endpoints REST',
-    descricao: 'Backend',
-    responsavel: 'Frida',
-    inicio: '13:30',
-    fim: '16:00',
-    dataLancamento: '2025-02-10',
-  },
-  {
-    id: 4,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Documentação da API',
-    descricao: 'Backend',
-    responsavel: 'Hanna',
-    inicio: '14:00',
-    fim: '15:30',
-    dataLancamento: '2025-02-10',
-  },
-];
-
 export default function Page() {
   const router = useRouter();
 
+  const [cardsAPI, setCardsAPI] = useState<Card[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [filtroProjeto, setFiltroProjeto] = useState('');
   const [filtroData, setFiltroData] = useState('');
 
+  useEffect(() => {
+    const carregar = async () => {
+      try {
+        setCarregando(true);
+        setErro(null);
+        const dados = await filtrarHoras({ usuarioId: USUARIO_ID, estado: 'APROVADO' });
+        const comDados: Card[] = await Promise.all(
+          dados.map(async (h) => {
+            let responsavel = '';
+            try {
+              const usuario = await buscarUsuarioPorId(h.usuarioId);
+              responsavel = usuario.nome;
+            } catch {
+              responsavel = String(h.usuarioId);
+            }
+            return {
+              id: Number(h.id),
+              nomeProjeto: MOCK_NOME_PROJETO, // substituir quando tarefa-service + projeto-service estiverem integrados
+              tituloSessao: h.tituloSessao,
+              descricao: h.descricao || '',
+              responsavel,
+              inicio: h.inicio.substring(0, 5),
+              fim: h.fim.substring(0, 5),
+              dataLancamento: h.dataLancamento,
+            };
+          })
+        );
+        setCardsAPI(comDados);
+      } catch {
+        setErro('Não foi possível carregar os registros.');
+      } finally {
+        setCarregando(false);
+      }
+    };
+    carregar();
+  }, []);
+
+  const cards = [...cardsAPI, ...cardsMockados];
   const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
 
   const cardsFiltrados = cards.filter(c => {
@@ -152,10 +203,12 @@ export default function Page() {
           <span>Lançamento</span>
         </div>
 
-        {cardsFiltrados.length === 0 && (
-          <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>
-            Nenhum registro aprovado.
-          </p>
+        {carregando && (
+          <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>
+        )}
+
+        {erro && (
+          <p style={{ color: '#C0392B', padding: '16px 0', fontSize: '13px' }}>{erro}</p>
         )}
 
         {/* CARDS */}

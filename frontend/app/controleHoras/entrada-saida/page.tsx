@@ -1,7 +1,23 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
+import {
+  filtrarHoras,
+  criarHora,
+  editarHora,
+  excluirHora,
+  enviarParaAprovacao,
+  buscarUsuarioPorId,
+  type HorasExibirDTO,
+  type TipoAtividade,
+} from '../../services/controleHoras';
+
+// usuarioId fixo até o auth estar integrado
+const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
+
+// nomeProjeto mockado até tarefa-service + projeto-service estarem integrados
+const MOCK_NOME_PROJETO = 'Aerocode';
 
 interface Card {
   id: number;
@@ -18,8 +34,8 @@ interface Card {
 
 function calcularTotal(inicio: string, fim: string): number {
   if (!inicio || !fim) return 0;
-  const [hI, mI] = inicio.split(':').map(Number);
-  const [hF, mF] = fim.split(':').map(Number);
+  const [hI, mI] = inicio.substring(0, 5).split(':').map(Number);
+  const [hF, mF] = fim.substring(0, 5).split(':').map(Number);
   const totalMin = (hF * 60 + mF) - (hI * 60 + mI);
   return totalMin > 0 ? totalMin : 0;
 }
@@ -60,43 +76,65 @@ const cardInicial = {
 export default function Page() {
   const router = useRouter();
 
-  const [cards, setCards] = useState<Card[]>([
-    {
-      id: 1,
-      nomeProjeto: 'Aerocode',
-      tituloSessao: 'Planejamento da sprint',
-      descricao: 'Gestão',
-      responsavel: 'José Ricardo',
-      inicio: '08:00',
-      fim: '09:30',
-      tipoAtividade: 'REUNIAO',
-      dataLancamento: hojeISO(),
-    },
-    {
-      id: 2,
-      nomeProjeto: 'Aerocode',
-      tituloSessao: 'Desenvolvimento de componentes',
-      descricao: 'Frontend',
-      responsavel: 'Daniele',
-      inicio: '10:00',
-      fim: '12:00',
-      tipoAtividade: 'FEATURE',
-      dataLancamento: hojeISO(),
-    },
-  ]);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const [aguardando, setAguardando] = useState<Card[]>([]);
+  const carregarCards = async () => {
+    try {
+      setCarregando(true);
+      setErro(null);
+      const dados = await filtrarHoras({ usuarioId: USUARIO_ID, estado: 'PENDENTE' });
+      const comDados: Card[] = await Promise.all(
+        dados.map(async (h) => {
+          let responsavel = '';
+          try {
+            const usuario = await buscarUsuarioPorId(h.usuarioId);
+            responsavel = usuario.nome;
+          } catch {
+            // fallback: busca nome salvo no localStorage quando usuario-service não está disponível
+            const nomesSalvos = JSON.parse(localStorage.getItem('nomeResponsaveis') || '{}');
+            responsavel = nomesSalvos[String(h.usuarioId)] || String(h.usuarioId);
+          }
+          return {
+            id: Number(h.id),
+            nomeProjeto: MOCK_NOME_PROJETO, // substituir quando tarefa-service + projeto-service estiverem integrados
+            tituloSessao: h.tituloSessao,
+            descricao: h.descricao || '',
+            responsavel,
+            inicio: h.inicio.substring(0, 5),
+            fim: h.fim.substring(0, 5),
+            tipoAtividade: h.tipoAtividade,
+            dataLancamento: h.dataLancamento,
+            justificativa: h.justificativa || '',
+          };
+        })
+      );
+      setCards(comDados);
+    } catch (e) {
+      setErro('Não foi possível carregar os registros.');
+    } finally {
+      setCarregando(false);
+    }
+  };
 
-  const enviar = (id: number) => {
-    const card = cards.find(c => c.id === id);
-    if (!card) return;
-    setAguardando(prev => [...prev, card]);
-    setCards(prev => prev.filter(c => c.id !== id));
+  useEffect(() => {
+    carregarCards();
+  }, []);
+
+  const enviar = async (id: number) => {
+    try {
+      await enviarParaAprovacao(id);
+      await carregarCards();
+    } catch (e) {
+      alert('Erro ao enviar registro para aprovação.');
+    }
   };
 
   const [modalAberto, setModalAberto] = useState(false);
   const [cardEditando, setCardEditando] = useState<Card | null>(null);
   const [form, setForm] = useState(cardInicial);
+  const [salvando, setSalvando] = useState(false);
 
   const abrirModalNovo = () => {
     setCardEditando(null);
@@ -126,22 +164,59 @@ export default function Page() {
     setForm(cardInicial);
   };
 
-  const salvar = () => {
+  const salvar = async () => {
     if (isRetroativo(form.dataLancamento) && !form.justificativa?.trim()) return;
     if (!form.tipoAtividade) return;
 
-    if (cardEditando) {
-      setCards(prev =>
-        prev.map(c => (c.id === cardEditando.id ? { ...cardEditando, ...form } : c))
-      );
-    } else {
-      setCards(prev => [...prev, { id: Date.now(), ...form }]);
+    try {
+      setSalvando(true);
+
+      // salva o nome do responsável no localStorage para exibição quando usuario-service não estiver disponível
+      if (form.responsavel) {
+        const nomesSalvos = JSON.parse(localStorage.getItem('nomeResponsaveis') || '{}');
+        nomesSalvos[String(USUARIO_ID)] = form.responsavel;
+        localStorage.setItem('nomeResponsaveis', JSON.stringify(nomesSalvos));
+      }
+
+      if (cardEditando) {
+        await editarHora({
+          id: cardEditando.id,
+          tituloSessao: form.tituloSessao,
+          descricao: form.descricao,
+          tipoAtividade: form.tipoAtividade as TipoAtividade,
+          dataLancamento: form.dataLancamento,
+          inicio: form.inicio,
+          fim: form.fim,
+          justificativa: form.justificativa,
+        });
+      } else {
+        await criarHora({
+          usuarioId: USUARIO_ID,
+          tituloSessao: form.tituloSessao,
+          descricao: form.descricao,
+          tipoAtividade: form.tipoAtividade as TipoAtividade,
+          dataLancamento: form.dataLancamento,
+          inicio: form.inicio,
+          fim: form.fim,
+          justificativa: form.justificativa,
+        });
+      }
+      fecharModal();
+      await carregarCards();
+    } catch (e) {
+      alert('Erro ao salvar registro.');
+    } finally {
+      setSalvando(false);
     }
-    fecharModal();
   };
 
-  const excluir = (id: number) => {
-    setCards(prev => prev.filter(c => c.id !== id));
+  const excluir = async (id: number) => {
+    try {
+      await excluirHora(id);
+      await carregarCards();
+    } catch (e) {
+      alert('Erro ao excluir registro.');
+    }
   };
 
   const [filtroProjeto, setFiltroProjeto] = useState('');
@@ -216,6 +291,18 @@ export default function Page() {
           <span>Lançamento</span>
           <span>Ações</span>
         </div>
+
+        {carregando && (
+          <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>
+        )}
+
+        {erro && (
+          <p style={{ color: '#C0392B', padding: '16px 0', fontSize: '13px' }}>{erro}</p>
+        )}
+
+        {!carregando && !erro && cardsFiltrados.length === 0 && (
+          <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Nenhum registro pendente.</p>
+        )}
 
         {cardsFiltrados.map((card) => (
           <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px 100px', alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
@@ -355,12 +442,13 @@ export default function Page() {
               <button onClick={fecharModal} style={btnCancelar}>Cancelar</button>
               <button
                 onClick={salvar}
+                disabled={salvando}
                 style={{
                   ...btnSalvar,
                   opacity: (retroativo && !form.justificativa?.trim()) || !form.tipoAtividade ? 0.5 : 1,
                 }}
               >
-                Salvar
+                {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </div>
