@@ -1,0 +1,32 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql-usuario
+    restart: always
+    environment:
+      MYSQL_DATABASE: kernel_panic_db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  app:
+    build:
+      context: ./usuario-service
+      dockerfile: Dockerfile
+    container_name: usuario-service-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/kernel_panic_db?allowPublicKeyRetrieval=true&useSSL=false
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    volumes:
+      - ./usuario-service:/app
+      - ~/.m2:/root/.m2
+    depends_on:
+      - db
+
+volumes:
+  mysql_data:
