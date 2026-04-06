@@ -36,7 +36,6 @@ export default function Page() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         nome,
@@ -86,7 +85,6 @@ export default function Page() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           nome: nomeEdit,
@@ -140,9 +138,6 @@ export default function Page() {
     try {
       const response = await fetch(`http://localhost:8080/usuario/${id}`, {
         method: 'DELETE',
-        headers:{
-          'Authorization': `Bearer ${token}`
-        }
       });
 
       if (!response.ok) {
