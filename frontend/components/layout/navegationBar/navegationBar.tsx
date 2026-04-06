@@ -55,7 +55,7 @@ export default function NavigationBar() {
         {
           id: "projetos-view",
           title: "Visualizar projetos",
-          route: "/projetos-view",
+          route: "/projetos",
           iconInactive: "/images/iconProjetosView.svg",
           iconActive: "/images/iconProjetosViewAzul.svg"
         }

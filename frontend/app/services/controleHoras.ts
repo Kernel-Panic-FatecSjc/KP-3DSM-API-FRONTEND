@@ -1,5 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8081';
-const USUARIO_URL = process.env.NEXT_PUBLIC_USUARIO_API_URL || 'http://localhost:8083';
+const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8080';
+const USUARIO_URL = process.env.NEXT_PUBLIC_USUARIO_API_URL || 'http://localhost:8080';
 
 export type TipoAtividade = 'ANALISE' | 'DESENVOLVIMENTO' | 'TESTES' | 'CORRECAO_BUG' | 'FEATURE';
 
