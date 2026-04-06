@@ -122,7 +122,7 @@ export default function Page() {
     senha: string;
   };
 
-  const usuariosFiltrados = usuarios.filter((usuario) => {
+  const usuariosFiltrados = (Array.isArray(usuarios) ? usuarios : []).filter((usuario) => {
     const nomeOk = usuario.nome.toLowerCase().includes(filtroNome.toLowerCase());
 
     const cargoOk =
