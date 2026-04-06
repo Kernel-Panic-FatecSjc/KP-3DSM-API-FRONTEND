@@ -1,0 +1,83 @@
+.container {
+  display: flex;
+  align-items: center;
+  background: #012643;
+  height: 70px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 999999;
+  overflow: visible;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.menu {
+  display: flex;
+  gap: 30px;
+  margin-left: 30px;
+}
+
+.menuItem {
+  position: relative;
+  display: flex;
+}
+
+.menuButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.menuButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.active {
+  background: white;
+  color: #012643;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  background: #012643 !important;
+  color: white;
+  border-radius: 6px;
+  min-width: 180px;
+  padding: 8px 0;
+  z-index: 9999;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+  visibility: visible !important; 
+  opacity: 1 !important;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.dropdownItem:hover {
+  background: rgba(255, 255, 255, 0.1)
+}
+
+.activeDropdown {
+  background: #e0e0e0;
+}
+
+.user {
+  margin-left: auto;
+  color: white;
+  display: flex;
+  align-items: center;
+}
