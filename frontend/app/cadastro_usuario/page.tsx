@@ -19,6 +19,9 @@ export default function Page() {
   const [cargoEdit, setCargoEdit] = useState('');
   const [salarioEdit, setSalarioEdit] = useState('');
 
+
+  const token = localStorage.getItem('token'); 
+
   const handleClick = async () => {
   try {
     console.log({
@@ -33,6 +36,7 @@ export default function Page() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         nome,
@@ -82,6 +86,7 @@ export default function Page() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           nome: nomeEdit,
