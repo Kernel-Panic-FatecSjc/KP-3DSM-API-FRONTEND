@@ -140,6 +140,9 @@ export default function Page() {
     try {
       const response = await fetch(`http://localhost:8080/usuario/${id}`, {
         method: 'DELETE',
+        headers:{
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) {
