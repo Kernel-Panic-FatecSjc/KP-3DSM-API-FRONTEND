@@ -34,8 +34,8 @@ export default function NavigationBar() {
   const menus: Menu[] = [
     {
       id: "home",
-      title: "Home",
-      route: "/home",
+      title: "LogOut",
+      route: "/login",
       iconInactive: "/images/Casa.svg",
       iconActive: "/images/CasaAzul.svg",
     },
@@ -63,8 +63,8 @@ export default function NavigationBar() {
     },
     {
       id: "tarefas",
-      title: "Tarefas",
-      route: "/tarefas",
+      title: "Cadastro de Usuario",
+      route: "/cadastro_usuario",
       iconInactive: "/images/tarefasIcon.svg",
       iconActive: "/images/tarefasIconAzul.svg",
     },
@@ -152,7 +152,7 @@ export default function NavigationBar() {
       </div>
 
       <div className={styles.user}>
-        <span>Miguel nonaka</span>
+        <span>M. Nonaka (Admin)</span>
       </div>
 
     </div>
