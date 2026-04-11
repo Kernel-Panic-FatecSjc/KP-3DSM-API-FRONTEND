@@ -70,6 +70,18 @@
     height: 20px;
 }
 
+.iconInputRight {
+    position: absolute;
+    display: flex;
+    justify-content: flex-end;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+}
+
 .inputWrapper {
     position: relative;
     width: 50%;

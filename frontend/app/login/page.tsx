@@ -7,7 +7,8 @@ export default function Page() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false); // Estado para feedback de clique
-  
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
   const router = useRouter(); // Inicialize o hook de navegação
 
   const handleClick = async () => {
@@ -73,11 +74,12 @@ export default function Page() {
           <img src="/images/cadeado.svg" className={styles.iconInput} alt="lock icon" />
           <input
             className={styles.inputStyle}
-            type='password'
+            type={mostrarSenha ? 'text' : 'password'}
             placeholder='Digite sua senha:'
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
           />
+          <img src={mostrarSenha ? "/images/olhoFechado.svg" : "/images/olho.svg"} className={styles.iconInputRight} alt="eye icon" onClick={() => setMostrarSenha(!mostrarSenha)}></img>
         </div>
 
         <button 
