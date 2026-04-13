@@ -9,8 +9,6 @@ type Submenu = {
   id: string;
   title: string;
   route: string;
-  iconInactive: string;
-  iconActive: string;
 };
 
 type Menu = {
@@ -33,47 +31,118 @@ export default function NavigationBar() {
 
   const menus: Menu[] = [
     {
-      id: "home",
-      title: "Home",
-      route: "/home",
-      iconInactive: "/images/Casa.svg",
-      iconActive: "/images/CasaAzul.svg",
-    },
-    {
-      id: "projetos",
-      title: "Projetos",
-      iconInactive: "/images/projetosIcon.svg",
-      iconActive: "/images/projetosIconAzul.svg",
+      id: "profissional",
+      title: "Profissional",
+      iconInactive: "/images/iconProfissional.svg",
+      iconActive: "/images/iconProfissionalAzul.svg",
       submenus: [
         {
-          id: "registro-projeto",
-          title: "Registro de Projeto",
-          route: "/registro-projeto",
-          iconInactive: "/images/iconRegistroProjeto.svg",
-          iconActive: "/images/iconRegistroProjetoAzul.svg"
+          id: "controleHoras",
+          title: "Controle de Horas",
+          route: "/controleHoras/entrada-saida",
         },
         {
-          id: "projetos-view",
-          title: "Visualizar projetos",
-          route: "/projetos",
-          iconInactive: "/images/iconProjetosView.svg",
-          iconActive: "/images/iconProjetosViewAzul.svg"
+          id: "tarefas",
+          title: "Tarefas",
+          route: "/",
         }
       ]
     },
     {
-      id: "tarefas",
-      title: "Tarefas",
+      id: "gestor",
+      title: "Gestor",
       route: "/tarefas",
-      iconInactive: "/images/tarefasIcon.svg",
-      iconActive: "/images/tarefasIconAzul.svg",
+      iconInactive: "/images/iconGestor.svg",
+      iconActive: "/images/iconGestorAzul.svg",
+      submenus: [
+        {
+          id: "usuario",
+          title: "Usuários",
+          route: "/",
+        },
+        {
+          id: "projetos",
+          title: "Projetos",
+          route: "/",
+        },
+        {
+          id: "tarefas",
+          title: "Tarefas",
+          route: "/",
+        },
+        {
+          id: "aprovacaoHoras",
+          title: "Aprovação de horas",
+          route: "/",
+        },
+        {
+          id: "visibilidadeTime",
+          title: "Visibilidade do Time",
+          route: "/",
+        },
+        {
+          id: "relatorioBloqueios",
+          title: "Relatório de bloqueios",
+          route: "/",
+        },
+        {
+          id: "historicoTarefas",
+          title: "Histórico de Tarefas",
+          route: "/",
+        }
+      ]
     },
     {
-      id: "horas",
-      title: "Horas",
-      route: "/controleHoras/entrada-saida",
-      iconInactive: "/images/horasIcon.svg",
-      iconActive: "/images/horasIconAzul.svg",
+      id: "financeiro",
+      title: "Financeiro",
+      route: "/",
+      iconInactive: "/images/iconFinanceiro.svg",
+      iconActive: "/images/iconFinanceiroAzul.svg",
+      submenus: [
+        {
+          id: "painelFinanceiro",
+          title: "Painel Finaceiro",
+          route: "/",
+        }
+      ]
+    },
+    {
+      id: "administrador",
+      title: "Adminstrador",
+      route: "/",
+      iconInactive: "/images/iconAdm.svg",
+      iconActive: "/images/iconAdmAzul.svg",
+      submenus: [
+        {
+          id: "auditoriaLancamentos",
+          title: "Auditoria de lançamentos",
+          route: "/",
+        }
+      ]
+    },
+    {
+      id: "dashboard",
+      title: "Dashboard",
+      route: "/",
+      iconInactive: "/images/iconDashboard.svg",
+      iconActive: "/images/iconDashboardAzul.svg",
+      submenus: [
+        {
+          id: "dashboardProfissional",
+          title: "Dashboard do Profissional",
+          route: "/",
+        },
+        {
+          id: "dashboardGestor",
+          title: "Dashboard do gestor",
+          route: "/",
+        },
+        {
+          id: "dashboardFinanceiro",
+          title: "Dashboard do Financeiro/Admin",
+          route: "/",
+        }
+      ]
     }
   ];
 
@@ -133,12 +202,6 @@ export default function NavigationBar() {
                           setOpenMenu(null);
                         }}
                       >
-                        <Image
-                          src={subActive ? sub.iconActive : sub.iconInactive}
-                          width={20}
-                          height={20}
-                          alt={sub.title}
-                        />
                         <span>{sub.title}</span>
                       </div>
                     );

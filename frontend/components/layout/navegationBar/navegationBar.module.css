@@ -72,7 +72,8 @@
 }
 
 .activeDropdown {
-  background: #e0e0e0;
+  background: #FFF;
+  color: #012643;
 }
 
 .user {
