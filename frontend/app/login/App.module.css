@@ -116,3 +116,60 @@
     font-size: 25px;
     border-radius: 10px;
 }
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .containerSide {
+        width: 100%;
+        height: 80px;
+        justify-content: center;
+    }
+    
+    .logoGSW {
+        width: 200px;
+        height: auto;
+        top: 20px;
+    }
+
+    .content {
+        display: none;
+    }
+
+    .title {
+        font-size: 28px;
+    }
+
+    .text {
+        font-size: 16px;
+        max-width: 100%;
+    }
+
+    .containerRight {
+        width: 100%;
+        padding: 20px;
+        height: 80%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .tituloLogin {
+        font-size: 32px;
+    }
+
+    .inputWrapper {
+        width: 100%;
+    }
+
+    .inputStyle {
+        width: 100%;
+    }
+
+    .ButtonStyle {
+        width: 100%;
+        max-width: 300px;
+    }
+}

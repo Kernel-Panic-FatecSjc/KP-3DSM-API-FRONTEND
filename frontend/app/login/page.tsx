@@ -1,15 +1,15 @@
 'use client';
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Importe o router
+import { useRouter } from 'next/navigation';
 import styles from './App.module.css';
 
 export default function Page() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [loading, setLoading] = useState(false); // Estado para feedback de clique
+  const [loading, setLoading] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
-  const router = useRouter(); // Inicialize o hook de navegação
+  const router = useRouter();
 
   const handleClick = async () => {
     if (!email || !senha) return alert("Preencha todos os campos");
@@ -30,7 +30,6 @@ export default function Page() {
 
       const data = await response.json();
 
-      // Armazenamento dos dados
       localStorage.setItem('token', data.token);
       localStorage.setItem('cargo', data.cargo);
       localStorage.setItem('email', data.email);
