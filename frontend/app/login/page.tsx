@@ -48,7 +48,7 @@ export default function Page() {
   return (
     <div className={styles.container}> 
       <div className={styles.containerSide}>
-        <img src="/images/logoGSW.svg" alt='logoGSW' className={styles.logoGSW} />
+        <img src="/images/logoGSW.svg" alt='logoGSW' className={styles.logoGSW} loading='eager'/>
         <div className={styles.content}>
           <h1 className={styles.title}>Bem vindo de volta!</h1>
           <p className={styles.text}>Acesse sua conta agora mesmo</p>

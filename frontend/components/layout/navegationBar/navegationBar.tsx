@@ -24,6 +24,7 @@ export default function NavigationBar() {
   const router = useRouter();
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     setOpenMenu(null);
@@ -155,6 +156,7 @@ export default function NavigationBar() {
           width={120}
           height={40}
           alt="Logo GSW"
+          priority
         />
       </div>
 
@@ -213,11 +215,61 @@ export default function NavigationBar() {
           );
         })}
       </div>
-
+      <div className={styles.hamburger} onClick={() => setMobileOpen(true)}>
+        ☰
+      </div>
       <div className={styles.user}>
         <span>Miguel nonaka</span>
       </div>
+          {mobileOpen && (
+      <div 
+        className={styles.overlay}
+        onClick={() => setMobileOpen(false)}
+      />
+    )}
+        <div className={`${styles.mobileMenu} ${mobileOpen ? styles.active : ""}`}>
+      {menus.map((item) => (
+        <div key={item.id} className={styles.mobileItem}>
+          
+          <div
+            onClick={() => {
+              if (item.route) {
+                router.push(item.route);
+                setMobileOpen(false);
+              }
+            }}
+          >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Image
+              src={item.iconInactive}
+              width={20}
+              height={20}
+              alt={item.title}
+            />
+            <span>{item.title}</span>
+          </div>
+          </div>
 
+          {item.submenus && (
+            <div className={styles.mobileSubmenu}>
+              {item.submenus.map((sub) => (
+                <div
+                  key={sub.id}
+                  className={styles.mobileSubItem}
+                  onClick={() => {
+                    router.push(sub.route);
+                    setMobileOpen(false);
+                  }}
+                >
+                  {sub.title}
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      ))}
+    </div>
     </div>
   );
 }
