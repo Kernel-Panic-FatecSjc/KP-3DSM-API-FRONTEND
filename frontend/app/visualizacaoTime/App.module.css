@@ -1,0 +1,12 @@
+.container {
+    position: relative;
+    width: 110px;
+}
+
+.projectDropdown {
+    padding: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    background: #012643;
+    color: #fff;
+}
