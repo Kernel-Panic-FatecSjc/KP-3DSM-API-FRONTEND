@@ -5,6 +5,7 @@ import styles from './App.module.css';
 export default function Page() {
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [token, setToken] = useState<string | null>(null);
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
