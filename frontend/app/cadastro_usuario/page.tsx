@@ -317,8 +317,8 @@ export default function Page() {
           </div>
 
           <div className={styles.botoes}>
-            <button className={styles.cancelar} onClick={() => setModalCadastro(false)}>Cancel</button>
-            <button className={styles.confirmar} onClick={handleClick}>Confirm</button>
+            <button className={styles.cancelar} onClick={() => setModalCadastro(false)}>Cancelar</button>
+            <button className={styles.confirmar} onClick={handleClick}>Salvar</button>
           </div>
         </div>
       </div>

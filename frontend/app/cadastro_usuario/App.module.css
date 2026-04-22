@@ -1,9 +1,9 @@
-.container{
+.container {
   width: 100%;
   padding: 20px 40px;
 }
 
-.tabelaContainer{
+.tabelaContainer {
   display: flex;
   align-items: center;
   width: 100%;
@@ -61,7 +61,7 @@
   font-size: 13px;
 }
 
-.acoes{
+.acoes {
   display: flex;
   gap: 10px;
   align-items: center;
@@ -70,7 +70,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
@@ -146,7 +146,7 @@
   cursor: pointer;
 }
 
-.botaoAbrirModal{
+.botaoAbrirModal {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -164,17 +164,18 @@
   font-size: 40px;
 }
 
-.botaoAbrirEdicao{
+.botaoAbrirEdicao {
   background-color: #012643;
   color: white;
 }
 
-.botaoExcluir{
+.botaoExcluir {
   background-color: #d93025;
   color: white;
 }
 
-.titulo, .tituloModal{
+.titulo,
+.tituloModal {
   color: #012643;
 }
 
@@ -185,7 +186,7 @@
   margin-bottom: 20px;
 }
 
-.inputFiltro{
+.inputFiltro {
   margin-top: 30px;
   height: 40px;
   width: 300px;
@@ -196,7 +197,7 @@
 }
 
 .selectFiltro {
-  margin-top: 30px; 
+  margin-top: 30px;
   height: 40px;
   padding: 10px;
   border-radius: 8px;
@@ -204,7 +205,8 @@
   background-color: white;
 }
 
-.botaoAbrirEdicao, .botaoExcluir {
+.botaoAbrirEdicao,
+.botaoExcluir {
   background: none;
   border: none;
   cursor: pointer;
@@ -214,4 +216,68 @@
 .imagemBotao {
   width: 20px;
   height: 20px;
+}
+
+/* RESPONSIVIDADE celular */
+
+@media (max-width: 480px) {
+
+  .container {
+    padding: 16px;
+  }
+
+  .filtros {
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .inputFiltro {
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 0;
+  }
+
+  .selectFiltro {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .tabela th,
+  .tabela td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .ativo,
+  .inativo {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .acoes {
+    gap: 6px;
+  }
+
+  .imagemBotao {
+    width: 16px;
+    height: 16px;
+  }
+
+  .modalConteudo {
+    width: 90vw;
+    padding: 20px 16px;
+    gap: 14px;
+  }
+
+  .row {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .botaoAbrirModal {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+  }
 }
