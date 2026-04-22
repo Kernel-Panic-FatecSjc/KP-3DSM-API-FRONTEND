@@ -20,7 +20,9 @@ export default function Page() {
   const [salarioEdit, setSalarioEdit] = useState('');
 
 
-  const token = localStorage.getItem('token'); 
+  useEffect(() => {
+    setToken(localStorage.getItem('token'));
+  }, []);
 
   const handleClick = async () => {
   try {
