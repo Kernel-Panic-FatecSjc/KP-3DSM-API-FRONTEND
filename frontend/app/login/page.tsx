@@ -1,14 +1,15 @@
 'use client';
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Importe o router
+import { useRouter } from 'next/navigation';
 import styles from './App.module.css';
 
 export default function Page() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [loading, setLoading] = useState(false); // Estado para feedback de clique
-  
-  const router = useRouter(); // Inicialize o hook de navegação
+  const [loading, setLoading] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
+  const router = useRouter();
 
   const handleClick = async () => {
     if (!email || !senha) return alert("Preencha todos os campos");
@@ -29,7 +30,6 @@ export default function Page() {
 
       const data = await response.json();
 
-      // Armazenamento dos dados
       localStorage.setItem('token', data.token);
       localStorage.setItem('cargo', data.cargo);
       localStorage.setItem('email', data.email);
@@ -48,7 +48,7 @@ export default function Page() {
   return (
     <div className={styles.container}> 
       <div className={styles.containerSide}>
-        <img src="/images/logoGSW.svg" alt='logoGSW' className={styles.logoGSW} />
+        <img src="/images/logoGSW.svg" alt='logoGSW' className={styles.logoGSW} loading='eager'/>
         <div className={styles.content}>
           <h1 className={styles.title}>Bem vindo de volta!</h1>
           <p className={styles.text}>Acesse sua conta agora mesmo</p>
@@ -73,11 +73,12 @@ export default function Page() {
           <img src="/images/cadeado.svg" className={styles.iconInput} alt="lock icon" />
           <input
             className={styles.inputStyle}
-            type='password'
+            type={mostrarSenha ? 'text' : 'password'}
             placeholder='Digite sua senha:'
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
           />
+          <img src={mostrarSenha ? "/images/olhoFechado.svg" : "/images/olho.svg"} className={styles.iconInputRight} alt="eye icon" onClick={() => setMostrarSenha(!mostrarSenha)}></img>
         </div>
 
         <button 

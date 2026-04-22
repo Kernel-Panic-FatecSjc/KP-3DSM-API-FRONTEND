@@ -5,6 +5,7 @@ import styles from './App.module.css';
 export default function Page() {
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [token, setToken] = useState<string | null>(null);
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -20,7 +21,9 @@ export default function Page() {
   const [salarioEdit, setSalarioEdit] = useState('');
 
 
-  const token = localStorage.getItem('token'); 
+  useEffect(() => {
+    setToken(localStorage.getItem('token'));
+  }, []);
 
   const handleClick = async () => {
   try {
@@ -317,8 +320,8 @@ export default function Page() {
           </div>
 
           <div className={styles.botoes}>
-            <button className={styles.cancelar} onClick={() => setModalCadastro(false)}>Cancel</button>
-            <button className={styles.confirmar} onClick={handleClick}>Confirm</button>
+            <button className={styles.cancelar} onClick={() => setModalCadastro(false)}>Cancelar</button>
+            <button className={styles.confirmar} onClick={handleClick}>Salvar</button>
           </div>
         </div>
       </div>

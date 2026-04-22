@@ -37,7 +37,7 @@
     box-shadow: 0 2px 8px rgba(1, 38, 67, 0.25);
 }
 
-/* HORAS semanal e mensal + filtros de projeto/data */
+/* HORAS semanal e mensal + filtros */
 .semanaHeader {
     padding: 24px 28px 16px;
     display: flex;
@@ -279,7 +279,6 @@
     font-family: "Roboto", sans-serif;
     box-shadow: 0 4px 12px rgba(1, 38, 67, 0.3);
     transition: background 0.15s;
-
     margin-top: 20px;
     margin-left: auto;
     display: block;
@@ -287,4 +286,90 @@
 
 .btnAdicionar:hover {
     background: #0A4FA8;
+}
+
+/* RESPONSIVIDADE celular */
+
+@media (max-width: 480px) {
+
+    .filtros {
+        padding: 12px 12px 10px;
+        gap: 6px;
+        overflow-x: auto;
+        justify-content: flex-start;
+        scrollbar-width: none;
+    }
+
+    .filtros::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filtroBtn {
+        font-size: 11px;
+        padding: 6px 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .semanaHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 12px 10px;
+        gap: 10px;
+    }
+
+    .semanaHeaderInfo {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .semanaDivider {
+        width: 100%;
+        height: 1px;
+    }
+
+    .semanaData {
+        font-size: 14px;
+    }
+
+    .semanaHeaderFiltros {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filtroSelect,
+    .filtroData {
+        width: 100%;
+        height: 38px;
+    }
+
+    .cardWrapper {
+        padding: 0 12px 80px;
+    }
+
+    .cardTag {
+        font-size: 10px;
+        padding: 2px 8px;
+    }
+
+    .cardTitulo {
+        font-size: 13px;
+    }
+
+    .cardHorario {
+        font-size: 13px;
+        padding: 8px 0;
+    }
+
+    .cardTotal {
+        font-size: 13px;
+    }
+
+    .btnAdicionar {
+        width: 46px;
+        height: 46px;
+        font-size: 22px;
+    }
 }

@@ -148,14 +148,14 @@ export async function enviarParaAprovacao(id: number): Promise<HorasExibirDTO> {
     return handleResponse<HorasExibirDTO>(res);
 }
 
-// BUSCAR usuario por id
-export async function buscarUsuarioPorId(id: number): Promise<UsuarioExibirDTO> {
-    const res = await fetch(`${USUARIO_URL}/usuario/${id}`);
-    return handleResponse<UsuarioExibirDTO>(res);
-}
+// // BUSCAR usuario por id
+// export async function buscarUsuarioPorId(id: number): Promise<UsuarioExibirDTO> {
+//     const res = await fetch(`${USUARIO_URL}/usuario/${id}`);
+//     return handleResponse<UsuarioExibirDTO>(res);
+// }
 
-// BUSCAR todos os usuarios
-export async function buscarTodosUsuarios(): Promise<UsuarioExibirDTO[]> {
-    const res = await fetch(`${USUARIO_URL}/usuario/todos`);
-    return handleResponse<UsuarioExibirDTO[]>(res);
-}
+// // BUSCAR todos os usuarios
+// export async function buscarTodosUsuarios(): Promise<UsuarioExibirDTO[]> {
+//     const res = await fetch(`${USUARIO_URL}/usuario/todos`);
+//     return handleResponse<UsuarioExibirDTO[]>(res);
+// }

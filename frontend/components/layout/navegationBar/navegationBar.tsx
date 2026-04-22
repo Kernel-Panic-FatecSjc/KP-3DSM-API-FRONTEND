@@ -9,8 +9,6 @@ type Submenu = {
   id: string;
   title: string;
   route: string;
-  iconInactive: string;
-  iconActive: string;
 };
 
 type Menu = {
@@ -26,6 +24,7 @@ export default function NavigationBar() {
   const router = useRouter();
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     setOpenMenu(null);
@@ -40,24 +39,46 @@ export default function NavigationBar() {
       iconActive: "/images/CasaAzul.svg",
     },
     {
-      id: "projetos",
-      title: "Projetos",
-      iconInactive: "/images/projetosIcon.svg",
-      iconActive: "/images/projetosIconAzul.svg",
+      id: "gestor",
+      title: "Gestor",
+      route: "/tarefas",
+      iconInactive: "/images/iconGestor.svg",
+      iconActive: "/images/iconGestorAzul.svg",
       submenus: [
         {
-          id: "registro-projeto",
-          title: "Registro de Projeto",
-          route: "/registro-projeto",
-          iconInactive: "/images/iconRegistroProjeto.svg",
-          iconActive: "/images/iconRegistroProjetoAzul.svg"
+          id: "usuario",
+          title: "Usuários",
+          route: "/",
         },
         {
-          id: "projetos-view",
-          title: "Visualizar projetos",
-          route: "/projetos",
-          iconInactive: "/images/iconProjetosView.svg",
-          iconActive: "/images/iconProjetosViewAzul.svg"
+          id: "projetos",
+          title: "Projetos",
+          route: "/",
+        },
+        {
+          id: "tarefas",
+          title: "Tarefas",
+          route: "/",
+        },
+        {
+          id: "aprovacaoHoras",
+          title: "Aprovação de horas",
+          route: "/",
+        },
+        {
+          id: "visibilidadeTime",
+          title: "Visibilidade do Time",
+          route: "/",
+        },
+        {
+          id: "relatorioBloqueios",
+          title: "Relatório de bloqueios",
+          route: "/",
+        },
+        {
+          id: "historicoTarefas",
+          title: "Histórico de Tarefas",
+          route: "/",
         }
       ]
     },
@@ -69,11 +90,42 @@ export default function NavigationBar() {
       iconActive: "/images/tarefasIconAzul.svg",
     },
     {
-      id: "horas",
-      title: "Horas",
-      route: "/controleHoras/entrada-saida",
-      iconInactive: "/images/horasIcon.svg",
-      iconActive: "/images/horasIconAzul.svg",
+      id: "administrador",
+      title: "Adminstrador",
+      route: "/",
+      iconInactive: "/images/iconAdm.svg",
+      iconActive: "/images/iconAdmAzul.svg",
+      submenus: [
+        {
+          id: "auditoriaLancamentos",
+          title: "Auditoria de lançamentos",
+          route: "/",
+        }
+      ]
+    },
+    {
+      id: "dashboard",
+      title: "Dashboard",
+      route: "/",
+      iconInactive: "/images/iconDashboard.svg",
+      iconActive: "/images/iconDashboardAzul.svg",
+      submenus: [
+        {
+          id: "dashboardProfissional",
+          title: "Dashboard do Profissional",
+          route: "/",
+        },
+        {
+          id: "dashboardGestor",
+          title: "Dashboard do gestor",
+          route: "/",
+        },
+        {
+          id: "dashboardFinanceiro",
+          title: "Dashboard do Financeiro/Admin",
+          route: "/",
+        }
+      ]
     }
   ];
 
@@ -86,6 +138,7 @@ export default function NavigationBar() {
           width={120}
           height={40}
           alt="Logo GSW"
+          priority
         />
       </div>
 
@@ -133,12 +186,6 @@ export default function NavigationBar() {
                           setOpenMenu(null);
                         }}
                       >
-                        <Image
-                          src={subActive ? sub.iconActive : sub.iconInactive}
-                          width={20}
-                          height={20}
-                          alt={sub.title}
-                        />
                         <span>{sub.title}</span>
                       </div>
                     );
@@ -150,11 +197,61 @@ export default function NavigationBar() {
           );
         })}
       </div>
-
+      <div className={styles.hamburger} onClick={() => setMobileOpen(true)}>
+        ☰
+      </div>
       <div className={styles.user}>
         <span>M. Nonaka (Admin)</span>
       </div>
+          {mobileOpen && (
+      <div 
+        className={styles.overlay}
+        onClick={() => setMobileOpen(false)}
+      />
+    )}
+        <div className={`${styles.mobileMenu} ${mobileOpen ? styles.active : ""}`}>
+      {menus.map((item) => (
+        <div key={item.id} className={styles.mobileItem}>
+          
+          <div
+            onClick={() => {
+              if (item.route) {
+                router.push(item.route);
+                setMobileOpen(false);
+              }
+            }}
+          >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Image
+              src={item.iconInactive}
+              width={20}
+              height={20}
+              alt={item.title}
+            />
+            <span>{item.title}</span>
+          </div>
+          </div>
 
+          {item.submenus && (
+            <div className={styles.mobileSubmenu}>
+              {item.submenus.map((sub) => (
+                <div
+                  key={sub.id}
+                  className={styles.mobileSubItem}
+                  onClick={() => {
+                    router.push(sub.route);
+                    setMobileOpen(false);
+                  }}
+                >
+                  {sub.title}
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      ))}
+    </div>
     </div>
   );
 }
