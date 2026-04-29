@@ -2,9 +2,55 @@
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
-import {
-    filtrarHoras,
-} from '../../services/controleHoras';
+
+// --- INTEGRAÇÃO COM O BACKEND ---
+const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8080';
+
+export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
+
+export interface HorasExibirDTO {
+  id: number;
+  tarefaId: number | null;
+  usuarioId: number;
+  tituloSessao: string;
+  tipoAtividade: string;
+  descricao: string | null;
+  dataLancamento: string;
+  inicio: string;
+  fim: string;
+  justificativa: string | null;
+  motivoRejeicao: string | null;
+  estado: EstadoHora;
+  dataCriacao: string;
+}
+
+export interface HorasFiltroParams {
+  usuarioId?: number;
+  estado?: EstadoHora;
+  dataInicio?: string;
+  dataFim?: string;
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const erro = await res.text();
+    throw new Error(erro || `Erro ${res.status}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+export async function filtrarHoras(params: HorasFiltroParams): Promise<HorasExibirDTO[]> {
+  const query = new URLSearchParams();
+  if (params.usuarioId !== undefined) query.append('usuarioId', String(params.usuarioId));
+  if (params.estado) query.append('estado', params.estado);
+  if (params.dataInicio) query.append('dataInicio', params.dataInicio);
+  if (params.dataFim) query.append('dataFim', params.dataFim);
+
+  const res = await fetch(`${BASE_URL}/horas/filtrar?${query.toString()}`);
+  return handleResponse<HorasExibirDTO[]>(res);
+}
+// --------------------------------
 
 const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
 
