@@ -32,11 +32,22 @@ export default function NavigationBar() {
 
   const menus: Menu[] = [
     {
-      id: "home",
-      title: "LogOut",
-      route: "/login",
-      iconInactive: "/images/Casa.svg",
-      iconActive: "/images/CasaAzul.svg",
+      id: "profissional",
+      title: "Profissional",
+      iconInactive: "/images/iconProfissional.svg",
+      iconActive: "/images/iconProfissionalAzul.svg",
+      submenus: [
+        {
+          id: "controleHoras",
+          title: "Controle de Horas",
+          route: "/controleHoras/entrada-saida",
+        },
+        {
+          id: "tarefas",
+          title: "Tarefas",
+          route: "/",
+        }
+      ]
     },
     {
       id: "gestor",
@@ -83,11 +94,18 @@ export default function NavigationBar() {
       ]
     },
     {
-      id: "tarefas",
-      title: "Cadastro de Usuario",
-      route: "/cadastro_usuario",
-      iconInactive: "/images/tarefasIcon.svg",
-      iconActive: "/images/tarefasIconAzul.svg",
+      id: "financeiro",
+      title: "Financeiro",
+      route: "/",
+      iconInactive: "/images/iconFinanceiro.svg",
+      iconActive: "/images/iconFinanceiroAzul.svg",
+      submenus: [
+        {
+          id: "painelFinanceiro",
+          title: "Painel Finaceiro",
+          route: "/",
+        }
+      ]
     },
     {
       id: "administrador",
