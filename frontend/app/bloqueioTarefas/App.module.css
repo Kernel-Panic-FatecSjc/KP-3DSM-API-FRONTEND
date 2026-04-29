@@ -1,0 +1,363 @@
+.container {
+    width: 100%;
+    padding: 20px 40px;
+}
+
+.menuContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.filtros {
+    border-radius: 8px;
+    background-color: white;
+    border: 2px solid #d4d4d8;
+    width: 160px;
+    height: 40px;
+    padding: 0 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    color: #012643;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+}
+
+.filtros select {
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #012643;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    width: 100%;
+    cursor: pointer;
+}
+
+.btnLimpar {
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 2px solid #d4d4d8;
+    background: white;
+    color: #012643;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+}
+
+.tabelaContainer {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+}
+
+.tabela th {
+    text-align: left;
+    padding: 18px;
+    color: #012643;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.tabela td {
+    padding: 18px;
+    font-size: 14px;
+}
+
+.tabela tbody tr:nth-child(odd) {
+    background-color: #f5f5fb;
+}
+
+.tabela tbody tr:nth-child(even) {
+    background-color: #ffffff;
+}
+
+/* STATUS */
+.statusBadge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+}
+
+.statusToDo {
+    background-color: #e8eaf6;
+    color: #3949ab;
+}
+
+.statusDoing {
+    background-color: #fff8e1;
+    color: #f57f17;
+}
+
+.statusDone {
+    background-color: #e6f7ed;
+    color: #1a9c5f;
+}
+
+/* BLOQUEADA aviso na tarefa */
+.linhaBloqueada {
+    background-color: #E8EFF9 !important;
+}
+
+.badgeBloqueada {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #0A4FA8;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px 3px 8px;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    width: fit-content;
+}
+
+.infoBloqueio {
+    font-size: 11px;
+    color: #0A4FA8;
+    margin-top: 4px;
+    font-family: Arial, sans-serif;
+}
+
+/* AÇÕES */
+.acoes {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btnBloquear {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: 2px solid #012643;
+    background: white;
+    color: #012643;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    white-space: nowrap;
+}
+
+.btnBloquear:hover {
+    background: #f0f4f8;
+}
+
+.btnDesbloquear {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: none;
+    background: #012643;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    white-space: nowrap;
+}
+
+.btnDesbloquear:hover {
+    background: #0A4FA8;
+}
+
+.titulo {
+    color: #012643;
+    font-family: Arial, sans-serif;
+    margin-bottom: 20px;
+}
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modalConteudo {
+    background-color: white;
+    padding: 35px;
+    width: 520px;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: relative;
+    font-family: Arial, sans-serif;
+}
+
+.modalTitulo {
+    font-size: 20px;
+    font-weight: bold;
+    color: #012643;
+    margin: 0;
+}
+
+.modalSubtitulo {
+    font-size: 14px;
+    color: #3f3f46;
+    margin: 0;
+}
+
+.botaoFecharModal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    border: none;
+    background: transparent;
+    font-size: 24px;
+    cursor: pointer;
+    color: #71717a;
+}
+
+/* CATEGORIAS de bloqueio */
+.listaCategorias {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.opcaoCategoria {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #3f3f46;
+}
+
+.opcaoCategoria input[type="radio"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #012643;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.opcaoCategoria input[type="radio"]:checked {
+    background-color: #012643;
+    border-color: #012643;
+}
+
+.opcaoCategoria input[type="radio"]:checked::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 4px;
+    left: 4px;
+}
+
+.campoOutro {
+    width: 100%;
+    height: 100px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+    resize: vertical;
+    font-family: Arial, sans-serif;
+    color: #3f3f46;
+}
+
+.campoOutro::placeholder {
+    color: #a1a1aa;
+}
+
+.campoOutro:focus {
+    outline: none;
+    border-color: #012643;
+}
+
+/* BOTÕES do modal */
+.botoes {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.cancelar {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    color: #3f3f46;
+}
+
+.confirmar {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #012643;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+}
+
+.confirmar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 480px) {
+    .container {
+        padding: 16px;
+    }
+
+    .menuContainer {
+        gap: 6px;
+    }
+
+    .filtros {
+        width: 130px;
+        font-size: 12px;
+    }
+
+    .tabela th,
+    .tabela td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+
+    .acoes {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .modalConteudo {
+        width: 90vw;
+        padding: 20px 16px;
+        gap: 14px;
+    }
+}
