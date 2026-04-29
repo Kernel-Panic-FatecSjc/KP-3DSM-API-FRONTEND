@@ -1,0 +1,102 @@
+.pageContainer {
+  padding: 40px;
+  background-color: #fff;
+  min-height: 100vh;
+  position: relative;
+}
+
+.containerSelect {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.containerSelect button {
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  background-color: #012643;
+  color: #fff;
+  cursor: pointer;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.containerSelect button:hover {
+  background-color: #033763;
+}
+
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eaecef;
+}
+
+.taskTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.taskTable th,
+.taskTable td {
+  padding: 16px 24px;
+  text-align: left;
+  border-bottom: 1px solid #eaecef;
+  color: #333;
+}
+
+.taskTable th {
+  background-color: #f6f8fa;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6a737d;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #eaecef;
+}
+
+.taskTable tbody tr:hover {
+  background-color: #fafbfc;
+}
+
+.taskTable td:last-child {
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btnAdicionarMais {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #012643;
+  color: #fff;
+  font-size: 32px;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.btnAdicionarMais:hover {
+  background-color: #033763;
+}
