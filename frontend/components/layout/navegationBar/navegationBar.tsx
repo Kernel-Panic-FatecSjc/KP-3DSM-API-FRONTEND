@@ -43,11 +43,6 @@ export default function NavigationBar() {
           route: "/controleHoras/entrada-saida",
         },
         {
-          id: "tarefas",
-          title: "Tarefas",
-          route: "/",
-        },
-        {
           id: "bloqueioTarefas",
           title: "Bloqueio de tarefas",
           route: "/bloqueioTarefas"
@@ -64,7 +59,7 @@ export default function NavigationBar() {
         {
           id: "usuario",
           title: "Usuários",
-          route: "/cadastro-usuario",
+          route: "/cadastro_usuario",
         },
         {
           id: "projetos",
