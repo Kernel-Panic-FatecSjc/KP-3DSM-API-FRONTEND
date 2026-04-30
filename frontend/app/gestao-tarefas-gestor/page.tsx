@@ -1,46 +1,170 @@
-"use client"
+"use client";
 import styles from './App.module.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Select, { SingleValue } from 'react-select';
+import axios from 'axios';
 
 type Option = {
   value: string;
   label: string;
 };
 
-const mockTarefas = [
-  { id: 1, nome: "Modelagem do Banco", descricao: "Criar tabelas e relações no SQL", projeto: "projeto-1", responsavel: "profissional-a", status: "done" },
-  { id: 2, nome: "Criar tela de Login", descricao: "Fazer o layout e conectar com API", projeto: "projeto-1", responsavel: "profissional-b", status: "doing" },
-  { id: 3, nome: "Ajustar responsividade", descricao: "Menu está quebrando no celular", projeto: "projeto-2", responsavel: "profissional-a", status: "todo" },
-  { id: 4, nome: "Reunião de Planning", descricao: "Definir tarefas da próxima semana", projeto: "projeto-3", responsavel: "profissional-c", status: "todo" },
-  { id: 5, nome: "Corrigir bug no carrinho", descricao: "Soma total está calculando errado", projeto: "projeto-2", responsavel: "profissional-b", status: "doing" }
-];
-
-const projetosOptions: Option[] = [
-  { value: "", label: "Todos os Projetos" },
-  { value: "projeto-1", label: "Projeto 1" },
-  { value: "projeto-2", label: "Projeto 2" },
-  { value: "projeto-3", label: "Projeto 3" }
-];
-
-const responsavelOptions: Option[] = [
-  { value: "", label: "Todos os Responsáveis" },
-  { value: "profissional-a", label: "Profissional A" },
-  { value: "profissional-b", label: "Profissional B" },
-  { value: "profissional-c", label: "Profissional C" }
-];
+type Tarefa = {
+  id: number;
+  nome: string;
+  descricao: string;
+  idProjeto: number;
+  idResponsaveis: number[];
+  status: string;
+};
 
 const statusOptions: Option[] = [
   { value: "", label: "Todos os Status" },
-  { value: "todo", label: "To Do" },
-  { value: "doing", label: "Doing" },
-  { value: "done", label: "Done" }
+  { value: "TODO", label: "To Do" },
+  { value: "DOING", label: "Doing" },
+  { value: "DONE", label: "Done" }
 ];
 
 export default function Page() {
+  const [tarefas, setTarefas] = useState<Tarefa[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // OPTIONS vindos da API
+  const [projetoOptions, setProjetoOptions] = useState<Option[]>([]);
+  const [responsavelOptions, setResponsavelOptions] = useState<Option[]>([]);
+
+  // VALORES selecionados
   const [projeto, setProjeto] = useState<Option | null>(null);
   const [responsavel, setResponsavel] = useState<Option | null>(null);
   const [status, setStatus] = useState<Option | null>(null);
+
+  const [modalProjeto, setModalProjeto] = useState(false);
+  const [responsavelModal, setResponsavelModal] = useState<Option | null>(null);
+
+  const [nomeTarefa, setNomeTarefa] = useState("");
+  const [descricaoTarefa, setDescricaoTarefa] = useState("");
+
+  const API = "http://localhost:8080/tarefas";
+
+
+  // -------- PROJETOS
+  const fetchProjetos = async () => {
+    try {
+      const res = await axios.get("http://localhost:8080/projeto");
+
+      const options = res.data.map((p: any) => ({
+        value: p.id.toString(),
+        label: p.nome
+      }));
+
+      setProjetoOptions([
+        { value: "", label: "Todos os Projetos" },
+        ...options
+      ]);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+
+  // -------- USUARIOS
+  const fetchUsuarios = async () => {
+    try {
+      const res = await axios.get("http://localhost:8080/usuario/todos");
+
+      const options = res.data.map((u: any) => ({
+        value: u.id.toString(),
+        label: u.nome
+      }));
+
+      setResponsavelOptions([
+        { value: "", label: "Todos os Responsáveis" },
+        ...options
+      ]);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+
+  // -------- TAREFAS
+  const fetchTarefas = async () => {
+    try {
+      setLoading(true);
+
+      const url =
+        projeto && projeto.value !== ""
+          ? `${API}/projeto/${projeto.value}`
+          : API;
+
+      const res = await axios.get(url);
+      setTarefas(res.data);
+
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjetos();
+    fetchUsuarios();
+  }, []);
+
+  useEffect(() => {
+    fetchTarefas();
+  }, [projeto]);
+
+  // -------- CRUD
+  const salvarTarefa = async () => {
+    if (!projeto || projeto.value === "") {
+      alert("Selecione um projeto");
+      return;
+    }
+
+    if (!nomeTarefa || !descricaoTarefa) return;
+
+    try {
+      await axios.post(API, {
+        nome: nomeTarefa,
+        descricao: descricaoTarefa,
+        idProjeto: Number(projeto.value),
+        idResponsaveis: responsavelModal ? [Number(responsavelModal.value)] : [],
+        statusTarefa: "TODO"
+      });
+
+      setModalProjeto(false);
+      setNomeTarefa("");
+      setDescricaoTarefa("");
+      setResponsavelModal(null);
+
+      fetchTarefas();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const atualizarStatus = async (id: number, value: string) => {
+    try {
+      await axios.patch(`${API}/${id}`, {
+        statusTarefa: value
+      });
+
+      fetchTarefas();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deletar = async (id: number) => {
+    try {
+      await axios.delete(`${API}/${id}`);
+      fetchTarefas();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const limparFiltros = () => {
     setProjeto(null);
@@ -48,147 +172,60 @@ export default function Page() {
     setStatus(null);
   };
 
-  const tarefasFiltradas = mockTarefas.filter((tarefa) => {
-    const matchProjeto = !projeto || projeto.value === "" || tarefa.projeto === projeto.value;
-    const matchResponsavel = !responsavel || responsavel.value === "" || tarefa.responsavel === responsavel.value;
-    const matchStatus = !status || status.value === "" || tarefa.status === status.value;
+  const tarefasFiltradas = tarefas.filter((t) => {
+    const matchResp =
+      !responsavel || responsavel.value === "" ||
+      t.idResponsaveis.includes(Number(responsavel.value));
 
-    return matchProjeto && matchResponsavel && matchStatus;
+    const matchStatus =
+      !status || status.value === "" ||
+      t.status === status.value;
+
+    return matchResp && matchStatus;
   });
 
   const selectStyles = {
-    control: (base: any) => ({
-      ...base,
-      backgroundColor: "#012643",
-      border: "none",
-      borderRadius: "8px",
-      minHeight: "40px",
-      boxShadow: "none",
-      cursor: "pointer",
-    }),
-
-    valueContainer: (base: any) => ({
-      ...base,
-      color: "#ffffff",
-    }),
-
-    singleValue: (base: any) => ({
-      ...base,
-      color: "#ffffff",
-      fontSize: "15px",
-    }),
-
-    placeholder: (base: any) => ({
-      ...base,
-      color: "#ffffff",
-      opacity: 1,
-      fontSize: "15px"
-    }),
-
-    input: (base: any) => ({
-      ...base,
-      color: "#ffffff",
-    }),
-
-    dropdownIndicator: (base: any) => ({
-      ...base,
-      color: "#ffffff",
-
-      "&:hover": {
-        color: "#ffffff",
-      },
-    }),
-
-    indicatorSeparator: () => ({
-      display: "none",
-    }),
-
-    menu: (base: any) => ({
-      ...base,
-      backgroundColor: "#012643",
-      borderRadius: "8px",
-      overflow: "hidden",
-    }),
-
-    option: (base: any, state: any) => ({
-      ...base,
-      backgroundColor: state.isFocused ? "#033763" : "#012643",
-      color: "#ffffff",
-      padding: "10px 16px",
-      cursor: "pointer",
-    }),
+    control: (b: any) => ({ ...b, backgroundColor: "#012643", border: "none", borderRadius: "8px", minHeight: "40px" }),
+    singleValue: (b: any) => ({ ...b, color: "#fff" }),
+    placeholder: (b: any) => ({ ...b, color: "#fff" }),
+    menu: (b: any) => ({ ...b, backgroundColor: "#012643" }),
+    option: (b: any, s: any) => ({ ...b, backgroundColor: s.isFocused ? "#033763" : "#012643", color: "#fff" })
   };
 
   const tableSelectStyles = {
-    control: (base: any) => ({
-      ...base,
-      backgroundColor: "#fff",
-      border: "1px solid #e1e4e8",
-      borderRadius: "6px",
-      minHeight: "32px",
-      maxWidth: "100px",
-      boxShadow: "none",
-    }),
-
-    singleValue: (base: any) => ({
-      ...base,
-      color: "#333",
-      fontSize: "14px",
-    }),
-
-    menu: (base: any) => ({
-      ...base,
-      backgroundColor: "#fff",
-    }),
-
-    option: (base: any, state: any) => ({
-      ...base,
-      backgroundColor: state.isFocused ? "#f6f8fa" : "#fff",
-      color: "#333",
-      cursor: "pointer",
-    }),
-
-    indicatorSeparator: () => ({
-      display: "none",
-    }),
+    control: (b: any) => ({ ...b, backgroundColor: "#fff", minHeight: "32px" }),
+    singleValue: (b: any) => ({ ...b, color: "#333" }),
   };
+
+  if (loading) return <div>Carregando...</div>;
 
   return (
     <div className={styles.pageContainer}>
-      
+
       <div className={styles.containerSelect}>
-        
-        <Select<Option>
-          instanceId="projeto"
-          options={projetosOptions}
+
+        <Select
+          options={projetoOptions}
           value={projeto}
-          onChange={(selected: SingleValue<Option>) => setProjeto(selected)}
-          className={styles.select}
+          onChange={(s) => setProjeto(s)}
           styles={selectStyles}
           placeholder="Projetos"
-          isSearchable={false}
         />
 
-        <Select<Option>
-          instanceId="responsavel"
+        <Select
           options={responsavelOptions}
           value={responsavel}
-          onChange={(selected: SingleValue<Option>) => setResponsavel(selected)}
-          className={styles.select}
+          onChange={(s) => setResponsavel(s)}
           styles={selectStyles}
           placeholder="Responsáveis"
-          isSearchable={false}
         />
 
-        <Select<Option>
-          instanceId="status"
+        <Select
           options={statusOptions}
           value={status}
-          onChange={(selected: SingleValue<Option>) => setStatus(selected)}
-          className={styles.select}
+          onChange={(s) => setStatus(s)}
           styles={selectStyles}
           placeholder="Status"
-          isSearchable={false}
         />
 
         <button onClick={limparFiltros}>Limpar</button>
@@ -198,7 +235,7 @@ export default function Page() {
         <table className={styles.taskTable}>
           <thead>
             <tr>
-              <th>Nome da Tarefa</th>
+              <th>Nome</th>
               <th>Descrição</th>
               <th>Responsável</th>
               <th>Status</th>
@@ -207,45 +244,67 @@ export default function Page() {
           </thead>
 
           <tbody>
-            {tarefasFiltradas.length > 0 ? (
-              tarefasFiltradas.map((tarefa) => (
-                <tr key={tarefa.id}>
-                  <td>{tarefa.nome}</td>
-                  <td>{tarefa.descricao}</td>
+            {tarefasFiltradas.map((t) => (
+              <tr key={t.id}>
+                <td>{t.nome}</td>
+                <td>{t.descricao}</td>
 
-                  <td>
-                    {tarefa.responsavel === "profissional-a" ? "Profissional A" :
-                     tarefa.responsavel === "profissional-b" ? "Profissional B" : "Profissional C"}
-                  </td>
+                <td>
+                  {
+                    responsavelOptions.find(r =>
+                      r.value === t.idResponsaveis[0]?.toString()
+                    )?.label || "Sem responsável"
+                  }
+                </td>
 
-                  <td>
-                    <Select<Option>
-                      instanceId={`status-${tarefa.id}`}
-                      options={statusOptions.filter(opt => opt.value !== "")}
-                      defaultValue={statusOptions.find(opt => opt.value === tarefa.status)}
-                      className={styles.selectTable}
-                      styles={tableSelectStyles}
-                      isSearchable={false}
-                    />
-                  </td>
+                <td>
+                  <Select
+                    options={statusOptions.filter(o => o.value)}
+                    value={statusOptions.find(o => o.value === t.status)}
+                    onChange={(s) => atualizarStatus(t.id, s!.value)}
+                    styles={tableSelectStyles}
+                  />
+                </td>
 
-                  <td>CRUD</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} style={{ textAlign: "center", padding: "20px", color: "#888" }}>
-                  Nenhuma tarefa encontrada com esses filtros.
+                <td>
+                  <button onClick={() => deletar(t.id)}>X</button>
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
       </main>
 
-      <button className={styles.btnAdicionarMais}>
-        +
-      </button>
+      <button className={styles.btnAdicionarMais} onClick={() => setModalProjeto(true)}>+</button>
+
+      {modalProjeto && (
+        <div className={styles.modalOverlay} onClick={() => setModalProjeto(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+
+            <h2>Nova Tarefa</h2>
+
+            <input placeholder = "Insira o nome da Tarefa" value={nomeTarefa} onChange={(e) => setNomeTarefa(e.target.value)} />
+
+            <textarea placeholder = "Insira a descrição da Tarefa" value={descricaoTarefa} onChange={(e) => setDescricaoTarefa(e.target.value)} />
+
+            <Select
+              options={responsavelOptions.filter(o => o.value)}
+              value={responsavelModal}
+              onChange={(s) => setResponsavelModal(s)}
+              styles={selectStyles}
+            />
+
+            <div className={styles.modalButtons}>
+              <button onClick={() => setModalProjeto(false)} className={styles.modalButton}>Fechar</button>
+              <button onClick={salvarTarefa} className={styles.modalButton}>Salvar</button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
+
