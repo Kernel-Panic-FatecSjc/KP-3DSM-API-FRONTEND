@@ -38,13 +38,13 @@ export default function NavigationBar() {
       iconActive: "/images/iconProfissionalAzul.svg",
       submenus: [
         {
-          id: "controleHoras",
-          title: "Controle de Horas",
+          id: "apontamentos",
+          title: "Apontamentos",
           route: "/controleHoras/entrada-saida",
         },
         {
-          id: "bloqueioTarefas",
-          title: "Bloqueio de tarefas",
+          id: "bloqueioAtividades",
+          title: "Bloqueio de atividades",
           route: "/bloqueioTarefas"
         }
       ]
@@ -52,7 +52,6 @@ export default function NavigationBar() {
     {
       id: "gestor",
       title: "Gestor",
-      route: "/tarefas",
       iconInactive: "/images/iconGestor.svg",
       iconActive: "/images/iconGestorAzul.svg",
       submenus: [
@@ -67,8 +66,8 @@ export default function NavigationBar() {
           route: "/registro-projeto",
         },
         {
-          id: "tarefas",
-          title: "Tarefas",
+          id: "atividades",
+          title: "Atividades",
           route: "/gestao-tarefas-gestor",
         },
         {
@@ -87,8 +86,8 @@ export default function NavigationBar() {
           route: "/",
         },
         {
-          id: "historicoTarefas",
-          title: "Histórico de Tarefas",
+          id: "historicoAtividades",
+          title: "Histórico de Atividades",
           route: "/",
         }
       ]
