@@ -25,10 +25,20 @@ export default function NavigationBar() {
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
 
   useEffect(() => {
     setOpenMenu(null);
   }, [pathname]);
+
+  useEffect(() => {
+    const nome = localStorage.getItem('nome');
+    const cargo = localStorage.getItem('cargo');
+
+    if (nome && cargo) {
+      setUser({ name: nome, role: cargo });
+    }
+  }, []);
 
   const menus: Menu[] = [
     {
@@ -218,7 +228,11 @@ export default function NavigationBar() {
         ☰
       </div>
       <div className={styles.user}>
-        <span>M. Nonaka (Admin)</span>
+        {user ? (
+          <span>{user.name} ({user.role})</span>
+        ) : (
+          <span>Carregando...</span>
+        )}
       </div>
           {mobileOpen && (
       <div 

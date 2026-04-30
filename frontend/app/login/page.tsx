@@ -33,6 +33,7 @@ export default function Page() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('cargo', data.cargo);
       localStorage.setItem('email', data.email);
+      localStorage.setItem('nome', data.nome);
       localStorage.setItem('usuarioId', String(data.id));
 
       router.push('/controleHoras/entrada-saida'); 
