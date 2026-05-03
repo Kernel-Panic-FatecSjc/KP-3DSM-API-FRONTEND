@@ -16,11 +16,6 @@ type Tarefa = {
     bloqueada: boolean;
 };
 
-type Projeto = {
-    id: number;
-    nome: string;
-};
-
 export default function Page() {
     const [tarefas, setTarefas] = useState<Tarefa[]>([]);
     const [loading, setLoading] = useState(true);
@@ -28,33 +23,41 @@ export default function Page() {
     const [filtroProjeto, setFiltroProjeto] = useState('');
     const [filtroStatus, setFiltroStatus] = useState('');
 
-    // 🔥 BUSCAR DO BACKEND
+   
+    const carregarTarefas = async () => {
+        try {
+            const res = await fetch(`${API_URL}/tarefas`);
+            const data = await res.json();
+            setTarefas(data);
+        } catch {
+            alert('Erro ao buscar tarefas');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        fetch(`${API_URL}/tarefas`)
-            .then(res => res.json())
-            .then(data => {
-                setTarefas(data);
-                setLoading(false);
-            })
-            .catch(() => {
-                alert('Erro ao buscar tarefas');
-                setLoading(false);
-            });
+        carregarTarefas();
     }, []);
 
-    // 🔥 FILTRO
     const tarefasFiltradas = tarefas.filter((t) => {
-        const matchProjeto = filtroProjeto === '' || String(t.projetoId) === filtroProjeto;
-        const matchStatus = filtroStatus === '' || t.status === filtroStatus;
+        const matchProjeto =
+            filtroProjeto === '' || String(t.projetoId) === filtroProjeto;
+
+        const matchStatus =
+            filtroStatus === '' || t.status === filtroStatus;
+
         return matchProjeto && matchStatus;
     });
 
-    // 🔥 BLOQUEAR
+   
     const bloquear = async (tarefa: Tarefa) => {
         try {
-            await fetch(`${API_URL}/tarefas/${tarefa.id}/bloquear`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch(`${API_URL}/tarefas/${tarefa.id}/bloquear`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     usuarioId: 1,
                     categoria: 'ERRO_TECNICO',
@@ -62,35 +65,42 @@ export default function Page() {
                 })
             });
 
-            // atualiza local
-            setTarefas(prev =>
-                prev.map(t =>
-                    t.id === tarefa.id
-                        ? { ...t, bloqueada: true }
-                        : t
-                )
-            );
-        } catch {
-            alert('Erro ao bloquear');
+            if (!res.ok) {
+                const msg = await res.text();
+                throw new Error(msg);
+            }
+
+            
+            await carregarTarefas();
+
+        } catch (err: any) {
+            alert(err.message || 'Erro ao bloquear');
         }
     };
 
-    // 🔥 DESBLOQUEAR
+    
     const desbloquear = async (tarefa: Tarefa) => {
         try {
-            await fetch(`${API_URL}/tarefas/${tarefa.id}/desbloquear`, {
-                method: 'PATCH'
+            const res = await fetch(`${API_URL}/tarefas/${tarefa.id}/desbloquear`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    usuarioId: 1
+                })
             });
 
-            setTarefas(prev =>
-                prev.map(t =>
-                    t.id === tarefa.id
-                        ? { ...t, bloqueada: false }
-                        : t
-                )
-            );
-        } catch {
-            alert('Erro ao desbloquear');
+            if (!res.ok) {
+                const msg = await res.text();
+                throw new Error(msg);
+            }
+
+            
+            await carregarTarefas();
+
+        } catch (err: any) {
+            alert(err.message || 'Erro ao desbloquear');
         }
     };
 
@@ -98,7 +108,7 @@ export default function Page() {
         <div className={styles.container}>
             <h2 className={styles.titulo}>Minhas Tarefas</h2>
 
-            {/* FILTROS */}
+           
             <div className={styles.menuContainer}>
                 <div className={styles.filtros}>
                     <select
@@ -157,7 +167,7 @@ export default function Page() {
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         {tarefa.bloqueada && (
                                             <span className={styles.badgeBloqueada}>
-                                                ⚠ BLOQUEADA
+                                                BLOQUEADA
                                             </span>
                                         )}
                                         {tarefa.nome}
