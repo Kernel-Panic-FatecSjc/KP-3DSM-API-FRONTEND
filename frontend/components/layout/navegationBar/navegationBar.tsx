@@ -88,7 +88,7 @@ export default function NavigationBar() {
         {
           id: "visibilidadeTime",
           title: "Visibilidade do Time",
-          route: "/visibilidade-time",
+          route: "/visualizacaoTime",
         },
         {
           id: "relatorioBloqueios",
