@@ -1,30 +1,33 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
-import dynamic from 'next/dynamic'; // tem que ter isso pq ta dando bug no react select por conta do SSR
+import dynamic from 'next/dynamic';
 
-const Select = dynamic(() => import('react-select'), {
-    ssr: false
-});
+const Select = dynamic(() => import('react-select'), { ssr: false });
 
 function Page() {
     const [nomeProjeto, setNomeProjeto] = useState('');
     const [nomeCliente, setNomeCliente] = useState('');
+    const [descricao, setDescricao] = useState('');
     const [dataKickOff, setDataKickOff] = useState('');
     const [dataFinal, setDataFinal] = useState('');
+    const [valorContratado, setValorContratado] = useState('');
 
     const [usuarios, setUsuarios] = useState([]);
+    const [usuariosCarregados, setUsuariosCarregados] = useState(false);
     const [responsavelId, setResponsavelId] = useState('');
     const [devsIds, setDevsIds] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchUsuarios = async () => {
             try {
-                const response = await fetch('http://localhost:8080/usuarios/todos');
+                const response = await fetch('http://localhost:8080/usuarios');
                 const data = await response.json();
                 setUsuarios(data);
             } catch (error) {
                 console.error("Erro ao buscar usuários:", error);
+            } finally {
+                setUsuariosCarregados(true);
             }
         };
 
@@ -37,7 +40,7 @@ function Page() {
     }));
 
     const customStyles = {
-      control: (base: any, state: any) => ({
+        control: (base: any, state: any) => ({
             ...base,
             height: 42,
             minHeight: 42,
@@ -46,63 +49,33 @@ function Page() {
             boxShadow: 'none',
             outline: 'none',
             transition: 'all 0.2s ease',
-            '&:hover': {
-                borderColor: '#94a3b8'
-            }
+            '&:hover': { borderColor: '#94a3b8' }
         }),
-        valueContainer: (base: any) => ({
-            ...base,
-            padding: '0 12px'
-        }),
-        input: (base: any) => ({
-            ...base,
-            margin: 0,
-            padding: 0
-        }),
-        placeholder: (base: any) => ({
-            ...base,
-            color: '#94a3b8'
-        }),
-        singleValue: (base: any) => ({
-            ...base,
-            color: '#012643'
-        }),
-        multiValue: (base: any) => ({
-            ...base,
-            backgroundColor: '#012643',
-            borderRadius: 6
-        }),
-        multiValueLabel: (base: any) => ({
-            ...base,
-            color: '#fff'
-        }),
-        multiValueRemove: (base: any) => ({
-            ...base,
-            color: '#fff',
-        }),
-        indicatorsContainer: (base: any) => ({
-            ...base,
-            height: 42
-        }),
-        indicatorSeparator: (base: any) => ({
-            ...base,
-            display: 'none'
-        }),
-        menu: (base: any) => ({
-            ...base,
-            zIndex: 9999
-        })
+        valueContainer: (base: any) => ({ ...base, padding: '0 12px' }),
+        input: (base: any) => ({ ...base, margin: 0, padding: 0 }),
+        placeholder: (base: any) => ({ ...base, color: '#94a3b8' }),
+        singleValue: (base: any) => ({ ...base, color: '#012643' }),
+        multiValue: (base: any) => ({ ...base, backgroundColor: '#012643', borderRadius: 6 }),
+        multiValueLabel: (base: any) => ({ ...base, color: '#fff' }),
+        multiValueRemove: (base: any) => ({ ...base, color: '#fff' }),
+        indicatorsContainer: (base: any) => ({ ...base, height: 42 }),
+        indicatorSeparator: (base: any) => ({ ...base, display: 'none' }),
+        menu: (base: any) => ({ ...base, zIndex: 9999 })
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        const agora = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
         const payload = {
             nome: nomeProjeto,
+            descricao: `Cliente: ${nomeCliente} | Kick-off: ${dataKickOff} | ${descricao}`.substring(0, 300),
             status: "EM_PLANEJAMENTO",
-            descricao: `Cliente: ${nomeCliente} | Kick-off: ${dataKickOff}`.substring(0, 300),
-            prazo: dataFinal ? `${dataFinal} 18:00` : null,
-            responsavelId: responsavelId,
+            prazo: dataFinal ? `${dataFinal} 18:00:00` : null,
+            valor_contratado: valorContratado ? parseFloat(valorContratado) : null,
+            responsavelId: responsavelId || null,
+            dataCriacao: agora,
             desenvolvedoresIds: devsIds
         };
 
@@ -114,7 +87,15 @@ function Page() {
             });
 
             if (response.ok) {
-                alert('Projeto enviado com sucesso!');
+                alert('Projeto criado com sucesso!');
+                setNomeProjeto('');
+                setNomeCliente('');
+                setDescricao('');
+                setDataKickOff('');
+                setDataFinal('');
+                setValorContratado('');
+                setResponsavelId('');
+                setDevsIds([]);
             } else {
                 const erro = await response.json();
                 alert(`Erro: ${erro.mensagem}`);
@@ -150,6 +131,16 @@ function Page() {
                 </div>
 
                 <div className={styles.containerInput}>
+                    <p>Descrição:</p>
+                    <textarea
+                        className={styles.inputStyle}
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        maxLength={300}
+                    />
+                </div>
+
+                <div className={styles.containerInput}>
                     <p>Responsável:</p>
                     <Select
                         options={usuariosOptions}
@@ -173,28 +164,48 @@ function Page() {
                     />
                 </div>
 
+                {/* Aviso de nenhum usuário encontrado */}
+                {usuariosCarregados && usuarios.length === 0 && (
+                    <p style={{ color: '#ef4444', fontSize: 13, marginTop: -8 }}>
+                        Nenhum usuário encontrado. Cadastre usuários antes de criar um projeto.
+                    </p>
+                )}
+
                 <div className={styles.containerInput}>
                     <p>Data kick-off:</p>
                     <input
                         className={styles.inputStyle}
-                        placeholder="dd/MM/yyyy"
+                        type="date"
                         value={dataKickOff}
                         onChange={(e) => setDataKickOff(e.target.value)}
                     />
                 </div>
 
                 <div className={styles.containerInput}>
-                    <p>Data final:</p>
+                    <p>Data final (prazo):</p>
                     <input
                         className={styles.inputStyle}
-                        placeholder="dd/MM/yyyy"
+                        type="date"
                         value={dataFinal}
                         onChange={(e) => setDataFinal(e.target.value)}
                     />
                 </div>
 
+                <div className={styles.containerInput}>
+                    <p>Valor contratado (R$):</p>
+                    <input
+                        className={styles.inputStyle}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorContratado}
+                        onChange={(e) => setValorContratado(e.target.value)}
+                        placeholder="0,00"
+                    />
+                </div>
+
                 <div className={styles.buttonWrapper}>
-                    <button className={styles.ButtonStyle}>
+                    <button className={styles.ButtonStyle} type="submit">
                         Adicionar
                     </button>
                 </div>

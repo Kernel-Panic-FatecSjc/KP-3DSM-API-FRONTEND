@@ -1,45 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import styles from "./App.module.css";
 
 export default function Page() {
-  const [projetos, setProjetos] = useState([
-    {
-      id: 1,
-      nome: "Sistema de Gestão de Tarefas",
-      descricao:
-        "Aplicação para organizar tarefas diárias com status e prazos.",
-      status: "EM_ANDAMENTO",
-      prazo: "2026-05-10T00:00:00",
-      valor_contratado: 15000.0,
-      responsavelId: 2,
-      dataCriacao: "2026-04-20T10:30:00",
-    },
-    {
-      id: 2,
-      nome: "E-commerce de Eletrônicos",
-      descricao: "Loja virtual com catálogo de produtos e carrinho de compras.",
-      status: "EM_PLANEJAMENTO",
-      prazo: "2026-06-01T00:00:00",
-      valor_contratado: 45000.0,
-      responsavelId: 1,
-      dataCriacao: "2026-04-18T09:15:00",
-    },
-    {
-      id: 3,
-      nome: "API de Controle Financeiro",
-      descricao: "API para gerenciamento de receitas e despesas pessoais.",
-      status: "CONCLUIDO",
-      prazo: "2026-04-30T00:00:00",
-      valor_contratado: 22000.0,
-      responsavelId: 3,
-      dataCriacao: "2026-03-15T14:00:00",
-    },
-  ]);
+  const [projetos, setProjetos] = useState<any[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [projetoEditando, setProjetoEditando] = useState<any>(null);
+  const [confirmandoDelete, setConfirmandoDelete] = useState(false);
+
+  useEffect(() => {
+    const fetchProjetos = async () => {
+      try {
+        const response = await axios.get("http://localhost:8082/projetos");
+        setProjetos(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar projetos:", error);
+      }
+    };
+
+    fetchProjetos();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -56,98 +39,125 @@ export default function Page() {
 
   const handleStatusChange = (id: number, newStatus: string) => {
     const updated = projetos.map((p) =>
-      p.id === id ? { ...p, status: newStatus } : p,
+      p.id === id ? { ...p, status: newStatus } : p
     );
     setProjetos(updated);
   };
 
   const openModal = (projeto: any) => {
     setProjetoEditando(projeto);
+    setConfirmandoDelete(false);
     setModalOpen(true);
   };
 
   const handleSave = () => {
     const updated = projetos.map((p) =>
-      p.id === projetoEditando.id ? projetoEditando : p,
+      p.id === projetoEditando.id ? projetoEditando : p
     );
 
     setProjetos(updated);
     setModalOpen(false);
     setProjetoEditando(null);
+    setConfirmandoDelete(false);
+  };
+
+  const handleDelete = () => {
+    const updated = projetos.filter((p) => p.id !== projetoEditando.id);
+    setProjetos(updated);
+    setModalOpen(false);
+    setProjetoEditando(null);
+    setConfirmandoDelete(false);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setProjetoEditando(null);
+    setConfirmandoDelete(false);
   };
 
   return (
     <div className={styles.container}>
       <h1>Projetos</h1>
 
+      {/* GRID DE PROJETOS */}
       <div className={styles.grid}>
-        {projetos.map((projeto) => (
-          <div key={projeto.id} className={styles.card}>
-            <div
-              className={styles.statusBar}
-              style={{ backgroundColor: getStatusColor(projeto.status) }}
-            />
+        {projetos.length === 0 ? (
+          <p>Nenhum projeto encontrado.</p>
+        ) : (
+          projetos.map((projeto) => (
+            <div key={projeto.id} className={styles.card}>
+              <div
+                className={styles.statusBar}
+                style={{ backgroundColor: getStatusColor(projeto.status) }}
+              />
 
-            <div className={styles.header}>
-              <h2>{projeto.nome}</h2>
+              <div className={styles.header}>
+                <h2>{projeto.nome}</h2>
 
-              <button
-                className={styles.editBtn}
-                onClick={() => openModal(projeto)}
+                <button
+                  className={styles.editBtn}
+                  onClick={() => openModal(projeto)}
+                >
+                  ✏️
+                </button>
+              </div>
+
+              <p className={styles.descricao}>{projeto.descricao}</p>
+
+              <div className={styles.info}>
+                <span>
+                  <strong>ID:</strong> {projeto.id}
+                </span>
+
+                <span>
+                  <strong>Status:</strong> {projeto.status}
+                </span>
+
+                <span>
+                  <strong>Prazo:</strong>{" "}
+                  {projeto.prazo
+                    ? new Date(projeto.prazo).toLocaleString()
+                    : "-"}
+                </span>
+
+                <span>
+                  <strong>Valor:</strong> R$ {projeto.valor_contratado}
+                </span>
+
+                <span>
+                  <strong>Responsável:</strong> {projeto.responsavelId}
+                </span>
+
+                <span>
+                  <strong>Criação:</strong>{" "}
+                  {projeto.dataCriacao
+                    ? new Date(projeto.dataCriacao).toLocaleString()
+                    : "-"}
+                </span>
+              </div>
+
+              <select
+                className={styles.select}
+                value={projeto.status}
+                onChange={(e) =>
+                  handleStatusChange(projeto.id, e.target.value)
+                }
               >
-                ✏️
-              </button>
+                <option value="EM_PLANEJAMENTO">Em planejamento</option>
+                <option value="EM_ANDAMENTO">Em andamento</option>
+                <option value="CONCLUIDO">Concluído</option>
+              </select>
             </div>
-
-            <p className={styles.descricao}>{projeto.descricao}</p>
-
-            <div className={styles.info}>
-              <span>
-                <strong>ID:</strong> {projeto.id}
-              </span>
-
-              <span>
-                <strong>Status:</strong> {projeto.status}
-              </span>
-
-              <span>
-                <strong>Prazo:</strong>{" "}
-                {new Date(projeto.prazo).toLocaleString()}
-              </span>
-
-              <span>
-                <strong>Valor:</strong> R$ {projeto.valor_contratado}
-              </span>
-
-              <span>
-                <strong>Responsável:</strong> {projeto.responsavelId}
-              </span>
-
-              <span>
-                <strong>Criação:</strong>{" "}
-                {new Date(projeto.dataCriacao).toLocaleString()}
-              </span>
-            </div>
-
-            <select
-              className={styles.select}
-              value={projeto.status}
-              onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
-            >
-              <option value="EM_PLANEJAMENTO">Em planejamento</option>
-              <option value="EM_ANDAMENTO">Em andamento</option>
-              <option value="CONCLUIDO">Concluído</option>
-            </select>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
+      {/* MODAL DE EDIÇÃO */}
       {modalOpen && projetoEditando && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <h2>Editar Projeto</h2>
 
-            {/* Nome */}
             <input
               type="text"
               value={projetoEditando.nome}
@@ -160,7 +170,6 @@ export default function Page() {
               placeholder="Nome do projeto"
             />
 
-            {/* Descrição */}
             <textarea
               value={projetoEditando.descricao}
               onChange={(e) =>
@@ -172,7 +181,6 @@ export default function Page() {
               placeholder="Descrição"
             />
 
-            {/* Status ENUM */}
             <select
               value={projetoEditando.status}
               onChange={(e) =>
@@ -187,10 +195,9 @@ export default function Page() {
               <option value="CONCLUIDO">Concluído</option>
             </select>
 
-            {/* Prazo (TIMESTAMP) */}
             <input
               type="datetime-local"
-              value={projetoEditando.prazo?.slice(0, 16)}
+              value={projetoEditando.prazo?.slice(0, 16) || ""}
               onChange={(e) =>
                 setProjetoEditando({
                   ...projetoEditando,
@@ -199,7 +206,6 @@ export default function Page() {
               }
             />
 
-            {/* Valor contratado */}
             <input
               type="number"
               value={projetoEditando.valor_contratado}
@@ -212,7 +218,6 @@ export default function Page() {
               placeholder="Valor contratado"
             />
 
-            {/* Responsável ID */}
             <input
               type="number"
               value={projetoEditando.responsavelId}
@@ -222,16 +227,47 @@ export default function Page() {
                   responsavelId: Number(e.target.value),
                 })
               }
-              placeholder="ID do responsável"
+              placeholder="Responsável ID"
             />
 
-            {/* Data criação (somente leitura) */}
-            <input type="text" value={projetoEditando.dataCriacao} disabled />
+            <input
+              type="text"
+              value={projetoEditando.dataCriacao || ""}
+              disabled
+            />
 
-            {/* Ações */}
+            {/* CONFIRMAÇÃO DE DELETE */}
+            {confirmandoDelete && (
+              <div className={styles.deleteConfirm}>
+                <p>Tem certeza que deseja excluir <strong>{projetoEditando.nome}</strong>? Esta ação não pode ser desfeita.</p>
+                <div className={styles.deleteConfirmActions}>
+                  <button
+                    className={styles.cancelDeleteBtn}
+                    onClick={() => setConfirmandoDelete(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className={styles.confirmDeleteBtn}
+                    onClick={handleDelete}
+                  >
+                    Sim, excluir
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className={styles.modalActions}>
-              <button onClick={() => setModalOpen(false)}>Cancelar</button>
-              <button onClick={handleSave}>Salvar</button>
+              <button
+                className={styles.deleteBtn}
+                onClick={() => setConfirmandoDelete(true)}
+              >
+                🗑️ Excluir
+              </button>
+              <div className={styles.modalActionsRight}>
+                <button onClick={handleCloseModal}>Cancelar</button>
+                <button onClick={handleSave}>Salvar</button>
+              </div>
             </div>
           </div>
         </div>
