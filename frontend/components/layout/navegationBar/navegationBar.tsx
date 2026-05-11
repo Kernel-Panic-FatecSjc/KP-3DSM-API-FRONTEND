@@ -17,7 +17,15 @@ type Menu = {
   route?: string;
   iconInactive: string;
   iconActive: string;
+  cargos: string[];
   submenus?: Submenu[];
+};
+
+const PERMISSOES: Record<string, string[]> = {
+  profissional: ["profissional", "gestor"],
+  gestor:       ["gestor"],
+  financeiro:   ["financeiro", "gestor"],
+  dashboard:    ["profissional, financeiro", "gestor"],
 };
 
 export default function NavigationBar() {
@@ -26,6 +34,7 @@ export default function NavigationBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [cargo, setCargo] = useState<string>('');
 
   useEffect(() => {
     setOpenMenu(null);
@@ -33,10 +42,11 @@ export default function NavigationBar() {
 
   useEffect(() => {
     const nome = localStorage.getItem('nome');
-    const cargo = localStorage.getItem('cargo');
+    const cargoStorage = localStorage.getItem('cargo');
 
-    if (nome && cargo) {
-      setUser({ name: nome, role: cargo });
+    if (nome && cargoStorage) {
+      setUser({ name: nome, role: cargoStorage });
+      setCargo(cargoStorage.toLowerCase());
     }
   }, []);
 
@@ -46,17 +56,10 @@ export default function NavigationBar() {
       title: "Profissional",
       iconInactive: "/images/iconProfissional.svg",
       iconActive: "/images/iconProfissionalAzul.svg",
+      cargos: PERMISSOES.profissional,
       submenus: [
-        {
-          id: "apontamentos",
-          title: "Apontamentos",
-          route: "/controleHoras/entrada-saida",
-        },
-        {
-          id: "bloqueioAtividades",
-          title: "Bloqueio de atividades",
-          route: "/bloqueioTarefas"
-        }
+        { id: "apontamentos", title: "Apontamentos", route: "/controleHoras/entrada-saida" },
+        { id: "bloqueioAtividades", title: "Bloqueio de atividades", route: "/bloqueioTarefas" }
       ]
     },
     {
@@ -64,97 +67,43 @@ export default function NavigationBar() {
       title: "Gestor",
       iconInactive: "/images/iconGestor.svg",
       iconActive: "/images/iconGestorAzul.svg",
+      cargos: PERMISSOES.gestor,
       submenus: [
-        {
-          id: "usuario",
-          title: "Usuários",
-          route: "/cadastro_usuario",
-        },
-        {
-          id: "projetos",
-          title: "Projetos",
-          route: "/registro-projeto",
-        },
-        {
-          id: "atividades",
-          title: "Atividades",
-          route: "/gestao-tarefas-gestor",
-        },
-        {
-          id: "aprovacaoHoras",
-          title: "Aprovação de horas",
-          route: "/aprovacao-horas",
-        },
-        {
-          id: "visibilidadeTime",
-          title: "Visibilidade do Time",
-          route: "/visualizacaoTime",
-        },
-        {
-          id: "relatorioBloqueios",
-          title: "Relatório de bloqueios",
-          route: "/",
-        },
-        {
-          id: "historicoAtividades",
-          title: "Histórico de Atividades",
-          route: "/",
-        }
+        { id: "usuario", title: "Usuários", route: "/cadastro_usuario" },
+        { id: "projetos", title: "Projetos", route: "/registro-projeto" },
+        { id: "atividades", title: "Atividades", route: "/gestao-tarefas-gestor" },
+        { id: "aprovacaoHoras", title: "Aprovação de horas", route: "/aprovacao-horas" },
+        { id: "visibilidadeTime", title: "Visibilidade do Time", route: "/visualizacaoTime" },
+        { id: "relatorioBloqueios", title: "Relatório de bloqueios", route: "/" },
+        { id: "historicoAtividades", title: "Histórico de Atividades", route: "/" }
       ]
     },
     {
       id: "financeiro",
       title: "Financeiro",
-      route: "/",
       iconInactive: "/images/iconFinanceiro.svg",
       iconActive: "/images/iconFinanceiroAzul.svg",
+      cargos: PERMISSOES.financeiro,
       submenus: [
-        {
-          id: "painelFinanceiro",
-          title: "Painel Finaceiro",
-          route: "/",
-        }
-      ]
-    },
-    {
-      id: "administrador",
-      title: "Adminstrador",
-      route: "/",
-      iconInactive: "/images/iconAdm.svg",
-      iconActive: "/images/iconAdmAzul.svg",
-      submenus: [
-        {
-          id: "auditoriaLancamentos",
-          title: "Auditoria de lançamentos",
-          route: "/",
-        }
+        { id: "painelFinanceiro", title: "Painel Financeiro", route: "/" },
+        { id: "auditoriaLancamentos", title: "Auditoria de lançamentos", route: "/" }
       ]
     },
     {
       id: "dashboard",
       title: "Dashboard",
-      route: "/",
       iconInactive: "/images/iconDashboard.svg",
       iconActive: "/images/iconDashboardAzul.svg",
+      cargos: PERMISSOES.dashboard,
       submenus: [
-        {
-          id: "dashboardProfissional",
-          title: "Dashboard do Profissional",
-          route: "/",
-        },
-        {
-          id: "dashboardGestor",
-          title: "Dashboard do gestor",
-          route: "/",
-        },
-        {
-          id: "dashboardFinanceiro",
-          title: "Dashboard do Financeiro/Admin",
-          route: "/",
-        }
+        { id: "dashboardProfissional", title: "Dashboard do Profissional", route: "/" },
+        { id: "dashboardGestor", title: "Dashboard do gestor", route: "/" },
+        { id: "dashboardFinanceiro", title: "Dashboard do Financeiro/Admin", route: "/" }
       ]
     }
   ];
+
+  const menusFiltrados = menus.filter(item => item.cargos.includes(cargo));
 
   return (
     <div className={styles.container}>
@@ -170,8 +119,7 @@ export default function NavigationBar() {
       </div>
 
       <div className={styles.menu}>
-        {menus.map((item) => {
-
+        {menusFiltrados.map((item) => {
           const isActive =
             item.route
               ? pathname === item.route
@@ -179,7 +127,6 @@ export default function NavigationBar() {
 
           return (
             <div key={item.id} className={styles.menuItem}>
-              
               <div
                 className={`${styles.menuButton} ${isActive ? styles.active : ""}`}
                 onClick={() => {
@@ -203,7 +150,6 @@ export default function NavigationBar() {
                 <div className={styles.dropdown}>
                   {item.submenus.map((sub) => {
                     const subActive = pathname === sub.route;
-
                     return (
                       <div
                         key={sub.id}
@@ -219,14 +165,15 @@ export default function NavigationBar() {
                   })}
                 </div>
               )}
-
             </div>
           );
         })}
       </div>
+
       <div className={styles.hamburger} onClick={() => setMobileOpen(true)}>
         ☰
       </div>
+
       <div className={styles.user}>
         {user ? (
           <span>{user.name} ({user.role})</span>
@@ -234,55 +181,47 @@ export default function NavigationBar() {
           <span>Carregando...</span>
         )}
       </div>
-          {mobileOpen && (
-      <div 
-        className={styles.overlay}
-        onClick={() => setMobileOpen(false)}
-      />
-    )}
-        <div className={`${styles.mobileMenu} ${mobileOpen ? styles.active : ""}`}>
-      {menus.map((item) => (
-        <div key={item.id} className={styles.mobileItem}>
-          
-          <div
-            onClick={() => {
-              if (item.route) {
-                router.push(item.route);
-                setMobileOpen(false);
-              }
-            }}
-          >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Image
-              src={item.iconInactive}
-              width={20}
-              height={20}
-              alt={item.title}
-            />
-            <span>{item.title}</span>
-          </div>
-          </div>
 
-          {item.submenus && (
-            <div className={styles.mobileSubmenu}>
-              {item.submenus.map((sub) => (
-                <div
-                  key={sub.id}
-                  className={styles.mobileSubItem}
-                  onClick={() => {
-                    router.push(sub.route);
-                    setMobileOpen(false);
-                  }}
-                >
-                  {sub.title}
-                </div>
-              ))}
+      {mobileOpen && (
+        <div className={styles.overlay} onClick={() => setMobileOpen(false)} />
+      )}
+
+      <div className={`${styles.mobileMenu} ${mobileOpen ? styles.active : ""}`}>
+        {menusFiltrados.map((item) => (
+          <div key={item.id} className={styles.mobileItem}>
+            <div
+              onClick={() => {
+                if (item.route) {
+                  router.push(item.route);
+                  setMobileOpen(false);
+                }
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Image src={item.iconInactive} width={20} height={20} alt={item.title} />
+                <span>{item.title}</span>
+              </div>
             </div>
-          )}
 
-        </div>
-      ))}
-    </div>
+            {item.submenus && (
+              <div className={styles.mobileSubmenu}>
+                {item.submenus.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className={styles.mobileSubItem}
+                    onClick={() => {
+                      router.push(sub.route);
+                      setMobileOpen(false);
+                    }}
+                  >
+                    {sub.title}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

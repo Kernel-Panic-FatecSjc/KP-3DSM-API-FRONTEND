@@ -14,10 +14,15 @@ export default function Page() {
   useEffect(() => {
     const fetchProjetos = async () => {
       try {
-        const response = await axios.get("http://localhost:8082/projetos");
+        const response = await axios.get("http://localhost:8082/projeto");
+
+        console.log(response.data);
+
         setProjetos(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar projetos:", error);
+      } catch (error: any) {
+        console.log(error.response);
+        console.log(error.message);
+        console.log(error);
       }
     };
 
@@ -28,10 +33,13 @@ export default function Page() {
     switch (status) {
       case "EM_PLANEJAMENTO":
         return "#9CA3AF";
+
       case "EM_ANDAMENTO":
         return "#3B82F6";
+
       case "CONCLUIDO":
         return "#10B981";
+
       default:
         return "#9CA3AF";
     }
@@ -41,6 +49,7 @@ export default function Page() {
     const updated = projetos.map((p) =>
       p.id === id ? { ...p, status: newStatus } : p
     );
+
     setProjetos(updated);
   };
 
@@ -63,6 +72,7 @@ export default function Page() {
 
   const handleDelete = () => {
     const updated = projetos.filter((p) => p.id !== projetoEditando.id);
+
     setProjetos(updated);
     setModalOpen(false);
     setProjetoEditando(null);
@@ -79,7 +89,6 @@ export default function Page() {
     <div className={styles.container}>
       <h1>Projetos</h1>
 
-      {/* GRID DE PROJETOS */}
       <div className={styles.grid}>
         {projetos.length === 0 ? (
           <p>Nenhum projeto encontrado.</p>
@@ -98,7 +107,7 @@ export default function Page() {
                   className={styles.editBtn}
                   onClick={() => openModal(projeto)}
                 >
-                  ✏️
+                  Editar
                 </button>
               </div>
 
@@ -121,7 +130,7 @@ export default function Page() {
                 </span>
 
                 <span>
-                  <strong>Valor:</strong> R$ {projeto.valor_contratado}
+                  <strong>Valor:</strong> R$ {projeto.valorContratado}
                 </span>
 
                 <span>
@@ -144,7 +153,9 @@ export default function Page() {
                 }
               >
                 <option value="EM_PLANEJAMENTO">Em planejamento</option>
+
                 <option value="EM_ANDAMENTO">Em andamento</option>
+
                 <option value="CONCLUIDO">Concluído</option>
               </select>
             </div>
@@ -152,7 +163,6 @@ export default function Page() {
         )}
       </div>
 
-      {/* MODAL DE EDIÇÃO */}
       {modalOpen && projetoEditando && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
@@ -191,7 +201,9 @@ export default function Page() {
               }
             >
               <option value="EM_PLANEJAMENTO">Em planejamento</option>
+
               <option value="EM_ANDAMENTO">Em andamento</option>
+
               <option value="CONCLUIDO">Concluído</option>
             </select>
 
@@ -208,11 +220,11 @@ export default function Page() {
 
             <input
               type="number"
-              value={projetoEditando.valor_contratado}
+              value={projetoEditando.valorContratado}
               onChange={(e) =>
                 setProjetoEditando({
                   ...projetoEditando,
-                  valor_contratado: Number(e.target.value),
+                  valorContratado: Number(e.target.value),
                 })
               }
               placeholder="Valor contratado"
@@ -236,10 +248,13 @@ export default function Page() {
               disabled
             />
 
-            {/* CONFIRMAÇÃO DE DELETE */}
             {confirmandoDelete && (
               <div className={styles.deleteConfirm}>
-                <p>Tem certeza que deseja excluir <strong>{projetoEditando.nome}</strong>? Esta ação não pode ser desfeita.</p>
+                <p>
+                  Tem certeza que deseja excluir{" "}
+                  <strong>{projetoEditando.nome}</strong>?
+                </p>
+
                 <div className={styles.deleteConfirmActions}>
                   <button
                     className={styles.cancelDeleteBtn}
@@ -247,6 +262,7 @@ export default function Page() {
                   >
                     Cancelar
                   </button>
+
                   <button
                     className={styles.confirmDeleteBtn}
                     onClick={handleDelete}
@@ -262,10 +278,12 @@ export default function Page() {
                 className={styles.deleteBtn}
                 onClick={() => setConfirmandoDelete(true)}
               >
-                🗑️ Excluir
+                Excluir
               </button>
+
               <div className={styles.modalActionsRight}>
                 <button onClick={handleCloseModal}>Cancelar</button>
+
                 <button onClick={handleSave}>Salvar</button>
               </div>
             </div>
