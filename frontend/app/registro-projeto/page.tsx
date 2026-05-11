@@ -21,7 +21,7 @@ function Page() {
     useEffect(() => {
         const fetchUsuarios = async () => {
             try {
-                const response = await fetch('http://localhost:8080/usuarios');
+                const response = await fetch('http://localhost:8080/usuarios/todos');
                 const data = await response.json();
                 setUsuarios(data);
             } catch (error) {
