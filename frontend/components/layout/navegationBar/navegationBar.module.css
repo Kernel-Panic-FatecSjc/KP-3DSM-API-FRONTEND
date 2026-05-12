@@ -175,3 +175,14 @@
     font-size: 14px;
   }
 }
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoutIcon {
+  cursor: pointer;
+  width: 25px;
+}

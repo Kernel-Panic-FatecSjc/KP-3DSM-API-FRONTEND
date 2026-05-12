@@ -23,17 +23,24 @@ type Menu = {
 
 const PERMISSOES: Record<string, string[]> = {
   profissional: ["profissional", "gestor"],
-  gestor:       ["gestor"],
-  financeiro:   ["financeiro", "gestor"],
-  dashboard:    ["profissional", "financeiro", "gestor"],
+  gestor: ["gestor"],
+  financeiro: ["financeiro", "gestor"],
+  dashboard: ["profissional", "financeiro", "gestor"],
 };
 
 export default function NavigationBar() {
+
   const router = useRouter();
   const pathname = usePathname();
+
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+
+  const [user, setUser] = useState<{
+    name: string;
+    role: string;
+  } | null>(null);
+
   const [cargo, setCargo] = useState<string>('');
 
   useEffect(() => {
@@ -41,14 +48,34 @@ export default function NavigationBar() {
   }, [pathname]);
 
   useEffect(() => {
+
     const nome = localStorage.getItem('nome');
     const cargoStorage = localStorage.getItem('cargo');
 
     if (nome && cargoStorage) {
-      setUser({ name: nome, role: cargoStorage.toLowerCase().replace('role_', '') });
-      setCargo(cargoStorage.toLowerCase().replace('role_', ''));
+
+      const cargoFormatado = cargoStorage
+        .toLowerCase()
+        .replace('role_', '');
+
+      setUser({
+        name: nome,
+        role: cargoFormatado
+      });
+
+      setCargo(cargoFormatado);
     }
+
   }, []);
+
+  const logout = () => {
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('nome');
+    localStorage.removeItem('cargo');
+
+    router.push('/login');
+  };
 
   const menus: Menu[] = [
     {
@@ -58,8 +85,16 @@ export default function NavigationBar() {
       iconActive: "/images/iconProfissionalAzul.svg",
       cargos: PERMISSOES.profissional,
       submenus: [
-        { id: "apontamentos", title: "Apontamentos", route: "/controleHoras/entrada-saida" },
-        { id: "bloqueioAtividades", title: "Bloqueio de atividades", route: "/bloqueioTarefas" }
+        {
+          id: "apontamentos",
+          title: "Apontamentos",
+          route: "/controleHoras/entrada-saida"
+        },
+        {
+          id: "bloqueioAtividades",
+          title: "Bloqueio de atividades",
+          route: "/bloqueioTarefas"
+        }
       ]
     },
     {
@@ -69,14 +104,46 @@ export default function NavigationBar() {
       iconActive: "/images/iconGestorAzul.svg",
       cargos: PERMISSOES.gestor,
       submenus: [
-        { id: "usuario", title: "Usuários", route: "/cadastro_usuario" },
-        { id: "projetos", title: "Projetos", route: "/projetos" },
-        { id: "registroProjetos", title: "Registro de Projetos", route: "/registro-projeto" },
-        { id: "atividades", title: "Atividades", route: "/gestao-tarefas-gestor" },
-        { id: "aprovacaoHoras", title: "Aprovação de horas", route: "/aprovacao-horas" },
-        { id: "visibilidadeTime", title: "Visibilidade do Time", route: "/visualizacaoTime" },
-        { id: "relatorioBloqueios", title: "Relatório de bloqueios", route: "/" },
-        { id: "historicoAtividades", title: "Histórico de Atividades", route: "/" }
+        {
+          id: "usuario",
+          title: "Usuários",
+          route: "/cadastro_usuario"
+        },
+        {
+          id: "projetos",
+          title: "Projetos",
+          route: "/projetos"
+        },
+        {
+          id: "registroProjetos",
+          title: "Registro de Projetos",
+          route: "/registro-projeto"
+        },
+        {
+          id: "atividades",
+          title: "Atividades",
+          route: "/gestao-tarefas-gestor"
+        },
+        {
+          id: "aprovacaoHoras",
+          title: "Aprovação de horas",
+          route: "/aprovacao-horas"
+        },
+        {
+          id: "visibilidadeTime",
+          title: "Visibilidade do Time",
+          route: "/visualizacaoTime"
+        },
+        {
+          id: "relatorioBloqueios",
+          title: "Relatório de bloqueios",
+          route: "/"
+        },
+        {
+          id: "historicoAtividades",
+          title: "Histórico de Atividades",
+          route: "/"
+        }
       ]
     },
     {
@@ -86,8 +153,16 @@ export default function NavigationBar() {
       iconActive: "/images/iconFinanceiroAzul.svg",
       cargos: PERMISSOES.financeiro,
       submenus: [
-        { id: "painelFinanceiro", title: "Painel Financeiro", route: "/" },
-        { id: "auditoriaLancamentos", title: "Auditoria de lançamentos", route: "/" }
+        {
+          id: "painelFinanceiro",
+          title: "Painel Financeiro",
+          route: "/"
+        },
+        {
+          id: "auditoriaLancamentos",
+          title: "Auditoria de lançamentos",
+          route: "/"
+        }
       ]
     },
     {
@@ -97,20 +172,34 @@ export default function NavigationBar() {
       iconActive: "/images/iconDashboardAzul.svg",
       cargos: PERMISSOES.dashboard,
       submenus: [
-        { id: "dashboardProfissional", title: "Dashboard do Profissional", route: "/" },
-        { id: "dashboardGestor", title: "Dashboard do gestor", route: "/" },
-        { id: "dashboardFinanceiro", title: "Dashboard do Financeiro/Admin", route: "/" }
+        {
+          id: "dashboardProfissional",
+          title: "Dashboard do Profissional",
+          route: "/"
+        },
+        {
+          id: "dashboardGestor",
+          title: "Dashboard do gestor",
+          route: "/"
+        },
+        {
+          id: "dashboardFinanceiro",
+          title: "Dashboard do Financeiro/Admin",
+          route: "/"
+        }
       ]
     }
   ];
 
-  const menusFiltrados = menus.filter(item => item.cargos.includes(cargo));
+  const menusFiltrados = menus.filter(item =>
+    item.cargos.includes(cargo)
+  );
 
   return (
     <div className={styles.container}>
-      
+
       <div className={styles.logo}>
-        <Image 
+        <Image
           src="/images/logoGSW.svg"
           width={120}
           height={40}
@@ -120,109 +209,197 @@ export default function NavigationBar() {
       </div>
 
       <div className={styles.menu}>
+
         {menusFiltrados.map((item) => {
+
           const isActive =
             item.route
               ? pathname === item.route
-              : item.submenus?.some(sub => pathname === sub.route);
+              : item.submenus?.some(
+                  sub => pathname === sub.route
+                );
 
           return (
-            <div key={item.id} className={styles.menuItem}>
+            <div
+              key={item.id}
+              className={styles.menuItem}
+            >
+
               <div
                 className={`${styles.menuButton} ${isActive ? styles.active : ""}`}
                 onClick={() => {
+
                   if (item.submenus) {
-                    setOpenMenu(openMenu === item.id ? null : item.id);
+
+                    setOpenMenu(
+                      openMenu === item.id
+                        ? null
+                        : item.id
+                    );
+
                   } else if (item.route) {
+
                     router.push(item.route);
                   }
                 }}
               >
+
                 <Image
                   src={isActive ? item.iconActive : item.iconInactive}
                   width={24}
                   height={24}
                   alt={item.title}
                 />
+
                 <span>{item.title}</span>
+
               </div>
 
               {item.submenus && openMenu === item.id && (
+
                 <div className={styles.dropdown}>
+
                   {item.submenus.map((sub) => {
-                    const subActive = pathname === sub.route;
+
+                    const subActive =
+                      pathname === sub.route;
+
                     return (
                       <div
                         key={sub.id}
                         className={`${styles.dropdownItem} ${subActive ? styles.activeDropdown : ""}`}
                         onClick={() => {
+
                           router.push(sub.route);
+
                           setOpenMenu(null);
                         }}
                       >
+
                         <span>{sub.title}</span>
+
                       </div>
                     );
                   })}
+
                 </div>
+
               )}
+
             </div>
           );
         })}
+
       </div>
 
-      <div className={styles.hamburger} onClick={() => setMobileOpen(true)}>
+      <div
+        className={styles.hamburger}
+        onClick={() => setMobileOpen(true)}
+      >
         ☰
       </div>
 
       <div className={styles.user}>
-        {user ? (
-          <span>{user.name} ({user.role})</span>
-        ) : (
-          <span>Carregando...</span>
-        )}
-      </div>
+  {user ? (
+    <div className={styles.userInfo}>
+      <span>{user.name} ({user.role})</span>
+
+      <img
+        src="/images/iconSair.svg"
+        alt="Sair"
+        className={styles.logoutIcon}
+        onClick={logout}
+      />
+    </div>
+  ) : (
+    <span>Carregando...</span>
+  )}
+</div>
 
       {mobileOpen && (
-        <div className={styles.overlay} onClick={() => setMobileOpen(false)} />
+
+        <div
+          className={styles.overlay}
+          onClick={() => setMobileOpen(false)}
+        />
+
       )}
 
       <div className={`${styles.mobileMenu} ${mobileOpen ? styles.active : ""}`}>
+
         {menusFiltrados.map((item) => (
-          <div key={item.id} className={styles.mobileItem}>
+
+          <div
+            key={item.id}
+            className={styles.mobileItem}
+          >
+
             <div
               onClick={() => {
+
                 if (item.route) {
+
                   router.push(item.route);
+
                   setMobileOpen(false);
                 }
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <Image src={item.iconInactive} width={20} height={20} alt={item.title} />
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px"
+                }}
+              >
+
+                <Image
+                  src={item.iconInactive}
+                  width={20}
+                  height={20}
+                  alt={item.title}
+                />
+
                 <span>{item.title}</span>
+
               </div>
+
             </div>
 
             {item.submenus && (
+
               <div className={styles.mobileSubmenu}>
+
                 {item.submenus.map((sub) => (
+
                   <div
                     key={sub.id}
                     className={styles.mobileSubItem}
                     onClick={() => {
+
                       router.push(sub.route);
+
                       setMobileOpen(false);
                     }}
                   >
+
                     {sub.title}
+
                   </div>
+
                 ))}
+
               </div>
+
             )}
+
           </div>
+
         ))}
+
       </div>
+
     </div>
   );
 }
