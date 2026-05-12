@@ -70,7 +70,8 @@ export default function NavigationBar() {
       cargos: PERMISSOES.gestor,
       submenus: [
         { id: "usuario", title: "Usuários", route: "/cadastro_usuario" },
-        { id: "projetos", title: "Projetos", route: "/registro-projeto" },
+        { id: "projetos", title: "Projetos", route: "/projetos" },
+        { id: "registroProjetos", title: "Registro de Projetos", route: "/registro-projeto" },
         { id: "atividades", title: "Atividades", route: "/gestao-tarefas-gestor" },
         { id: "aprovacaoHoras", title: "Aprovação de horas", route: "/aprovacao-horas" },
         { id: "visibilidadeTime", title: "Visibilidade do Time", route: "/visualizacaoTime" },

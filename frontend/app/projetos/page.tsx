@@ -6,7 +6,6 @@ import styles from "./App.module.css";
 
 export default function Page() {
   const [projetos, setProjetos] = useState<any[]>([]);
-
   const [modalOpen, setModalOpen] = useState(false);
   const [projetoEditando, setProjetoEditando] = useState<any>(null);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
@@ -45,6 +44,37 @@ export default function Page() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "EM_PLANEJAMENTO":
+        return "Em planejamento";
+
+      case "EM_ANDAMENTO":
+        return "Em andamento";
+
+      case "CONCLUIDO":
+        return "Concluído";
+
+      default:
+        return status;
+    }
+  };
+
+  const formatPrazo = (prazo: string) => {
+    const data = new Date(prazo);
+
+    const horas = data.getHours();
+    const minutos = data.getMinutes();
+
+    const dataFormatada = data.toLocaleDateString("pt-BR");
+
+    if (minutos === 0) {
+      return `${dataFormatada} às ${horas}hrs`;
+    }
+
+    return `${dataFormatada} às ${horas}hrs ${minutos}min`;
+  };
+
   const handleStatusChange = (id: number, newStatus: string) => {
     const updated = projetos.map((p) =>
       p.id === id ? { ...p, status: newStatus } : p
@@ -65,15 +95,19 @@ export default function Page() {
     );
 
     setProjetos(updated);
+
     setModalOpen(false);
     setProjetoEditando(null);
     setConfirmandoDelete(false);
   };
 
   const handleDelete = () => {
-    const updated = projetos.filter((p) => p.id !== projetoEditando.id);
+    const updated = projetos.filter(
+      (p) => p.id !== projetoEditando.id
+    );
 
     setProjetos(updated);
+
     setModalOpen(false);
     setProjetoEditando(null);
     setConfirmandoDelete(false);
@@ -94,10 +128,15 @@ export default function Page() {
           <p>Nenhum projeto encontrado.</p>
         ) : (
           projetos.map((projeto) => (
-            <div key={projeto.id} className={styles.card}>
+            <div
+              key={projeto.id}
+              className={styles.card}
+            >
               <div
                 className={styles.statusBar}
-                style={{ backgroundColor: getStatusColor(projeto.status) }}
+                style={{
+                  backgroundColor: getStatusColor(projeto.status),
+                }}
               />
 
               <div className={styles.header}>
@@ -111,7 +150,9 @@ export default function Page() {
                 </button>
               </div>
 
-              <p className={styles.descricao}>{projeto.descricao}</p>
+              <p className={styles.descricao}>
+                {projeto.descricao}
+              </p>
 
               <div className={styles.info}>
                 <span>
@@ -119,28 +160,26 @@ export default function Page() {
                 </span>
 
                 <span>
-                  <strong>Status:</strong> {projeto.status}
+                  <strong>Status:</strong>{" "}
+                  {getStatusLabel(projeto.status)}
                 </span>
 
                 <span>
                   <strong>Prazo:</strong>{" "}
                   {projeto.prazo
-                    ? new Date(projeto.prazo).toLocaleString()
+                    ? formatPrazo(projeto.prazo)
                     : "-"}
                 </span>
 
                 <span>
-                  <strong>Valor:</strong> R$ {projeto.valorContratado}
-                </span>
-
-                <span>
-                  <strong>Responsável:</strong> {projeto.responsavelId}
+                  <strong>Valor:</strong> R${" "}
+                  {projeto.valorContratado}
                 </span>
 
                 <span>
                   <strong>Criação:</strong>{" "}
                   {projeto.dataCriacao
-                    ? new Date(projeto.dataCriacao).toLocaleString()
+                    ? formatPrazo(projeto.dataCriacao)
                     : "-"}
                 </span>
               </div>
@@ -149,14 +188,23 @@ export default function Page() {
                 className={styles.select}
                 value={projeto.status}
                 onChange={(e) =>
-                  handleStatusChange(projeto.id, e.target.value)
+                  handleStatusChange(
+                    projeto.id,
+                    e.target.value
+                  )
                 }
               >
-                <option value="EM_PLANEJAMENTO">Em planejamento</option>
+                <option value="EM_PLANEJAMENTO">
+                  Em planejamento
+                </option>
 
-                <option value="EM_ANDAMENTO">Em andamento</option>
+                <option value="EM_ANDAMENTO">
+                  Em andamento
+                </option>
 
-                <option value="CONCLUIDO">Concluído</option>
+                <option value="CONCLUIDO">
+                  Concluído
+                </option>
               </select>
             </div>
           ))
@@ -168,6 +216,8 @@ export default function Page() {
           <div className={styles.modal}>
             <h2>Editar Projeto</h2>
 
+            <label>Nome</label>
+
             <input
               type="text"
               value={projetoEditando.nome}
@@ -177,8 +227,10 @@ export default function Page() {
                   nome: e.target.value,
                 })
               }
-              placeholder="Nome do projeto"
+              placeholder="Ex: Site Institucional"
             />
+
+            <label>Descrição</label>
 
             <textarea
               value={projetoEditando.descricao}
@@ -188,8 +240,10 @@ export default function Page() {
                   descricao: e.target.value,
                 })
               }
-              placeholder="Descrição"
+              placeholder="Descreva o objetivo do projeto..."
             />
+
+            <label>Status</label>
 
             <select
               value={projetoEditando.status}
@@ -200,16 +254,26 @@ export default function Page() {
                 })
               }
             >
-              <option value="EM_PLANEJAMENTO">Em planejamento</option>
+              <option value="EM_PLANEJAMENTO">
+                Em planejamento
+              </option>
 
-              <option value="EM_ANDAMENTO">Em andamento</option>
+              <option value="EM_ANDAMENTO">
+                Em andamento
+              </option>
 
-              <option value="CONCLUIDO">Concluído</option>
+              <option value="CONCLUIDO">
+                Concluído
+              </option>
             </select>
+
+            <label>Prazo</label>
 
             <input
               type="datetime-local"
-              value={projetoEditando.prazo?.slice(0, 16) || ""}
+              value={
+                projetoEditando.prazo?.slice(0, 16) || ""
+              }
               onChange={(e) =>
                 setProjetoEditando({
                   ...projetoEditando,
@@ -218,33 +282,33 @@ export default function Page() {
               }
             />
 
+            <label>Valor contratado (R$)</label>
+
             <input
               type="number"
               value={projetoEditando.valorContratado}
               onChange={(e) =>
                 setProjetoEditando({
                   ...projetoEditando,
-                  valorContratado: Number(e.target.value),
+                  valorContratado: Number(
+                    e.target.value
+                  ),
                 })
               }
-              placeholder="Valor contratado"
+              placeholder="Ex: 15000"
             />
 
-            <input
-              type="number"
-              value={projetoEditando.responsavelId}
-              onChange={(e) =>
-                setProjetoEditando({
-                  ...projetoEditando,
-                  responsavelId: Number(e.target.value),
-                })
-              }
-              placeholder="Responsável ID"
-            />
+            <label>Data de criação</label>
 
             <input
               type="text"
-              value={projetoEditando.dataCriacao || ""}
+              value={
+                projetoEditando.dataCriacao
+                  ? formatPrazo(
+                      projetoEditando.dataCriacao
+                    )
+                  : ""
+              }
               disabled
             />
 
@@ -252,19 +316,32 @@ export default function Page() {
               <div className={styles.deleteConfirm}>
                 <p>
                   Tem certeza que deseja excluir{" "}
-                  <strong>{projetoEditando.nome}</strong>?
+                  <strong>
+                    {projetoEditando.nome}
+                  </strong>
+                  ?
                 </p>
 
-                <div className={styles.deleteConfirmActions}>
+                <div
+                  className={
+                    styles.deleteConfirmActions
+                  }
+                >
                   <button
-                    className={styles.cancelDeleteBtn}
-                    onClick={() => setConfirmandoDelete(false)}
+                    className={
+                      styles.cancelDeleteBtn
+                    }
+                    onClick={() =>
+                      setConfirmandoDelete(false)
+                    }
                   >
                     Cancelar
                   </button>
 
                   <button
-                    className={styles.confirmDeleteBtn}
+                    className={
+                      styles.confirmDeleteBtn
+                    }
                     onClick={handleDelete}
                   >
                     Sim, excluir
@@ -276,15 +353,25 @@ export default function Page() {
             <div className={styles.modalActions}>
               <button
                 className={styles.deleteBtn}
-                onClick={() => setConfirmandoDelete(true)}
+                onClick={() =>
+                  setConfirmandoDelete(true)
+                }
               >
                 Excluir
               </button>
 
-              <div className={styles.modalActionsRight}>
-                <button onClick={handleCloseModal}>Cancelar</button>
+              <div
+                className={
+                  styles.modalActionsRight
+                }
+              >
+                <button onClick={handleCloseModal}>
+                  Cancelar
+                </button>
 
-                <button onClick={handleSave}>Salvar</button>
+                <button onClick={handleSave}>
+                  Salvar
+                </button>
               </div>
             </div>
           </div>
