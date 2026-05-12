@@ -25,7 +25,7 @@ const PERMISSOES: Record<string, string[]> = {
   profissional: ["profissional", "gestor"],
   gestor:       ["gestor"],
   financeiro:   ["financeiro", "gestor"],
-  dashboard:    ["profissional, financeiro", "gestor"],
+  dashboard:    ["profissional", "financeiro", "gestor"],
 };
 
 export default function NavigationBar() {
@@ -45,8 +45,8 @@ export default function NavigationBar() {
     const cargoStorage = localStorage.getItem('cargo');
 
     if (nome && cargoStorage) {
-      setUser({ name: nome, role: cargoStorage });
-      setCargo(cargoStorage.toLowerCase());
+      setUser({ name: nome, role: cargoStorage.toLowerCase().replace('role_', '') });
+      setCargo(cargoStorage.toLowerCase().replace('role_', ''));
     }
   }, []);
 
