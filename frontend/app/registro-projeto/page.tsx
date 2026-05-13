@@ -9,7 +9,6 @@ function Page() {
     const [nomeProjeto, setNomeProjeto] = useState('');
     const [nomeCliente, setNomeCliente] = useState('');
     const [descricao, setDescricao] = useState('');
-    const [dataKickOff, setDataKickOff] = useState('');
     const [dataFinal, setDataFinal] = useState('');
     const [valorContratado, setValorContratado] = useState('');
 
@@ -21,9 +20,9 @@ function Page() {
     useEffect(() => {
         const fetchUsuarios = async () => {
             try {
-                const response = await fetch('http://localhost:8080/usuarios/todos');
+                const response = await fetch('http://localhost:8083/usuario/todos');
                 const data = await response.json();
-                setUsuarios(data);
+                setUsuarios(Array.isArray(data) ? data : data.content ?? data.usuarios ?? []);
             } catch (error) {
                 console.error("Erro ao buscar usuários:", error);
             } finally {
@@ -34,10 +33,13 @@ function Page() {
         fetchUsuarios();
     }, []);
 
-    const usuariosOptions = usuarios.map((user: any) => ({
-        value: user.id,
-        label: user.nome
-    }));
+    const responsaveisOptions = usuarios
+    .filter((user: any) => user.cargo === 'ROLE_GESTOR')
+    .map((user: any) => ({ value: user.id, label: user.nome }));
+
+const desenvolvedoresOptions = usuarios
+    .filter((user: any) => user.cargo === 'ROLE_PROFISSIONAL')
+    .map((user: any) => ({ value: user.id, label: user.nome }));
 
     const customStyles = {
         control: (base: any, state: any) => ({
@@ -70,7 +72,7 @@ function Page() {
 
         const payload = {
             nome: nomeProjeto,
-            descricao: `Cliente: ${nomeCliente} | Kick-off: ${dataKickOff} | ${descricao}`.substring(0, 300),
+            descricao: `Cliente: ${nomeCliente} | ${descricao}`.substring(0, 300),
             status: "EM_PLANEJAMENTO",
             prazo: dataFinal ? `${dataFinal} 18:00:00` : null,
             valor_contratado: valorContratado ? parseFloat(valorContratado) : null,
@@ -80,26 +82,19 @@ function Page() {
         };
 
         try {
-            const response = await fetch('http://localhost:8080/projeto/cadastro', {
+            const response = await fetch('http://localhost:8082/projeto/cadastro', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
             if (response.ok) {
-                alert('Projeto criado com sucesso!');
-                setNomeProjeto('');
-                setNomeCliente('');
-                setDescricao('');
-                setDataKickOff('');
-                setDataFinal('');
-                setValorContratado('');
-                setResponsavelId('');
-                setDevsIds([]);
-            } else {
-                const erro = await response.json();
-                alert(`Erro: ${erro.mensagem}`);
-            }
+    alert('Projeto criado com sucesso!');
+} else {
+    const erro = await response.json();
+    console.error('Erro do back-end:', erro);
+    alert(`Erro ${response.status}: ${JSON.stringify(erro)}`);
+}
         } catch (error) {
             console.error("Erro:", error);
             alert("Erro de conexão com o back-end.");
@@ -127,59 +122,52 @@ function Page() {
                         className={styles.inputStyle}
                         value={nomeCliente}
                         onChange={(e) => setNomeCliente(e.target.value)}
+                        required
                     />
                 </div>
 
                 <div className={styles.containerInput}>
                     <p>Descrição:</p>
-                    <textarea
+                    <input
                         className={styles.inputStyle}
                         value={descricao}
                         onChange={(e) => setDescricao(e.target.value)}
                         maxLength={300}
+                        required
                     />
                 </div>
 
                 <div className={styles.containerInput}>
                     <p>Responsável:</p>
                     <Select
-                        options={usuariosOptions}
+                        options={responsaveisOptions}
                         styles={customStyles}
                         placeholder="Selecione um responsável"
                         onChange={(selected: any) => setResponsavelId(selected?.value)}
+                        required
                     />
+
                 </div>
 
                 <div className={styles.containerInputTop}>
                     <p>Desenvolvedores:</p>
                     <Select
                         isMulti
-                        options={usuariosOptions}
+                        options={desenvolvedoresOptions}
                         styles={customStyles}
                         placeholder="Selecione os desenvolvedores"
                         onChange={(selected: any) => {
                             const ids = selected ? selected.map((item: any) => item.value) : [];
                             setDevsIds(ids);
                         }}
+                        required
                     />
                 </div>
-
-                {/* Aviso de nenhum usuário encontrado */}
                 {usuariosCarregados && usuarios.length === 0 && (
                     <p style={{ color: '#ef4444', fontSize: 13, marginTop: -8 }}>
                         Nenhum usuário encontrado. Cadastre usuários antes de criar um projeto.
                     </p>
                 )}
-
-                <div className={styles.containerInput}>
-                    <p>Data kick-off:</p>
-                    <input
-                        className={styles.inputStyle}
-                        type="date"
-                        value={dataKickOff}
-                        onChange={(e) => setDataKickOff(e.target.value)}
-                    />
-                </div>
 
                 <div className={styles.containerInput}>
                     <p>Data final (prazo):</p>
@@ -188,6 +176,7 @@ function Page() {
                         type="date"
                         value={dataFinal}
                         onChange={(e) => setDataFinal(e.target.value)}
+                        required
                     />
                 </div>
 
@@ -201,6 +190,7 @@ function Page() {
                         value={valorContratado}
                         onChange={(e) => setValorContratado(e.target.value)}
                         placeholder="0,00"
+                        required
                     />
                 </div>
 

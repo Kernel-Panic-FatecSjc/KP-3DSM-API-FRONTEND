@@ -51,7 +51,7 @@ export default function Page() {
       case "EM_PLANEJAMENTO": return "Em planejamento";
       case "EM_ANDAMENTO": return "Em andamento";
       case "CONCLUIDO": return "Concluído";
-      default: return status;
+      default: return status ?? "-";
     }
   };
 
@@ -81,16 +81,19 @@ export default function Page() {
 
   const handleSave = async () => {
     try {
+      const prazoFormatado = projetoEditando.prazo
+        ? new Date(projetoEditando.prazo).toISOString().slice(0, 19).replace("T", " ")
+        : null;
+
       await axios.put(`http://localhost:8082/projeto/${projetoEditando.id}/atualizacao`, {
         id: projetoEditando.id,
         nome: projetoEditando.nome,
         status: projetoEditando.status,
         descricao: projetoEditando.descricao,
-        prazo: projetoEditando.prazo
-          ? new Date(projetoEditando.prazo).toLocaleDateString("pt-BR") +
-            " " +
-            new Date(projetoEditando.prazo).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-          : null,
+        prazo: prazoFormatado,
+        valorContratado: projetoEditando.valorContratado,
+        responsavelId: projetoEditando.responsavelId,
+        profissionaisIds: projetoEditando.profissionaisIds,
       });
 
       setProjetos(projetos.map((p) => p.id === projetoEditando.id ? projetoEditando : p));
@@ -103,11 +106,17 @@ export default function Page() {
     }
   };
 
-  const handleDelete = () => {
-    setProjetos(projetos.filter((p) => p.id !== projetoEditando.id));
-    setModalOpen(false);
-    setProjetoEditando(null);
-    setConfirmandoDelete(false);
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:8082/projeto/${projetoEditando.id}`);
+      setProjetos(projetos.filter((p) => p.id !== projetoEditando.id));
+      setModalOpen(false);
+      setProjetoEditando(null);
+      setConfirmandoDelete(false);
+    } catch (error: any) {
+      console.log(error);
+      alert("Erro ao excluir projeto!");
+    }
   };
 
   const handleCloseModal = () => {
@@ -134,7 +143,7 @@ export default function Page() {
             <div key={projeto.id} className={styles.card}>
               <div
                 className={styles.statusBar}
-                style={{ backgroundColor: getStatusColor(projeto.status) }}
+                style={{ backgroundColor: getStatusColor(projeto.status ?? "") }}
               />
 
               <div className={styles.header}>
@@ -156,7 +165,7 @@ export default function Page() {
 
               <select
                 className={styles.select}
-                value={projeto.status}
+                value={projeto.status ?? "EM_PLANEJAMENTO"}
                 onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
               >
                 <option value="EM_PLANEJAMENTO">Em planejamento</option>
@@ -169,28 +178,28 @@ export default function Page() {
       </div>
 
       {modalOpen && projetoEditando && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+        <div className={styles.modalOverlay} onClick={handleCloseModal}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h2>Editar Projeto</h2>
 
             <label>Nome</label>
             <input
               type="text"
-              value={projetoEditando.nome}
+              value={projetoEditando.nome ?? ""}
               onChange={(e) => setProjetoEditando({ ...projetoEditando, nome: e.target.value })}
               placeholder="Ex: Site Institucional"
             />
 
             <label>Descrição</label>
             <textarea
-              value={projetoEditando.descricao}
+              value={projetoEditando.descricao ?? ""}
               onChange={(e) => setProjetoEditando({ ...projetoEditando, descricao: e.target.value })}
               placeholder="Descreva o objetivo do projeto..."
             />
 
             <label>Status</label>
             <select
-              value={projetoEditando.status}
+              value={projetoEditando.status ?? "EM_PLANEJAMENTO"}
               onChange={(e) => setProjetoEditando({ ...projetoEditando, status: e.target.value })}
             >
               <option value="EM_PLANEJAMENTO">Em planejamento</option>
@@ -208,14 +217,14 @@ export default function Page() {
             <label>Valor contratado (R$)</label>
             <input
               type="number"
-              value={projetoEditando.valorContratado}
+              value={projetoEditando.valorContratado ?? ""}
               onChange={(e) => setProjetoEditando({ ...projetoEditando, valorContratado: Number(e.target.value) })}
               placeholder="Ex: 15000"
             />
 
             <label>Responsável (Gestor)</label>
             <select
-              value={projetoEditando.responsavelId || ""}
+              value={projetoEditando.responsavelId ?? ""}
               onChange={(e) => setProjetoEditando({ ...projetoEditando, responsavelId: Number(e.target.value) })}
             >
               <option value="">Selecione um gestor</option>
