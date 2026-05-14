@@ -4,9 +4,9 @@ import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
 
 // --- INTEGRAÇÃO COM O BACKEND ---
-const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8080';
-const PROJETO_URL = process.env.NEXT_PUBLIC_PROJETO_API_URL || 'http://localhost:8080';
-const TASK_URL = process.env.NEXT_PUBLIC_TASK_API_URL || 'http://localhost:8080';
+const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8084';
+const PROJETO_URL = process.env.NEXT_PUBLIC_PROJETO_API_URL || 'http://localhost:8082';
+const TASK_URL = process.env.NEXT_PUBLIC_TASK_API_URL || 'http://localhost:8085';
 
 export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
 
@@ -116,12 +116,17 @@ export async function enviarParaAprovacao(id: number): Promise<HorasExibirDTO> {
   return handleResponse<HorasExibirDTO>(res);
 }
 
-async function buscarProjetos(): Promise<ProjetoExibirDTO[]> {
+export async function buscarProjetos(): Promise<ProjetoExibirDTO[]> {
   const res = await fetch(`${PROJETO_URL}/projeto`);
   return handleResponse<ProjetoExibirDTO[]>(res);
 }
 
-async function buscarTarefasPorFuncionario(usuarioId: number): Promise<TarefaExibirDTO[]> {
+export async function buscarTarefa(tarefaId: number): Promise<TarefaExibirDTO> {
+  const res = await fetch(`${TASK_URL}/tarefas/${tarefaId}`);
+  return handleResponse<TarefaExibirDTO>(res);
+}
+
+export async function buscarTarefasPorFuncionario(usuarioId: number): Promise<TarefaExibirDTO[]> {
   const res = await fetch(`${TASK_URL}/tarefas/funcionario/${usuarioId}`);
   return handleResponse<TarefaExibirDTO[]>(res);
 }

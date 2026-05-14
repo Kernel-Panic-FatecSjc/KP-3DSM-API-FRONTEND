@@ -2,9 +2,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
-import {
-  filtrarHoras,
-} from '../entrada-saida/page';
+import { filtrarHoras, buscarProjetos, buscarTarefasPorFuncionario } from '../entrada-saida/page';
 
 // usuarioId extraído do JWT
 function getUserIdFromToken(): number {
@@ -61,24 +59,50 @@ export default function Page() {
   const [erro, setErro] = useState<string | null>(null);
   const [filtroProjeto, setFiltroProjeto] = useState('');
   const [filtroData, setFiltroData] = useState('');
+  const [totalMes, setTotalMes] = useState(0);
 
   useEffect(() => {
     const carregar = async () => {
       try {
         setCarregando(true);
-        setErro(null);
         const uid = getUserIdFromToken();
-        const dados = await filtrarHoras({ usuarioId: uid, estado: 'AGUARDANDO_APROVACAO' });
-        const comDados: Card[] = dados.map((h) => ({
-          id: Number(h.id),
-          nomeProjeto: MOCK_NOME_PROJETO,
-          tituloSessao: h.tituloSessao,
-          descricao: h.descricao || '',
-          responsavel: String(h.usuarioId),
-          inicio: h.inicio.substring(0, 5),
-          fim: h.fim.substring(0, 5),
-          dataLancamento: h.dataLancamento,
-        }));
+
+        const hoje = new Date();
+        const primeiroDia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+
+        const [dados, projetos, tarefas, horasDoMes] = await Promise.all([
+          filtrarHoras({ usuarioId: uid, estado: 'AGUARDANDO_APROVACAO' }),
+          buscarProjetos(),
+          buscarTarefasPorFuncionario(uid),
+          filtrarHoras({ usuarioId: uid, dataInicio: primeiroDia, dataFim: ultimoDia })
+        ]);
+
+        const totalMesMinutos = horasDoMes.reduce((acc, h) => {
+          return acc + calcularTotal(h.inicio.substring(0, 5), h.fim.substring(0, 5));
+        }, 0);
+        setTotalMes(totalMesMinutos);
+
+        const comDados: Card[] = dados.map((h) => {
+          let nomeProjeto = '-';
+          if (h.tarefaId) {
+            const tarefa = tarefas.find(t => t.id === h.tarefaId);
+            if (tarefa) {
+              const projeto = projetos.find(p => p.id === tarefa.idProjeto);
+              nomeProjeto = projeto?.nome ?? '-';
+            }
+          }
+          return {
+            id: Number(h.id),
+            nomeProjeto,
+            tituloSessao: h.tituloSessao,
+            descricao: h.descricao || '',
+            responsavel: String(h.usuarioId),
+            inicio: h.inicio.substring(0, 5),
+            fim: h.fim.substring(0, 5),
+            dataLancamento: h.dataLancamento,
+          };
+        });
         setCardsAPI(comDados);
       } catch {
         setErro('Não foi possível carregar os registros.');
@@ -118,7 +142,9 @@ export default function Page() {
           <div className={styles.semanaDivider} />
           <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
           <div className={styles.semanaDivider} />
-          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+          <span className={styles.semanaStat}>
+            Mês: <strong>{formatarHoras(totalMes)}</strong>
+          </span>
         </div>
         <div className={styles.semanaHeaderFiltros}>
           <select
