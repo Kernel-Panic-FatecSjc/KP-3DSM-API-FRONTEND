@@ -48,6 +48,19 @@ export default function Page() {
 
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
 
+  const getCargoLabel = (cargo: string) => {
+    switch (cargo) {
+      case "ROLE_GESTOR":       return "Gestor";
+      case "ROLE_FINANCEIRO":   return "Financeiro";
+      case "ROLE_PROFISSIONAL": return "Profissional";
+      case "ROLE_ADMIN":        return "Administrador";
+      case "CLT":               return "CLT";
+      case "PJ":                return "PJ";
+      case "PJ/Hora":           return "PJ/Hora";
+      default:                  return cargo ?? "-";
+    }
+  };
+
   const handleClick = async () => {
     try {
 
@@ -197,12 +210,10 @@ export default function Page() {
   const indiceUltimoItem = paginaAtual * itensPorPagina;
   const indicePrimeiroItem = indiceUltimoItem - itensPorPagina;
 
-
   const usuariosPaginaAtual = usuariosFiltrados.slice(
     indicePrimeiroItem,
     indiceUltimoItem
   );
-
 
   const totalPaginas = Math.ceil(
     usuariosFiltrados.length / itensPorPagina
@@ -232,6 +243,10 @@ export default function Page() {
           className={styles.selectFiltro}
         >
           <option value="">Todos os contratos</option>
+          <option value="ROLE_GESTOR">Gestor</option>
+          <option value="ROLE_FINANCEIRO">Financeiro</option>
+          <option value="ROLE_PROFISSIONAL">Profissional</option>
+          <option value="ROLE_ADMIN">Administrador</option>
           <option value="CLT">CLT</option>
           <option value="PJ">PJ</option>
           <option value="PJ/Hora">PJ/Hora</option>
@@ -263,7 +278,7 @@ export default function Page() {
                 <td>{usuario.nome}</td>
                 <td>{usuario.email}</td>
                 <td>{usuario.salario}</td>
-                <td>{usuario.cargo}</td>
+                <td>{getCargoLabel(usuario.cargo)}</td>
 
                 <td>
                   <span className={styles.ativo}>
@@ -320,6 +335,7 @@ export default function Page() {
         </table>
 
       </div>
+
       <div className={styles.paginacao}>
         <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(paginaAtual - 1)}>{'<'}</button>
           {[...Array(totalPaginas)].map((_, index) => (
@@ -415,6 +431,10 @@ export default function Page() {
                   value={cargo}
                   onChange={(e) => setCargo(e.target.value)}
                 >
+                  <option value="ROLE_GESTOR">Gestor</option>
+                  <option value="ROLE_FINANCEIRO">Financeiro</option>
+                  <option value="ROLE_PROFISSIONAL">Profissional</option>
+                  <option value="ROLE_ADMIN">Administrador</option>
                   <option value="CLT">CLT</option>
                   <option value="PJ">PJ</option>
                   <option value="PJ/Hora">PJ/Hora</option>
@@ -548,6 +568,10 @@ export default function Page() {
                   value={cargoEdit}
                   onChange={(e) => setCargoEdit(e.target.value)}
                 >
+                  <option value="ROLE_GESTOR">Gestor</option>
+                  <option value="ROLE_FINANCEIRO">Financeiro</option>
+                  <option value="ROLE_PROFISSIONAL">Profissional</option>
+                  <option value="ROLE_ADMIN">Administrador</option>
                   <option value="CLT">CLT</option>
                   <option value="PJ">PJ</option>
                   <option value="PJ/Hora">PJ/Hora</option>
