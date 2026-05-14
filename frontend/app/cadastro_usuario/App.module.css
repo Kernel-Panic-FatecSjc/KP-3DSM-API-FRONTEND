@@ -281,3 +281,24 @@
     font-size: 28px;
   }
 }
+
+.paginacao {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+
+.paginacao button {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+
+.pagAtivo {
+  background-color: #012643;
+  color: white;
+}

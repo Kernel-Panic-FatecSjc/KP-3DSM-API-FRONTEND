@@ -31,6 +31,9 @@ export default function Page() {
   const [valorHora, setValorHora] = useState('');
   const [ativo, setAtivo] = useState('true');
 
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 6;
+
   const [nomeEdit, setNomeEdit] = useState('');
   const [emailEdit, setEmailEdit] = useState('');
   const [senhaEdit, setSenhaEdit] = useState('');
@@ -191,6 +194,21 @@ export default function Page() {
     return nomeOk && cargoOk;
   });
 
+  const indiceUltimoItem = paginaAtual * itensPorPagina;
+  const indicePrimeiroItem = indiceUltimoItem - itensPorPagina;
+
+
+  const usuariosPaginaAtual = usuariosFiltrados.slice(
+    indicePrimeiroItem,
+    indiceUltimoItem
+  );
+
+
+  const totalPaginas = Math.ceil(
+    usuariosFiltrados.length / itensPorPagina
+  );
+
+
   return (
     <div className={styles.container}>
 
@@ -238,7 +256,7 @@ export default function Page() {
 
           <tbody>
 
-            {usuariosFiltrados.map((usuario) => (
+            {usuariosPaginaAtual.map((usuario) => (
 
               <tr key={usuario.id}>
 
@@ -301,6 +319,15 @@ export default function Page() {
 
         </table>
 
+      </div>
+      <div className={styles.paginacao}>
+        <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(paginaAtual - 1)}>{'<'}</button>
+          {[...Array(totalPaginas)].map((_, index) => (
+              <button key={index} className={paginaAtual === index + 1 ? styles.pagAtivo : ''} onClick={() => setPaginaAtual(index + 1)}>
+                  {index + 1}
+              </button>
+          ))}
+          <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(paginaAtual + 1)}>{'>'}</button>
       </div>
 
       <button
