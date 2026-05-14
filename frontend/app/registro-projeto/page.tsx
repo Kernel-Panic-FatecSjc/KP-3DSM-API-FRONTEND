@@ -34,12 +34,12 @@ function Page() {
     }, []);
 
     const responsaveisOptions = usuarios
-    .filter((user: any) => user.cargo === 'ROLE_GESTOR')
-    .map((user: any) => ({ value: user.id, label: user.nome }));
+        .filter((user: any) => user.cargo === 'ROLE_GESTOR')
+        .map((user: any) => ({ value: user.id, label: user.nome }));
 
-const desenvolvedoresOptions = usuarios
-    .filter((user: any) => user.cargo === 'ROLE_PROFISSIONAL')
-    .map((user: any) => ({ value: user.id, label: user.nome }));
+    const desenvolvedoresOptions = usuarios
+        .filter((user: any) => user.cargo === 'ROLE_PROFISSIONAL')
+        .map((user: any) => ({ value: user.id, label: user.nome }));
 
     const customStyles = {
         control: (base: any, state: any) => ({
@@ -68,16 +68,13 @@ const desenvolvedoresOptions = usuarios
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const agora = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
         const payload = {
             nome: nomeProjeto,
             descricao: `Cliente: ${nomeCliente} | ${descricao}`.substring(0, 300),
             status: "EM_PLANEJAMENTO",
-            prazo: dataFinal ? `${dataFinal} 18:00:00` : null,
-            valor_contratado: valorContratado ? parseFloat(valorContratado) : null,
+            prazo: dataFinal ? `${dataFinal}T18:00` : null,
+            valorContratado: valorContratado ? parseFloat(valorContratado) : null,
             responsavelId: responsavelId || null,
-            dataCriacao: agora,
             desenvolvedoresIds: devsIds
         };
 
@@ -89,12 +86,12 @@ const desenvolvedoresOptions = usuarios
             });
 
             if (response.ok) {
-    alert('Projeto criado com sucesso!');
-} else {
-    const erro = await response.json();
-    console.error('Erro do back-end:', erro);
-    alert(`Erro ${response.status}: ${JSON.stringify(erro)}`);
-}
+                alert('Projeto criado com sucesso!');
+            } else {
+                const erro = await response.json();
+                console.error('Erro do back-end:', erro);
+                alert(`Erro ${response.status}: ${JSON.stringify(erro)}`);
+            }
         } catch (error) {
             console.error("Erro:", error);
             alert("Erro de conexão com o back-end.");
@@ -146,7 +143,6 @@ const desenvolvedoresOptions = usuarios
                         onChange={(selected: any) => setResponsavelId(selected?.value)}
                         required
                     />
-
                 </div>
 
                 <div className={styles.containerInputTop}>
@@ -163,6 +159,7 @@ const desenvolvedoresOptions = usuarios
                         required
                     />
                 </div>
+
                 {usuariosCarregados && usuarios.length === 0 && (
                     <p style={{ color: '#ef4444', fontSize: 13, marginTop: -8 }}>
                         Nenhum usuário encontrado. Cadastre usuários antes de criar um projeto.
