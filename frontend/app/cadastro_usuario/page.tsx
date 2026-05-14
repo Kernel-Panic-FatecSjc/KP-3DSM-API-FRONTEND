@@ -8,6 +8,7 @@ type Usuario = {
   nome: string;
   email: string;
   cargo: string;
+  tipoContrato: string;
   salario: string;
   ativo: boolean;
   senha: string;
@@ -27,7 +28,8 @@ export default function Page() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [cargo, setCargo] = useState('CLT');
+  const [cargo, setCargo] = useState('ROLE_PROFISSIONAL');
+  const [tipoContrato, setTipoContrato] = useState('CLT');
   const [valorHora, setValorHora] = useState('');
   const [ativo, setAtivo] = useState('true');
 
@@ -38,13 +40,16 @@ export default function Page() {
   const [emailEdit, setEmailEdit] = useState('');
   const [senhaEdit, setSenhaEdit] = useState('');
   const [cargoEdit, setCargoEdit] = useState('');
+  const [tipoContratoEdit, setTipoContratoEdit] = useState('');
   const [salarioEdit, setSalarioEdit] = useState('');
+  const [ativoEdit, setAtivoEdit] = useState('');
 
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalAtualizar, setModalAtualizar] = useState(false);
 
   const [filtroNome, setFiltroNome] = useState('');
   const [cargoSelecionado, setCargoSelecionado] = useState('');
+  const [contratoSelecionado, setContratoSelecionado] = useState('');
 
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
 
@@ -53,11 +58,16 @@ export default function Page() {
       case "ROLE_GESTOR":       return "Gestor";
       case "ROLE_FINANCEIRO":   return "Financeiro";
       case "ROLE_PROFISSIONAL": return "Profissional";
-      case "ROLE_ADMIN":        return "Administrador";
-      case "CLT":               return "CLT";
-      case "PJ":                return "PJ";
-      case "PJ/Hora":           return "PJ/Hora";
       default:                  return cargo ?? "-";
+    }
+  };
+
+  const getContratoLabel = (tipoContrato: string) => {
+    switch (tipoContrato) {
+      case "CLT":       return "CLT";
+      case "PJ":        return "PJ";
+      case "PJ/HORA":   return "PJ/HORA";
+      default:          return tipoContrato ?? "-";
     }
   };
 
@@ -70,7 +80,8 @@ export default function Page() {
         senha,
         cargo,
         salario: valorHora,
-        ativo: ativo === 'true'
+        ativo: ativo === 'true',
+        tipoContrato
       };
 
       console.log('ENVIANDO:', body);
@@ -107,23 +118,25 @@ export default function Page() {
 
   const fetchUsuarios = async () => {
     try {
+      const currentToken = localStorage.getItem('token'); // <- lê direto
 
       const response = await fetch('http://localhost:8083/usuario/todos', {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${currentToken}`
         }
       });
 
       const data = await response.json();
-
       setUsuarios(data);
-
-      console.log(data);
 
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
     }
   };
+
+  useEffect(() => {
+    fetchUsuarios(); // <- sem depender do state token
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -136,6 +149,7 @@ export default function Page() {
     if (!usuarioSelecionado) return;
 
     try {
+      const currentToken = localStorage.getItem('token');
 
       const response = await fetch(
         `http://localhost:8083/usuario/${usuarioSelecionado.id}/atualizacao`,
@@ -143,7 +157,7 @@ export default function Page() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${currentToken}`
           },
           body: JSON.stringify({
             id: usuarioSelecionado.id,
@@ -151,7 +165,9 @@ export default function Page() {
             email: emailEdit,
             senha: senhaEdit,
             cargo: cargoEdit,
-            salario: salarioEdit
+            salario: salarioEdit,
+            tipoContrato: tipoContratoEdit,
+            ativo: ativoEdit === 'true'
           })
         }
       );
@@ -204,7 +220,11 @@ export default function Page() {
       cargoSelecionado === '' ||
       usuario.cargo === cargoSelecionado;
 
-    return nomeOk && cargoOk;
+    const contratoOk =
+      contratoSelecionado === '' ||
+      usuario.tipoContrato === contratoSelecionado;
+
+    return nomeOk && cargoOk && contratoOk;
   });
 
   const indiceUltimoItem = paginaAtual * itensPorPagina;
@@ -242,14 +262,21 @@ export default function Page() {
           onChange={(e) => setCargoSelecionado(e.target.value)}
           className={styles.selectFiltro}
         >
-          <option value="">Todos os contratos</option>
+          <option value="">Todos os cargos</option>
           <option value="ROLE_GESTOR">Gestor</option>
           <option value="ROLE_FINANCEIRO">Financeiro</option>
           <option value="ROLE_PROFISSIONAL">Profissional</option>
-          <option value="ROLE_ADMIN">Administrador</option>
+        </select>
+
+        <select
+          value={contratoSelecionado}
+          onChange={(e) => setContratoSelecionado(e.target.value)}
+          className={styles.selectFiltro}
+        >
+          <option value="">Todos os contratos</option>
           <option value="CLT">CLT</option>
           <option value="PJ">PJ</option>
-          <option value="PJ/Hora">PJ/Hora</option>
+          <option value="PJ/HORA">PJ/Hora</option>
         </select>
 
       </div>
@@ -263,6 +290,7 @@ export default function Page() {
               <th>Nome</th>
               <th>Email</th>
               <th>Valor/Hora</th>
+              <th>Cargo</th>
               <th>Tipo de Contrato</th>
               <th>Status</th>
               <th>Ações</th>
@@ -279,6 +307,7 @@ export default function Page() {
                 <td>{usuario.email}</td>
                 <td>{usuario.salario}</td>
                 <td>{getCargoLabel(usuario.cargo)}</td>
+                <td>{getContratoLabel(usuario.tipoContrato)}</td>
 
                 <td>
                   <span className={styles.ativo}>
@@ -297,8 +326,9 @@ export default function Page() {
                       setNomeEdit(usuario.nome);
                       setEmailEdit(usuario.email);
                       setCargoEdit(usuario.cargo);
+                      setTipoContratoEdit(usuario.tipoContrato);
                       setSalarioEdit(usuario.salario);
-
+                      setAtivoEdit(usuario.ativo ? 'true' : 'false');
                       setModalAtualizar(true);
                     }}
                   >
@@ -336,15 +366,17 @@ export default function Page() {
 
       </div>
 
-      <div className={styles.paginacao}>
-        <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(paginaAtual - 1)}>{'<'}</button>
+      {totalPaginas > 0 && (
+        <div className={styles.paginacao}>
+          <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(paginaAtual - 1)}>{'<'}</button>
           {[...Array(totalPaginas)].map((_, index) => (
-              <button key={index} className={paginaAtual === index + 1 ? styles.pagAtivo : ''} onClick={() => setPaginaAtual(index + 1)}>
-                  {index + 1}
-              </button>
+            <button key={index} className={paginaAtual === index + 1 ? styles.pagAtivo : ''} onClick={() => setPaginaAtual(index + 1)}>
+              {index + 1}
+            </button>
           ))}
-          <button disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual(paginaAtual + 1)}>{'>'}</button>
-      </div>
+          <button disabled={paginaAtual >= totalPaginas} onClick={() => setPaginaAtual(paginaAtual + 1)}>{'>'}</button>
+        </div>
+      )}
 
       <button
         className={styles.botaoAbrirModal}
@@ -410,7 +442,7 @@ export default function Page() {
 
               <div className={styles.inputWrapper}>
 
-                <label>Valor Custo por Hora</label>
+                <label>Valor Custo/Hora</label>
 
                 <input
                   className={styles.inputStyle}
@@ -420,27 +452,39 @@ export default function Page() {
                   onChange={(e) => setValorHora(e.target.value)}
                 />
 
-              </div>
-
+            </div>
+          
               <div className={styles.inputWrapper}>
+
+              <label>Cargo</label>
+
+              <select
+                className={styles.selectStyle}
+                value={cargo}
+                onChange={(e) => setCargo(e.target.value)}
+              >
+                <option value="ROLE_GESTOR">Gestor</option>
+                <option value="ROLE_FINANCEIRO">Financeiro</option>
+                <option value="ROLE_PROFISSIONAL">Profissional</option>
+              </select>
+
+            </div>
+
+            <div className={styles.inputWrapper}>
 
                 <label>Tipo de Contrato</label>
 
                 <select
                   className={styles.selectStyle}
-                  value={cargo}
-                  onChange={(e) => setCargo(e.target.value)}
+                  value={tipoContrato}
+                  onChange={(e) => setTipoContrato(e.target.value)}
                 >
-                  <option value="ROLE_GESTOR">Gestor</option>
-                  <option value="ROLE_FINANCEIRO">Financeiro</option>
-                  <option value="ROLE_PROFISSIONAL">Profissional</option>
-                  <option value="ROLE_ADMIN">Administrador</option>
                   <option value="CLT">CLT</option>
                   <option value="PJ">PJ</option>
-                  <option value="PJ/Hora">PJ/Hora</option>
+                  <option value="PJ/HORA">PJ/HORA</option>
                 </select>
 
-              </div>
+            </div>
 
             </div>
 
@@ -547,22 +591,18 @@ export default function Page() {
             <div className={styles.row}>
 
               <div className={styles.inputWrapper}>
-
-                <label>Valor Custo por Hora</label>
-
+                <label>Valor Custo/Hora</label>
                 <input
                   className={styles.inputStyle}
-                  type="text"
+                  type="number"
                   value={salarioEdit}
+                  placeholder="R$"
                   onChange={(e) => setSalarioEdit(e.target.value)}
                 />
-
               </div>
 
               <div className={styles.inputWrapper}>
-
-                <label>Tipo de Contrato</label>
-
+                <label>Cargo</label>
                 <select
                   className={styles.selectStyle}
                   value={cargoEdit}
@@ -571,15 +611,32 @@ export default function Page() {
                   <option value="ROLE_GESTOR">Gestor</option>
                   <option value="ROLE_FINANCEIRO">Financeiro</option>
                   <option value="ROLE_PROFISSIONAL">Profissional</option>
-                  <option value="ROLE_ADMIN">Administrador</option>
+                </select>
+              </div>
+
+              <div className={styles.inputWrapper}>
+                <label>Tipo de Contrato</label>
+                <select
+                  className={styles.selectStyle}
+                  value={tipoContratoEdit}
+                  onChange={(e) => setTipoContratoEdit(e.target.value)}
+                >
                   <option value="CLT">CLT</option>
                   <option value="PJ">PJ</option>
-                  <option value="PJ/Hora">PJ/Hora</option>
+                  <option value="PJ/HORA">PJ/HORA</option>
                 </select>
-
               </div>
 
             </div>
+
+            <select
+                  className={styles.selectStyle}
+                  value={ativoEdit}
+                  onChange={(e) => setAtivoEdit(e.target.value)}
+                >
+                  <option value="true">Ativo</option>
+                  <option value="false">Não Ativo</option>
+                </select>
 
             <div className={styles.botoes}>
 
