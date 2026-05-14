@@ -20,7 +20,7 @@ type Tarefa = {
 
 const statusOptions: Option[] = [
   { value: "", label: "Todos os Status" },
-  { value: "TODO", label: "To Do" },
+  { value: "TO_DO", label: "To Do" },
   { value: "DOING", label: "Doing" },
   { value: "DONE", label: "Done" }
 ];
@@ -44,13 +44,13 @@ export default function Page() {
   const [nomeTarefa, setNomeTarefa] = useState("");
   const [descricaoTarefa, setDescricaoTarefa] = useState("");
 
-  const API = "http://localhost:8080/tarefas";
+  const API = "http://localhost:8085/tarefas";
 
 
   // -------- PROJETOS
   const fetchProjetos = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/projeto");
+      const res = await axios.get("http://localhost:8082/projeto");
 
       const options = res.data.map((p: any) => ({
         value: p.id.toString(),
@@ -70,7 +70,7 @@ export default function Page() {
   // -------- USUARIOS
   const fetchUsuarios = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/usuario/todos");
+      const res = await axios.get("http://localhost:8083/usuario/todos");
 
       const options = res.data.map((u: any) => ({
         value: u.id.toString(),
@@ -131,7 +131,7 @@ export default function Page() {
         descricao: descricaoTarefa,
         idProjeto: Number(projeto.value),
         idResponsaveis: responsavelModal ? [Number(responsavelModal.value)] : [],
-        statusTarefa: "TODO"
+        statusTarefa: "TO_DO"
       });
 
       setModalProjeto(false);
@@ -260,14 +260,24 @@ export default function Page() {
                 <td>
                   <Select
                     options={statusOptions.filter(o => o.value)}
-                    value={statusOptions.find(o => o.value === t.status)}
+                    value={statusOptions.find(
+                      o => o.value === t.status || o.label === t.status
+                    )}
                     onChange={(s) => atualizarStatus(t.id, s!.value)}
                     styles={tableSelectStyles}
                   />
                 </td>
 
                 <td>
-                  <button onClick={() => deletar(t.id)}>X</button>
+                  <button 
+                    className={styles.botaoExcluir} 
+                    onClick={() => deletar(t.id)}>
+                    <img
+                      src="/images/deletar.svg"
+                      className={styles.imagemBotao}
+                      alt="Deletar"
+                    />
+                  </button>
                 </td>
               </tr>
             ))}

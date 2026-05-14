@@ -37,7 +37,6 @@
 
 .tableContainer {
   width: 100%;
-  overflow-x: auto;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
@@ -163,4 +162,11 @@
     cursor: pointer;
 }
 
-
+.botaoExcluir {
+  background-color: #d93025;
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
