@@ -65,7 +65,7 @@ export default function Page() {
   };
 
   const getNomeUsuario = (id: number) => {
-    const usuario = usuarios.find((u) => u.id === id);
+    const usuario = usuarios.find((u) => Number(u.id) === Number(id));
     return usuario ? usuario.nome : "-";
   };
 
@@ -82,7 +82,7 @@ export default function Page() {
   const handleSave = async () => {
     try {
       const prazoFormatado = projetoEditando.prazo
-        ? new Date(projetoEditando.prazo).toISOString().slice(0, 19).replace("T", " ")
+        ? projetoEditando.prazo.replace(" ", "T").slice(0, 16)
         : null;
 
       await axios.put(`http://localhost:8082/projeto/${projetoEditando.id}/atualizacao`, {
@@ -139,41 +139,45 @@ export default function Page() {
         {projetos.length === 0 ? (
           <p>Nenhum projeto encontrado.</p>
         ) : (
-          projetos.map((projeto) => (
-            <div key={projeto.id} className={styles.card}>
-              <div
-                className={styles.statusBar}
-                style={{ backgroundColor: getStatusColor(projeto.status ?? "") }}
-              />
+          projetos.map((projeto) => {
+            console.log("responsavelId:", projeto.responsavelId);
+            console.log("usuarios:", usuarios);
+            return (
+              <div key={projeto.id} className={styles.card}>
+                <div
+                  className={styles.statusBar}
+                  style={{ backgroundColor: getStatusColor(projeto.status ?? "") }}
+                />
 
-              <div className={styles.header}>
-                <h2>{projeto.nome}</h2>
-                <button className={styles.editBtn} onClick={() => openModal(projeto)}>
-                  Editar
-                </button>
+                <div className={styles.header}>
+                  <h2>{projeto.nome}</h2>
+                  <button className={styles.editBtn} onClick={() => openModal(projeto)}>
+                    Editar
+                  </button>
+                </div>
+
+                <p className={styles.descricao}>{projeto.descricao}</p>
+
+                <div className={styles.info}>
+                  <span><strong>Status:</strong> {getStatusLabel(projeto.status)}</span>
+                  <span><strong>Prazo:</strong> {projeto.prazo ? formatPrazo(projeto.prazo) : "-"}</span>
+                  <span><strong>Valor:</strong> {projeto.valorContratado ? projeto.valorContratado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</span>
+                  <span><strong>Responsável:</strong> {projeto.responsavelId ? getNomeUsuario(projeto.responsavelId) : "-"}</span>
+                  <span><strong>Criação:</strong> {projeto.dataCriacao ? formatPrazo(projeto.dataCriacao) : "-"}</span>
+                </div>
+
+                <select
+                  className={styles.select}
+                  value={projeto.status ?? "EM_PLANEJAMENTO"}
+                  onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
+                >
+                  <option value="EM_PLANEJAMENTO">Em planejamento</option>
+                  <option value="EM_ANDAMENTO">Em andamento</option>
+                  <option value="CONCLUIDO">Concluído</option>
+                </select>
               </div>
-
-              <p className={styles.descricao}>{projeto.descricao}</p>
-
-              <div className={styles.info}>
-                <span><strong>Status:</strong> {getStatusLabel(projeto.status)}</span>
-                <span><strong>Prazo:</strong> {projeto.prazo ? formatPrazo(projeto.prazo) : "-"}</span>
-                <span><strong>Valor:</strong> R$ {projeto.valorContratado}</span>
-                <span><strong>Responsável:</strong> {projeto.responsavelId ? getNomeUsuario(projeto.responsavelId) : "-"}</span>
-                <span><strong>Criação:</strong> {projeto.dataCriacao ? formatPrazo(projeto.dataCriacao) : "-"}</span>
-              </div>
-
-              <select
-                className={styles.select}
-                value={projeto.status ?? "EM_PLANEJAMENTO"}
-                onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
-              >
-                <option value="EM_PLANEJAMENTO">Em planejamento</option>
-                <option value="EM_ANDAMENTO">Em andamento</option>
-                <option value="CONCLUIDO">Concluído</option>
-              </select>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -210,7 +214,7 @@ export default function Page() {
             <label>Prazo</label>
             <input
               type="datetime-local"
-              value={projetoEditando.prazo?.slice(0, 16) || ""}
+              value={projetoEditando.prazo?.replace(" ", "T").slice(0, 16) || ""}
               onChange={(e) => setProjetoEditando({ ...projetoEditando, prazo: e.target.value })}
             />
 
