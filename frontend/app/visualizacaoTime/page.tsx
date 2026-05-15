@@ -92,7 +92,10 @@ function Column({ title, status, tasks, getResponsibleName, activeTaskId, isBloc
 
 export default function Page() {
   const [openProject, setOpenProject] = useState(false);
+  const [openUser, setOpenUser] = useState(false);
+  const [filterMode, setFilterMode] = useState<'none' | 'project' | 'user'>('none');
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -101,11 +104,10 @@ export default function Page() {
   const [notification, setNotification] = useState<string | null>(null);
   const prevTasksRef = useRef<Task[]>([]);
 
-  const API = "http://localhost:8080";
 
   const fetchProjects = async () => {
     try {
-      const res = await axios.get(`${API}/projeto`);
+      const res = await axios.get(`http://localhost:8082/projeto`);
       const mapped: Project[] = (res.data ?? []).map((p: any) => ({ id: String(p.id), name: p.nome ?? p.name ?? `Projeto ${p.id}` }));
       setProjects(mapped);
     } catch(e) { setProjects([]); }
@@ -113,7 +115,7 @@ export default function Page() {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${API}/usuario/todos`);
+      const res = await axios.get(`http://localhost:8083/usuario/todos`);
       const mapped: User[] = (res.data ?? []).map((u: any) => ({ id: String(u.id), name: u.nome ?? u.name ?? `Usuario ${u.id}` }));
       setUsers(mapped);
     } catch(e) { setUsers([]); }
@@ -122,7 +124,12 @@ export default function Page() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const url = selectedProject ? `${API}/tarefas/projeto/${selectedProject}` : `${API}/tarefas`;
+      let url = `http://localhost:8085/tarefas`;
+      if (filterMode === 'project' && selectedProject) {
+        url = `http://localhost:8085/tarefas/projeto/${selectedProject}`;
+      } else if (filterMode === 'user' && selectedUser) {
+        url = `http://localhost:8085/tarefas/funcionario/${selectedUser}`;
+      }
       const res = await axios.get(url);
       const newTasks = (res.data ?? []).map(normalizeApiTask);
       setTasks(newTasks);
@@ -136,7 +143,12 @@ export default function Page() {
     const handleVisibility = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        const url = selectedProject ? `${API}/tarefas/projeto/${selectedProject}` : `${API}/tarefas`;
+        let url = `http://localhost:8085/tarefas`;
+        if (filterMode === 'project' && selectedProject) {
+          url = `http://localhost:8085/tarefas/projeto/${selectedProject}`;
+        } else if (filterMode === 'user' && selectedUser) {
+          url = `http://localhost:8085/tarefas/funcionario/${selectedUser}`;
+        }
         const res = await axios.get(url);
         const newTasks = (res.data ?? []).map(normalizeApiTask);
         const prev = prevTasksRef.current;
@@ -153,13 +165,18 @@ export default function Page() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [selectedProject]);
-  useEffect(() => { fetchTasks(); }, [selectedProject]);
+  }, [selectedProject, selectedUser, filterMode]);
+  useEffect(() => { fetchTasks(); }, [selectedProject, selectedUser, filterMode]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const url = selectedProject ? `${API}/tarefas/projeto/${selectedProject}` : `${API}/tarefas`;
+        let url = `http://localhost:8085/tarefas`;
+        if (filterMode === 'project' && selectedProject) {
+          url = `http://localhost:8085/tarefas/projeto/${selectedProject}`;
+        } else if (filterMode === 'user' && selectedUser) {
+          url = `http://localhost:8085/tarefas/funcionario/${selectedUser}`;
+        }
         const res = await axios.get(url);
         const newTasks = (res.data ?? []).map(normalizeApiTask);
         const prev = prevTasksRef.current;
@@ -175,7 +192,7 @@ export default function Page() {
       } catch {}
     }, 5000);
     return () => clearInterval(interval);
-  }, [selectedProject]);
+  }, [selectedProject, selectedUser, filterMode]);
 
   const getResponsibleName = (task: Task) => {
     if (!task.responsibleId) return "Sem responsavel";
@@ -184,8 +201,7 @@ export default function Page() {
   };
 
   const getTasksByStatus = (status: TaskStatus) => {
-    const scopedTasks = selectedProject ? tasks.filter((task) => task.projectId === selectedProject) : tasks;
-    return scopedTasks.filter((task) => task.status === status);
+    return tasks.filter((task) => task.status === status);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -201,7 +217,7 @@ export default function Page() {
     const taskId = String(active.id);
     setTasks((prev) => prev.map((task) => task.id === taskId ? { ...task, status: newStatus } : task));
     try {
-      await axios.patch(`${API}/tarefas/${taskId}`, { statusTarefa: mapStatusToBackend(newStatus) });
+      await axios.patch(`http://localhost:8082/tarefas/${taskId}`, { statusTarefa: mapStatusToBackend(newStatus) });
     } catch { fetchTasks(); }
   };
 
@@ -210,15 +226,74 @@ export default function Page() {
       {notification && <div className={styles.notification}>{notification}</div>}
 
       <div className={styles.dropdownWrapper}>
-        <div className={styles.projectDropdown} onClick={() => setOpenProject(!openProject)}>
-          {selectedProject ? projects.find((p) => p.id === selectedProject)?.name : "Todos os Projetos"} ?
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+          <button 
+            onClick={() => { setFilterMode('none'); setSelectedProject(null); setSelectedUser(null); }} 
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: filterMode === 'none' ? '#007bff' : '#ccc',
+              color: filterMode === 'none' ? 'white' : 'black',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: filterMode === 'none' ? 'bold' : 'normal'
+            }}
+          >
+            Todos os Projetos
+          </button>
+          <button 
+            onClick={() => { setFilterMode('project'); setSelectedUser(null); }} 
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: filterMode === 'project' ? '#007bff' : '#ccc',
+              color: filterMode === 'project' ? 'white' : 'black',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: filterMode === 'project' ? 'bold' : 'normal'
+            }}
+          >
+            Filtrar por Projeto
+          </button>
+          <button 
+            onClick={() => { setFilterMode('user'); setSelectedProject(null); }} 
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: filterMode === 'user' ? '#007bff' : '#ccc',
+              color: filterMode === 'user' ? 'white' : 'black',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: filterMode === 'user' ? 'bold' : 'normal'
+            }}
+          >
+            Filtrar por Usuário
+          </button>
         </div>
-        {openProject && (
-          <div className={styles.dropdownMenu}>
-            <div className={styles.dropdownItem} onClick={() => { setSelectedProject(null); setOpenProject(false); }}>Todos os Projetos</div>
-            {projects.map((project) => (
-              <div key={project.id} className={styles.dropdownItem} onClick={() => { setSelectedProject(project.id); setOpenProject(false); }}>{project.name}</div>
-            ))}
+
+        {filterMode === 'project' && (
+          <div className={styles.projectDropdown} onClick={() => setOpenProject(!openProject)}>
+            {selectedProject ? projects.find((p) => p.id === selectedProject)?.name : "Selecione um Projeto"} ?
+            {openProject && (
+              <div className={styles.dropdownMenu}>
+                {projects.map((project) => (
+                  <div key={project.id} className={styles.dropdownItem} onClick={() => { setSelectedProject(project.id); setOpenProject(false); }}>{project.name}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {filterMode === 'user' && (
+          <div className={styles.projectDropdown} onClick={() => setOpenUser(!openUser)}>
+            {selectedUser ? users.find((u) => u.id === selectedUser)?.name : "Selecione um Usuário"} ?
+            {openUser && (
+              <div className={styles.dropdownMenu}>
+                {users.map((user) => (
+                  <div key={user.id} className={styles.dropdownItem} onClick={() => { setSelectedUser(user.id); setOpenUser(false); }}>{user.name}</div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

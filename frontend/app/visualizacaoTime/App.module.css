@@ -17,17 +17,25 @@
 }
 .dropdownMenu {
   position: absolute;
-  background: white;
-  border: 1px solid #ccc;
+  background: #012643;
+  border: 1px solid rgba(255,255,255,0.08);
   width: 100%;
   z-index: 10;
+  color: #fff;
 }
 .dropdownItem {
   padding: 10px;
   cursor: pointer;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
 }
 .dropdownItem:hover {
-  background: #f0f0f0;
+  background: rgba(255,255,255,0.04);
+}
+
+/* keep dropdown readable on small screens */
+.dropdownWrapper {
+  width: 260px;
 }
 .kanban {
   display: flex;
