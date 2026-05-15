@@ -62,59 +62,26 @@ interface Card {
   nomeProjeto: string;
   tituloSessao: string;
   descricao: string;
+  tipoAtividade: string;
   inicio: string;
   fim: string;
   dataLancamento: string;
+  estado: EstadoHora;
 }
 
-// CARDS mockados 
-const cardsMockados: Card[] = [
-  {
-    id: -1,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Reunião de planejamento',
-    descricao: 'Frontend',
-    inicio: '08:00',
-    fim: '10:00',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: -2,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Implementação de tela de login',
-    descricao: 'Frontend',
-    inicio: '09:30',
-    fim: '12:00',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: -3,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Modelagem do banco de dados',
-    descricao: 'Backend',
-    inicio: '13:00',
-    fim: '15:30',
-    dataLancamento: '2025-02-10',
-  },
-  {
-    id: -4,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Revisão de pull requests',
-    descricao: 'Backend',
-    inicio: '14:00',
-    fim: '16:00',
-    dataLancamento: '2025-02-10',
-  },
-  {
-    id: -5,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Testes de integração',
-    descricao: 'QA',
-    inicio: '16:00',
-    fim: '17:30',
-    dataLancamento: '2025-02-03',
-  },
-];
+const ESTADO_LABEL: Record<EstadoHora, string> = {
+  PENDENTE: 'Pendente',
+  AGUARDANDO_APROVACAO: 'Ag. Aprovação',
+  APROVADO: 'Aprovado',
+  REJEITADO: 'Rejeitado',
+};
+
+const ESTADO_COR: Record<EstadoHora, string> = {
+  PENDENTE: '#6B7280',
+  AGUARDANDO_APROVACAO: '#D97706',
+  APROVADO: '#16A34A',
+  REJEITADO: '#DC2626',
+};
 
 function calcularTotal(inicio: string, fim: string): number {
   if (!inicio || !fim) return 0;
@@ -169,12 +136,14 @@ export default function Page() {
 
         const comDados: Card[] = dados.map((h) => ({
           id: Number(h.id),
-          nomeProjeto: MOCK_NOME_PROJETO, 
+          nomeProjeto: MOCK_NOME_PROJETO,
           tituloSessao: h.tituloSessao,
           descricao: h.descricao || '',
-          inicio: h.inicio.substring(0, 5), 
+          tipoAtividade: h.tipoAtividade,
+          inicio: h.inicio.substring(0, 5),
           fim: h.fim.substring(0, 5),
           dataLancamento: h.dataLancamento,
+          estado: h.estado,
         }));
         setCardsAPI(comDados);
       } catch {
@@ -186,7 +155,7 @@ export default function Page() {
     carregar();
   }, []);
 
-  const cards = [...cardsAPI, ...cardsMockados];
+  const cards = cardsAPI;
 
   const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
 
@@ -198,7 +167,12 @@ export default function Page() {
 
   const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
 
-  const gridColunas = isMobile ? '1fr' : '1fr 100px 100px 110px 120px';
+  const mesAtual = new Date().toISOString().substring(0, 7);
+  const totalMensal = cards
+    .filter(c => c.dataLancamento.startsWith(mesAtual))
+    .reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+
+  const gridColunas = isMobile ? '1fr' : '1fr 100px 100px 110px 120px 110px';
 
   return (
     <div className={styles.page}>
@@ -214,12 +188,11 @@ export default function Page() {
       {/* HORAS semanal e mensal */}
       <div className={styles.semanaHeader}>
         <div className={styles.semanaHeaderInfo}>
-          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <span className={styles.semanaData}>{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           <div className={styles.semanaDivider} />
           <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
           <div className={styles.semanaDivider} />
-          {/* TODO: total mensal ainda é mockado */}
-          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+          <span className={styles.semanaStat}>Mês: <strong>{formatarHoras(totalMensal)}</strong></span>
         </div>
         <div className={styles.semanaHeaderFiltros}>
           {/* FILTRO por projeto */}
@@ -259,6 +232,7 @@ export default function Page() {
             <span>Fim</span>
             <span>Total</span>
             <span>Lançamento</span>
+            <span>Estado</span>
           </div>
         )}
 
@@ -278,6 +252,7 @@ export default function Page() {
               <div className={styles.cardTitulo}>{card.tituloSessao}</div>
               <div className={styles.cardTags}>
                 <span className={styles.cardTag}>{card.descricao}</span>
+                <span className={styles.cardTag}>{card.tipoAtividade}</span>
               </div>
               {/* CELULAR*/}
               {isMobile && (
@@ -287,6 +262,8 @@ export default function Page() {
                   <span>{formatarHoras(calcularTotal(card.inicio, card.fim))}</span>
                   <span>·</span>
                   <span>{formatarData(card.dataLancamento)}</span>
+                  <span>·</span>
+                  <span style={{ color: ESTADO_COR[card.estado], fontWeight: 600 }}>{ESTADO_LABEL[card.estado]}</span>
                 </div>
               )}
             </div>
@@ -298,6 +275,11 @@ export default function Page() {
                 <div className={styles.cardHorario}>{card.fim}</div>
                 <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
                 <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: ESTADO_COR[card.estado], background: `${ESTADO_COR[card.estado]}18`, borderRadius: '6px', padding: '3px 8px' }}>
+                    {ESTADO_LABEL[card.estado]}
+                  </span>
+                </div>
               </>
             )}
           </div>

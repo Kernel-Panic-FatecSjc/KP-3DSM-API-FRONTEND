@@ -379,6 +379,11 @@ export default function Page() {
 
   const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
 
+  const mesAtual = hojeISO().substring(0, 7);
+  const totalMensal = cards
+    .filter(c => c.dataLancamento.startsWith(mesAtual))
+    .reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+
   const retroativo = isRetroativo(form.dataLancamento);
 
   const gridColunas = isMobile
@@ -399,13 +404,11 @@ export default function Page() {
       {/* HORAS semanal e mensal */}
       <div className={styles.semanaHeader}>
         <div className={styles.semanaHeaderInfo}>
-          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <span className={styles.semanaData}>{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           <div className={styles.semanaDivider} />
-          {/* Total calculado dinamicamente com base nos cards filtrados */}
           <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
           <div className={styles.semanaDivider} />
-          {/* TODO: total mensal ainda é mockado */}
-          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+          <span className={styles.semanaStat}>Mês: <strong>{formatarHoras(totalMensal)}</strong></span>
         </div>
         <div className={styles.semanaHeaderFiltros}>
           {/* FILTRO por projeto */}
