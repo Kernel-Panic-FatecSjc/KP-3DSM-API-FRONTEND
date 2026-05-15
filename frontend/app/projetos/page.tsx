@@ -74,7 +74,11 @@ export default function Page() {
   };
 
   const openModal = (projeto: any) => {
-    setProjetoEditando({ ...projeto, profissionaisIds: projeto.profissionaisIds || [] });
+    setProjetoEditando({
+      ...projeto,
+      profissionaisIds: projeto.profissionaisIds || [],
+    });
+
     setConfirmandoDelete(false);
     setModalOpen(true);
   };
@@ -96,7 +100,9 @@ export default function Page() {
         profissionaisIds: projetoEditando.profissionaisIds,
       });
 
-      setProjetos(projetos.map((p) => p.id === projetoEditando.id ? projetoEditando : p));
+      const response = await axios.get("http://localhost:8082/projeto");
+      setProjetos(response.data);
+
       setModalOpen(false);
       setProjetoEditando(null);
       setConfirmandoDelete(false);
@@ -105,7 +111,6 @@ export default function Page() {
       alert("Erro ao salvar projeto!");
     }
   };
-
   const handleDelete = async () => {
     try {
       await axios.delete(`http://localhost:8082/projeto/${projetoEditando.id}`);
@@ -126,7 +131,7 @@ export default function Page() {
   };
 
   const toggleProfissional = (id: number) => {
-    const ids: number[] = projetoEditando.profissionaisIds || [];
+    const ids: number[] = (projetoEditando.profissionaisIds || []).map(Number);
     const updated = ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id];
     setProjetoEditando({ ...projetoEditando, profissionaisIds: updated });
   };
@@ -243,7 +248,9 @@ export default function Page() {
                 <label key={p.id} className={styles.checkboxItem}>
                   <input
                     type="checkbox"
-                    checked={(projetoEditando.profissionaisIds || []).includes(p.id)}
+                    checked={(projetoEditando.profissionaisIds || [])
+                    .map(Number)
+                    .includes(Number(p.id))}
                     onChange={() => toggleProfissional(p.id)}
                   />
                   {p.nome}
