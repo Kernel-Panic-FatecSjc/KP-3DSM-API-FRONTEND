@@ -75,7 +75,7 @@ function Page() {
             prazo: dataFinal ? `${dataFinal}T18:00` : null,
             valorContratado: valorContratado ? parseFloat(valorContratado) : null,
             responsavelId: responsavelId || null,
-            desenvolvedoresIds: devsIds
+            profissionaisIds: devsIds
         };
 
         try {
@@ -173,6 +173,7 @@ function Page() {
                         type="date"
                         value={dataFinal}
                         onChange={(e) => setDataFinal(e.target.value)}
+                        min={new Date().toISOString().slice(0, 10)}
                         required
                     />
                 </div>

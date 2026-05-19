@@ -50,10 +50,6 @@ export async function filtrarHoras(params: HorasFiltroParams): Promise<HorasExib
   const res = await fetch(`${BASE_URL}/horas/filtrar?${query.toString()}`);
   return handleResponse<HorasExibirDTO[]>(res);
 }
-// --------------------------------
-
-const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
-
 
 const MOCK_NOME_PROJETO = 'Aerocode';
 
@@ -131,8 +127,9 @@ export default function Page() {
       try {
         setCarregando(true);
         setErro(null);
-  
-        const dados = await filtrarHoras({ usuarioId: USUARIO_ID }); // Traz todo o histórico
+
+        const uid = Number(localStorage.getItem('usuarioId') || '0');
+        const dados = await filtrarHoras({ usuarioId: uid });
 
         const comDados: Card[] = dados.map((h) => ({
           id: Number(h.id),

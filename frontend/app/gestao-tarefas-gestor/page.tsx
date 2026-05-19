@@ -27,7 +27,6 @@ const statusOptions: Option[] = [
 
 export default function Page() {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // OPTIONS vindos da API
   const [projetoOptions, setProjetoOptions] = useState<Option[]>([]);
@@ -39,10 +38,16 @@ export default function Page() {
   const [status, setStatus] = useState<Option | null>(null);
 
   const [modalProjeto, setModalProjeto] = useState(false);
-  const [responsavelModal, setResponsavelModal] = useState<Option | null>(null);
+  const [responsaveisModal, setResponsaveisModal] = useState<Option[]>([]);
 
   const [nomeTarefa, setNomeTarefa] = useState("");
   const [descricaoTarefa, setDescricaoTarefa] = useState("");
+
+  const [modalEditar, setModalEditar] = useState(false);
+  const [tarefaEditando, setTarefaEditando] = useState<Tarefa | null>(null);
+  const [nomeEdit, setNomeEdit] = useState("");
+  const [descricaoEdit, setDescricaoEdit] = useState("");
+  const [responsaveisEdit, setResponsaveisEdit] = useState<Option[]>([]);
 
   const API = "http://localhost:8085/tarefas";
 
@@ -90,20 +95,14 @@ export default function Page() {
   // -------- TAREFAS
   const fetchTarefas = async () => {
     try {
-      setLoading(true);
-
       const url =
         projeto && projeto.value !== ""
           ? `${API}/projeto/${projeto.value}`
           : API;
-
       const res = await axios.get(url);
       setTarefas(res.data);
-
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -130,19 +129,52 @@ export default function Page() {
         nome: nomeTarefa,
         descricao: descricaoTarefa,
         idProjeto: Number(projeto.value),
-        idResponsaveis: responsavelModal ? [Number(responsavelModal.value)] : [],
+        idResponsaveis: responsaveisModal.map(r => Number(r.value)),
         statusTarefa: "TO_DO"
       });
 
       setModalProjeto(false);
       setNomeTarefa("");
       setDescricaoTarefa("");
-      setResponsavelModal(null);
+      setResponsaveisModal([]);
 
       fetchTarefas();
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const atualizarTarefa = async () => {
+    if (!tarefaEditando) return;
+
+    try {
+      if (!tarefaEditando) return;
+      await axios.patch(`${API}/${tarefaEditando.id}`, {
+        nome: nomeEdit,
+        descricao: descricaoEdit,
+        idProjeto: tarefaEditando.idProjeto,
+        idResponsaveis: responsaveisEdit.map(r => Number(r.value)),
+        statusTarefa: tarefaEditando.status
+      });
+
+      setModalEditar(false);
+      setTarefaEditando(null);
+      fetchTarefas();
+    } catch (e: any) {
+      console.error("status:", e.response?.status);
+      console.error("data:", JSON.stringify(e.response?.data));
+      console.error("config url:", e.config?.url);
+    }
+  };
+
+  const abrirModalEditar = (t: Tarefa) => {
+    setTarefaEditando(t);
+    setNomeEdit(t.nome);
+    setDescricaoEdit(t.descricao);
+    setResponsaveisEdit(
+      responsavelOptions.filter(r => t.idResponsaveis.includes(Number(r.value)))
+    );
+    setModalEditar(true);
   };
 
   const atualizarStatus = async (id: number, value: string) => {
@@ -197,7 +229,16 @@ export default function Page() {
     singleValue: (b: any) => ({ ...b, color: "#333" }),
   };
 
-  if (loading) return <div>Carregando...</div>;
+  const modalSelectStyles = {
+    control: (b: any) => ({ ...b, backgroundColor: "#fff", border: "1px solid #ccc", borderRadius: "8px", minHeight: "40px" }),
+    singleValue: (b: any) => ({ ...b, color: "#333" }),
+    placeholder: (b: any) => ({ ...b, color: "#888" }),
+    menu: (b: any) => ({ ...b, backgroundColor: "#fff" }),
+    option: (b: any, s: any) => ({ ...b, backgroundColor: s.isFocused ? "#E8EFF9" : "#fff", color: "#012643" }),
+    multiValue: (b: any) => ({ ...b, backgroundColor: "#E8EFF9" }),
+    multiValueLabel: (b: any) => ({ ...b, color: "#012643" }),
+    multiValueRemove: (b: any) => ({ ...b, color: "#012643" }),
+  };
 
   return (
     <div className={styles.pageContainer}>
@@ -250,11 +291,10 @@ export default function Page() {
                 <td>{t.descricao}</td>
 
                 <td>
-                  {
-                    responsavelOptions.find(r =>
-                      r.value === t.idResponsaveis[0]?.toString()
-                    )?.label || "Sem responsável"
-                  }
+                  {t.idResponsaveis
+                    .map(id => responsavelOptions.find(r => r.value === id.toString())?.label)
+                    .filter(Boolean)
+                    .join(", ") || "Sem responsável"}
                 </td>
 
                 <td>
@@ -269,15 +309,29 @@ export default function Page() {
                 </td>
 
                 <td>
-                  <button 
-                    className={styles.botaoExcluir} 
-                    onClick={() => deletar(t.id)}>
-                    <img
-                      src="/images/deletar.svg"
-                      className={styles.imagemBotao}
-                      alt="Deletar"
-                    />
-                  </button>
+                  {projeto && projeto.value !== "" && (
+                    <>
+                      <button
+                        className={styles.botaoAbrirEdicao}
+                        onClick={() => abrirModalEditar(t)}>
+                        <img
+                          src="/images/atualizar.svg"
+                          className={styles.imagemBotao}
+                          alt="Editar"
+                        />
+                      </button>
+
+                      <button
+                        className={styles.botaoExcluir}
+                        onClick={() => deletar(t.id)}>
+                        <img
+                          src="/images/deletar.svg"
+                          className={styles.imagemBotao}
+                          alt="Deletar"
+                        />
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
@@ -285,23 +339,26 @@ export default function Page() {
         </table>
       </main>
 
-      <button className={styles.btnAdicionarMais} onClick={() => setModalProjeto(true)}>+</button>
-
+      {projeto && projeto.value !== "" && (
+        <button className={styles.btnAdicionarMais} onClick={() => setModalProjeto(true)}>+</button>
+      )}
+      
       {modalProjeto && (
         <div className={styles.modalOverlay} onClick={() => setModalProjeto(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
 
             <h2>Nova Tarefa</h2>
 
-            <input placeholder = "Insira o nome da Tarefa" value={nomeTarefa} onChange={(e) => setNomeTarefa(e.target.value)} />
+            <input placeholder="Insira o nome da Tarefa" value={nomeTarefa} onChange={(e) => setNomeTarefa(e.target.value)} />
 
-            <textarea placeholder = "Insira a descrição da Tarefa" value={descricaoTarefa} onChange={(e) => setDescricaoTarefa(e.target.value)} />
+            <textarea placeholder="Insira a descrição da Tarefa" value={descricaoTarefa} onChange={(e) => setDescricaoTarefa(e.target.value)} />
 
             <Select
+              isMulti
               options={responsavelOptions.filter(o => o.value)}
-              value={responsavelModal}
-              onChange={(s) => setResponsavelModal(s)}
-              styles={selectStyles}
+              value={responsaveisModal}
+              onChange={(s) => setResponsaveisModal(s as Option[])}
+              styles={modalSelectStyles}
             />
 
             <div className={styles.modalButtons}>
@@ -313,8 +370,33 @@ export default function Page() {
         </div>
       )}
 
+      {modalEditar && tarefaEditando && (
+        <div className={styles.modalOverlay} onClick={() => setModalEditar(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+
+            <h2>Editar Tarefa</h2>
+
+            <input placeholder="Nome da Tarefa" value={nomeEdit} onChange={(e) => setNomeEdit(e.target.value)} />
+
+            <textarea placeholder="Descrição da Tarefa" value={descricaoEdit} onChange={(e) => setDescricaoEdit(e.target.value)} />
+
+            <Select
+              isMulti
+              options={responsavelOptions.filter(o => o.value)}
+              value={responsaveisEdit}
+              onChange={(s) => setResponsaveisEdit(s as Option[])}
+              styles={modalSelectStyles}
+            />
+
+            <div className={styles.modalButtons}>
+              <button onClick={() => setModalEditar(false)} className={styles.modalButton}>Fechar</button>
+              <button onClick={() => { console.log("CLICOU SALVAR"); atualizarTarefa(); }} className={styles.modalButton}>Salvar</button>            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
-
 

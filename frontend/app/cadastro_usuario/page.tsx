@@ -55,19 +55,19 @@ export default function Page() {
 
   const getCargoLabel = (cargo: string) => {
     switch (cargo) {
-      case "ROLE_GESTOR":       return "Gestor";
-      case "ROLE_FINANCEIRO":   return "Financeiro";
+      case "ROLE_GESTOR": return "Gestor";
+      case "ROLE_FINANCEIRO": return "Financeiro";
       case "ROLE_PROFISSIONAL": return "Profissional";
-      default:                  return cargo ?? "-";
+      default: return cargo ?? "-";
     }
   };
 
   const getContratoLabel = (tipoContrato: string) => {
     switch (tipoContrato) {
-      case "CLT":       return "CLT";
-      case "PJ":        return "PJ";
-      case "PJ/HORA":   return "PJ/HORA";
-      default:          return tipoContrato ?? "-";
+      case "CLT": return "CLT";
+      case "PJ": return "PJ";
+      case "PJ/HORA": return "PJ/HORA";
+      default: return tipoContrato ?? "-";
     }
   };
 
@@ -292,7 +292,6 @@ export default function Page() {
               <th>Valor/Hora</th>
               <th>Cargo</th>
               <th>Tipo de Contrato</th>
-              <th>Status</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -308,12 +307,6 @@ export default function Page() {
                 <td>{usuario.salario}</td>
                 <td>{getCargoLabel(usuario.cargo)}</td>
                 <td>{getContratoLabel(usuario.tipoContrato)}</td>
-
-                <td>
-                  <span className={styles.ativo}>
-                    {usuario.ativo ? 'Ativo' : 'Não Ativo'}
-                  </span>
-                </td>
 
                 <td className={styles.acoes}>
 
@@ -452,25 +445,25 @@ export default function Page() {
                   onChange={(e) => setValorHora(e.target.value)}
                 />
 
-            </div>
-          
+              </div>
+
               <div className={styles.inputWrapper}>
 
-              <label>Cargo</label>
+                <label>Cargo</label>
 
-              <select
-                className={styles.selectStyle}
-                value={cargo}
-                onChange={(e) => setCargo(e.target.value)}
-              >
-                <option value="ROLE_GESTOR">Gestor</option>
-                <option value="ROLE_FINANCEIRO">Financeiro</option>
-                <option value="ROLE_PROFISSIONAL">Profissional</option>
-              </select>
+                <select
+                  className={styles.selectStyle}
+                  value={cargo}
+                  onChange={(e) => setCargo(e.target.value)}
+                >
+                  <option value="ROLE_GESTOR">Gestor</option>
+                  <option value="ROLE_FINANCEIRO">Financeiro</option>
+                  <option value="ROLE_PROFISSIONAL">Profissional</option>
+                </select>
 
-            </div>
+              </div>
 
-            <div className={styles.inputWrapper}>
+              <div className={styles.inputWrapper}>
 
                 <label>Tipo de Contrato</label>
 
@@ -482,25 +475,6 @@ export default function Page() {
                   <option value="CLT">CLT</option>
                   <option value="PJ">PJ</option>
                   <option value="PJ/HORA">PJ/HORA</option>
-                </select>
-
-            </div>
-
-            </div>
-
-            <div className={styles.row}>
-
-              <div className={styles.inputWrapper}>
-
-                <label>Status</label>
-
-                <select
-                  className={styles.selectStyle}
-                  value={ativo}
-                  onChange={(e) => setAtivo(e.target.value)}
-                >
-                  <option value="true">Ativo</option>
-                  <option value="false">Não Ativo</option>
                 </select>
 
               </div>
@@ -628,15 +602,6 @@ export default function Page() {
               </div>
 
             </div>
-
-            <select
-                  className={styles.selectStyle}
-                  value={ativoEdit}
-                  onChange={(e) => setAtivoEdit(e.target.value)}
-                >
-                  <option value="true">Ativo</option>
-                  <option value="false">Não Ativo</option>
-                </select>
 
             <div className={styles.botoes}>
 

@@ -50,9 +50,6 @@ export async function filtrarHoras(params: HorasFiltroParams): Promise<HorasExib
   const res = await fetch(`${BASE_URL}/horas/filtrar?${query.toString()}`);
   return handleResponse<HorasExibirDTO[]>(res);
 }
-// --------------------------------
-
-const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
 
 const MOCK_NOME_PROJETO = 'Aerocode';
 interface Card {
@@ -153,14 +150,15 @@ export default function Page() {
       try {
         setCarregando(true);
         setErro(null);
-        const dados = await filtrarHoras({ usuarioId: USUARIO_ID, estado: 'APROVADO' });
+        const uid = Number(localStorage.getItem('usuarioId') || '0');
+        const dados = await filtrarHoras({ usuarioId: uid, estado: 'APROVADO' });
 
         const comDados: Card[] = dados.map((h) => ({
           id: Number(h.id),
-          nomeProjeto: MOCK_NOME_PROJETO, 
+          nomeProjeto: MOCK_NOME_PROJETO,
           tituloSessao: h.tituloSessao,
           descricao: h.descricao || '',
-          inicio: h.inicio.substring(0, 5),  
+          inicio: h.inicio.substring(0, 5),
           fim: h.fim.substring(0, 5),
           dataLancamento: h.dataLancamento,
         }));
@@ -174,8 +172,7 @@ export default function Page() {
     carregar();
   }, []);
 
-  // EXIBIR dados da API + dados mockados
-  const cards = [...cardsAPI, ...cardsMockados];
+  const cards = cardsAPI;
 
   const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
 

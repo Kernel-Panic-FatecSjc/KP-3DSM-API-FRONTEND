@@ -62,11 +62,13 @@ function mapStatusToBackend(status: TaskStatus) {
 }
 
 function TaskCard({ task, responsibleName, isDragging }: { task: Task; responsibleName: string; isDragging: boolean; }) {
-  const { attributes, listeners, setNodeRef } = useDraggable({ id: task.id });
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef } = useDraggable({ id: task.id });
   return (
-    <div ref={setNodeRef} className={`${styles.card} ${isDragging ? styles.dragging : ""}`} {...listeners} {...attributes}>
-      <strong>{task.title}</strong>
-      <p>{responsibleName}</p>
+    <div ref={setNodeRef} className={`${styles.card} ${isDragging ? styles.dragging : ""}`}>
+      <div ref={setActivatorNodeRef} {...listeners} {...attributes} style={{ cursor: "grab" }}>
+        <strong>{task.title}</strong>
+        <p>{responsibleName}</p>
+      </div>
     </div>
   );
 }
@@ -110,7 +112,7 @@ export default function Page() {
       const res = await axios.get(`http://localhost:8082/projeto`);
       const mapped: Project[] = (res.data ?? []).map((p: any) => ({ id: String(p.id), name: p.nome ?? p.name ?? `Projeto ${p.id}` }));
       setProjects(mapped);
-    } catch(e) { setProjects([]); }
+    } catch (e) { setProjects([]); }
   };
 
   const fetchUsers = async () => {
@@ -118,7 +120,7 @@ export default function Page() {
       const res = await axios.get(`http://localhost:8083/usuario/todos`);
       const mapped: User[] = (res.data ?? []).map((u: any) => ({ id: String(u.id), name: u.nome ?? u.name ?? `Usuario ${u.id}` }));
       setUsers(mapped);
-    } catch(e) { setUsers([]); }
+    } catch (e) { setUsers([]); }
   };
 
   const fetchTasks = async () => {
@@ -133,7 +135,7 @@ export default function Page() {
       const res = await axios.get(url);
       const newTasks = (res.data ?? []).map(normalizeApiTask);
       setTasks(newTasks);
-    } catch(e) { setTasks([]); }
+    } catch (e) { setTasks([]); }
     finally { setLoading(false); }
   };
 
@@ -161,7 +163,7 @@ export default function Page() {
         });
         prevTasksRef.current = newTasks;
         setTasks(newTasks);
-      } catch {}
+      } catch { }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
@@ -189,7 +191,7 @@ export default function Page() {
         });
         prevTasksRef.current = newTasks;
         setTasks(newTasks);
-      } catch {}
+      } catch { }
     }, 5000);
     return () => clearInterval(interval);
   }, [selectedProject, selectedUser, filterMode]);
@@ -217,7 +219,7 @@ export default function Page() {
     const taskId = String(active.id);
     setTasks((prev) => prev.map((task) => task.id === taskId ? { ...task, status: newStatus } : task));
     try {
-      await axios.patch(`http://localhost:8082/tarefas/${taskId}`, { statusTarefa: mapStatusToBackend(newStatus) });
+      await axios.patch(`http://localhost:8085/tarefas/${taskId}`, { statusTarefa: mapStatusToBackend(newStatus) });
     } catch { fetchTasks(); }
   };
 
@@ -227,10 +229,10 @@ export default function Page() {
 
       <div className={styles.dropdownWrapper}>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-          <button 
-            onClick={() => { setFilterMode('none'); setSelectedProject(null); setSelectedUser(null); }} 
-            style={{ 
-              padding: '8px 16px', 
+          <button
+            onClick={() => { setFilterMode('none'); setSelectedProject(null); setSelectedUser(null); }}
+            style={{
+              padding: '8px 16px',
               backgroundColor: filterMode === 'none' ? '#007bff' : '#ccc',
               color: filterMode === 'none' ? 'white' : 'black',
               border: 'none',
@@ -241,10 +243,10 @@ export default function Page() {
           >
             Todos os Projetos
           </button>
-          <button 
-            onClick={() => { setFilterMode('project'); setSelectedUser(null); }} 
-            style={{ 
-              padding: '8px 16px', 
+          <button
+            onClick={() => { setFilterMode('project'); setSelectedUser(null); }}
+            style={{
+              padding: '8px 16px',
               backgroundColor: filterMode === 'project' ? '#007bff' : '#ccc',
               color: filterMode === 'project' ? 'white' : 'black',
               border: 'none',
@@ -255,10 +257,10 @@ export default function Page() {
           >
             Filtrar por Projeto
           </button>
-          <button 
-            onClick={() => { setFilterMode('user'); setSelectedProject(null); }} 
-            style={{ 
-              padding: '8px 16px', 
+          <button
+            onClick={() => { setFilterMode('user'); setSelectedProject(null); }}
+            style={{
+              padding: '8px 16px',
               backgroundColor: filterMode === 'user' ? '#007bff' : '#ccc',
               color: filterMode === 'user' ? 'white' : 'black',
               border: 'none',
@@ -273,7 +275,7 @@ export default function Page() {
 
         {filterMode === 'project' && (
           <div className={styles.projectDropdown} onClick={() => setOpenProject(!openProject)}>
-            {selectedProject ? projects.find((p) => p.id === selectedProject)?.name : "Selecione um Projeto"} ?
+            {selectedProject ? projects.find((p) => p.id === selectedProject)?.name : "Selecione um Projeto"}
             {openProject && (
               <div className={styles.dropdownMenu}>
                 {projects.map((project) => (
@@ -286,7 +288,7 @@ export default function Page() {
 
         {filterMode === 'user' && (
           <div className={styles.projectDropdown} onClick={() => setOpenUser(!openUser)}>
-            {selectedUser ? users.find((u) => u.id === selectedUser)?.name : "Selecione um Usuário"} ?
+            {selectedUser ? users.find((u) => u.id === selectedUser)?.name : "Selecione um Usuário"}
             {openUser && (
               <div className={styles.dropdownMenu}>
                 {users.map((user) => (

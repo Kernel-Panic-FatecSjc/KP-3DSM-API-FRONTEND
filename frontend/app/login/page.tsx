@@ -25,7 +25,7 @@ export default function Page() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8081/auth/login', {
+      const response = await fetch('http://localhost:8080/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,8 +50,15 @@ export default function Page() {
       localStorage.setItem('nome', data.nome);
       localStorage.setItem('usuarioId', String(data.id));
 
-      // Abre o modal SOMENTE após login bem-sucedido
-      setShowModal(true);
+      const lgpdAceito = localStorage.getItem('lgpdAceito');
+      if (lgpdAceito) {
+        const cargo = localStorage.getItem('cargo');
+        if (cargo === 'ROLE_PROFISSIONAL') router.push('/controleHoras/entrada-saida');
+        else if (cargo === 'ROLE_GESTOR') router.push('/gestao-tarefas-gestor');
+        else if (cargo === 'ROLE_FINANCEIRO') router.push('/');
+      } else {
+        setShowModal(true);
+      }
 
     } catch (error) {
       console.error('Erro:', error);
@@ -63,9 +70,16 @@ export default function Page() {
 
   const handleAcceptLGPD = () => {
     setShowModal(false);
-
-    router.push('/controleHoras/entrada-saida');
-  };
+    localStorage.setItem('lgpdAceito', 'true');
+    const cargo = localStorage.getItem('cargo');
+    if (cargo === 'ROLE_PROFISSIONAL') {
+      router.push('/controleHoras/entrada-saida');
+    } else if (cargo === 'ROLE_GESTOR') {
+      router.push('/gestao-tarefas-gestor');
+    } else if (cargo === 'ROLE_FINANCEIRO') {
+      router.push('/');
+    }
+  }
 
   return (
     <div className={styles.container}>
@@ -255,11 +269,10 @@ export default function Page() {
               </label>
 
               <button
-                className={`${styles.lgpdBtnAccept} ${
-                  consentChecked
-                    ? styles.lgpdBtnAcceptActive
-                    : ''
-                }`}
+                className={`${styles.lgpdBtnAccept} ${consentChecked
+                  ? styles.lgpdBtnAcceptActive
+                  : ''
+                  }`}
                 onClick={handleAcceptLGPD}
                 disabled={!consentChecked}
               >

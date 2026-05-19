@@ -9,50 +9,47 @@ const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhos
 export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
 
 export interface HorasExibirDTO {
-  id: number;
-  tarefaId: number | null;
-  usuarioId: number;
-  tituloSessao: string;
-  tipoAtividade: string;
-  descricao: string | null;
-  dataLancamento: string;
-  inicio: string;
-  fim: string;
-  justificativa: string | null;
-  motivoRejeicao: string | null;
-  estado: EstadoHora;
-  dataCriacao: string;
+    id: number;
+    tarefaId: number | null;
+    usuarioId: number;
+    tituloSessao: string;
+    tipoAtividade: string;
+    descricao: string | null;
+    dataLancamento: string;
+    inicio: string;
+    fim: string;
+    justificativa: string | null;
+    motivoRejeicao: string | null;
+    estado: EstadoHora;
+    dataCriacao: string;
 }
 
 export interface HorasFiltroParams {
-  usuarioId?: number;
-  estado?: EstadoHora;
-  dataInicio?: string;
-  dataFim?: string;
+    usuarioId?: number;
+    estado?: EstadoHora;
+    dataInicio?: string;
+    dataFim?: string;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const erro = await res.text();
-    throw new Error(erro || `Erro ${res.status}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
+    if (!res.ok) {
+        const erro = await res.text();
+        throw new Error(erro || `Erro ${res.status}`);
+    }
+    if (res.status === 204) return undefined as T;
+    return res.json();
 }
 
 export async function filtrarHoras(params: HorasFiltroParams): Promise<HorasExibirDTO[]> {
-  const query = new URLSearchParams();
-  if (params.usuarioId !== undefined) query.append('usuarioId', String(params.usuarioId));
-  if (params.estado) query.append('estado', params.estado);
-  if (params.dataInicio) query.append('dataInicio', params.dataInicio);
-  if (params.dataFim) query.append('dataFim', params.dataFim);
+    const query = new URLSearchParams();
+    if (params.usuarioId !== undefined) query.append('usuarioId', String(params.usuarioId));
+    if (params.estado) query.append('estado', params.estado);
+    if (params.dataInicio) query.append('dataInicio', params.dataInicio);
+    if (params.dataFim) query.append('dataFim', params.dataFim);
 
-  const res = await fetch(`${BASE_URL}/horas/filtrar?${query.toString()}`);
-  return handleResponse<HorasExibirDTO[]>(res);
+    const res = await fetch(`${BASE_URL}/horas/filtrar?${query.toString()}`);
+    return handleResponse<HorasExibirDTO[]>(res);
 }
-// --------------------------------
-
-const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
 
 const MOCK_NOME_PROJETO = 'Aerocode';
 interface Card {
@@ -138,17 +135,18 @@ export default function Page() {
             try {
                 setCarregando(true);
                 setErro(null);
-                const dados = await filtrarHoras({ usuarioId: USUARIO_ID, estado: 'REJEITADO' });
+                const uid = Number(localStorage.getItem('usuarioId') || '0');
+                const dados = await filtrarHoras({ usuarioId: uid, estado: 'REJEITADO' });
 
                 const comDados: Card[] = dados.map((h) => ({
                     id: Number(h.id),
-                    nomeProjeto: MOCK_NOME_PROJETO, 
+                    nomeProjeto: MOCK_NOME_PROJETO,
                     tituloSessao: h.tituloSessao,
                     descricao: h.descricao || '',
-                    inicio: h.inicio.substring(0, 5),   
+                    inicio: h.inicio.substring(0, 5),
                     fim: h.fim.substring(0, 5),
                     dataLancamento: h.dataLancamento,
-                    motivoReprovacao: h.motivoRejeicao || '', 
+                    motivoReprovacao: h.motivoRejeicao || '',
                 }));
                 setCardsAPI(comDados);
             } catch {
@@ -160,7 +158,7 @@ export default function Page() {
         carregar();
     }, []);
 
-    const cards = [...cardsAPI, ...cardsMockados];
+    const cards = cardsAPI;
 
     const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
 

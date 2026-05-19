@@ -7,6 +7,8 @@ import { filtrarHoras, buscarProjetos, buscarTarefasPorFuncionario } from '../en
 // usuarioId extraído do JWT
 function getUserIdFromToken(): number {
   if (typeof window === 'undefined') return 0;
+  const id = localStorage.getItem('usuarioId');
+  if (id) return Number(id);
   const token = localStorage.getItem('token');
   if (!token) return 0;
   try {

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = 'http://localhost:8085';
 
 type Status = 'To Do' | 'Doing' | 'Done';
 
@@ -14,7 +14,16 @@ type Tarefa = {
     nomeProjeto: string;
     status: Status;
     bloqueada: boolean;
+    idResponsaveis?: number[];
 };
+
+const CATEGORIAS = [
+    'Erro de Analista',
+    'Aguardando Cliente',
+    'Problema Técnico',
+    'Dúvida de Negócio',
+    'Outro',
+];
 
 export default function Page() {
     const [tarefas, setTarefas] = useState<Tarefa[]>([]);
@@ -23,7 +32,12 @@ export default function Page() {
     const [filtroProjeto, setFiltroProjeto] = useState('');
     const [filtroStatus, setFiltroStatus] = useState('');
 
-   
+    const [modalBloquear, setModalBloquear] = useState(false);
+    const [tarefaSelecionada, setTarefaSelecionada] = useState<Tarefa | null>(null);
+    const [categoria, setCategoria] = useState('');
+    const [descricaoImpedimento, setDescricaoImpedimento] = useState('');
+    const [salvando, setSalvando] = useState(false);
+
     const carregarTarefas = async () => {
         try {
             const res = await fetch(`${API_URL}/tarefas`);
@@ -40,65 +54,56 @@ export default function Page() {
         carregarTarefas();
     }, []);
 
+    const uid = Number(localStorage.getItem('usuarioId') || '0');
+
     const tarefasFiltradas = tarefas.filter((t) => {
-        const matchProjeto =
-            filtroProjeto === '' || String(t.projetoId) === filtroProjeto;
-
-        const matchStatus =
-            filtroStatus === '' || t.status === filtroStatus;
-
-        return matchProjeto && matchStatus;
+        const matchResponsavel = t.idResponsaveis?.includes(uid);
+        const matchProjeto = filtroProjeto === '' || String(t.projetoId) === filtroProjeto;
+        const matchStatus = filtroStatus === '' || t.status === filtroStatus;
+        return matchResponsavel && matchProjeto && matchStatus;
     });
 
-   
-    const bloquear = async (tarefa: Tarefa) => {
+    const abrirModalBloquear = (tarefa: Tarefa) => {
+        setTarefaSelecionada(tarefa);
+        setCategoria('');
+        setDescricaoImpedimento('');
+        setModalBloquear(true);
+    };
+
+    const bloquear = async () => {
+        if (!tarefaSelecionada) return;
+        if (!categoria) { alert('Selecione uma categoria'); return; }
+        if (categoria === 'Outro' && !descricaoImpedimento.trim()) { alert('Informe a descrição'); return; }
         try {
-            const res = await fetch(`${API_URL}/tarefas/${tarefa.id}/bloquear`, {
+            setSalvando(true);
+            const res = await fetch(`${API_URL}/tarefas/${tarefaSelecionada.id}/bloquear`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    usuarioId: 1,
-                    categoria: 'ERRO_TECNICO',
-                    descricao: 'Bloqueado pelo front'
+                    usuarioId: uid,
+                    categoria,
+                    descricao: descricaoImpedimento
                 })
             });
-
-            if (!res.ok) {
-                const msg = await res.text();
-                throw new Error(msg);
-            }
-
-            
+            if (!res.ok) { const msg = await res.text(); throw new Error(msg); }
+            setModalBloquear(false);
             await carregarTarefas();
-
         } catch (err: any) {
             alert(err.message || 'Erro ao bloquear');
+        } finally {
+            setSalvando(false);
         }
     };
 
-    
     const desbloquear = async (tarefa: Tarefa) => {
         try {
             const res = await fetch(`${API_URL}/tarefas/${tarefa.id}/desbloquear`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    usuarioId: 1
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuarioId: uid })
             });
-
-            if (!res.ok) {
-                const msg = await res.text();
-                throw new Error(msg);
-            }
-
-            
+            if (!res.ok) { const msg = await res.text(); throw new Error(msg); }
             await carregarTarefas();
-
         } catch (err: any) {
             alert(err.message || 'Erro ao desbloquear');
         }
@@ -108,27 +113,18 @@ export default function Page() {
         <div className={styles.container}>
             <h2 className={styles.titulo}>Minhas Tarefas</h2>
 
-           
             <div className={styles.menuContainer}>
                 <div className={styles.filtros}>
-                    <select
-                        value={filtroProjeto}
-                        onChange={(e) => setFiltroProjeto(e.target.value)}
-                    >
+                    <select value={filtroProjeto} onChange={(e) => setFiltroProjeto(e.target.value)}>
                         <option value="">Projeto ▾</option>
                         {[...new Set(tarefas.map(t => t.projetoId))].map((id) => (
-                            <option key={id} value={id}>
-                                Projeto {id}
-                            </option>
+                            <option key={String(id)} value={String(id)}>Projeto {id}</option>
                         ))}
                     </select>
                 </div>
 
                 <div className={styles.filtros}>
-                    <select
-                        value={filtroStatus}
-                        onChange={(e) => setFiltroStatus(e.target.value)}
-                    >
+                    <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}>
                         <option value="">Status ▾</option>
                         <option value="To Do">To Do</option>
                         <option value="Doing">Doing</option>
@@ -150,57 +146,38 @@ export default function Page() {
                     </thead>
                     <tbody>
                         {loading && (
-                            <tr>
-                                <td colSpan={5}>Carregando...</td>
-                            </tr>
+                            <tr><td colSpan={5}>Carregando...</td></tr>
                         )}
-
                         {!loading && tarefasFiltradas.length === 0 && (
-                            <tr>
-                                <td colSpan={5}>Nenhuma tarefa encontrada</td>
-                            </tr>
+                            <tr><td colSpan={5}>Nenhuma tarefa encontrada</td></tr>
                         )}
-
                         {tarefasFiltradas.map((tarefa) => (
-                            <tr key={tarefa.id}>
+                            <tr key={tarefa.id} className={tarefa.bloqueada ? styles.linhaBloqueada : ''}>
                                 <td>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         {tarefa.bloqueada && (
-                                            <span className={styles.badgeBloqueada}>
-                                                BLOQUEADA
-                                            </span>
+                                            <span className={styles.badgeBloqueada}>BLOQUEADA</span>
                                         )}
                                         {tarefa.nome}
                                     </div>
                                 </td>
                                 <td>{tarefa.descricao}</td>
-                                <td>{tarefa.nomeProjeto}</td>
+                                <td>{tarefa.nomeProjeto || `Projeto ${tarefa.projetoId}`}</td>
                                 <td>
-                                    <span
-                                        className={`${styles.statusBadge} ${
-                                            tarefa.status === 'To Do'
-                                                ? styles.statusToDo
-                                                : tarefa.status === 'Doing'
-                                                ? styles.statusDoing
+                                    <span className={`${styles.statusBadge} ${tarefa.status === 'To Do' ? styles.statusToDo
+                                            : tarefa.status === 'Doing' ? styles.statusDoing
                                                 : styles.statusDone
-                                        }`}
-                                    >
+                                        }`}>
                                         {tarefa.status}
                                     </span>
                                 </td>
                                 <td>
                                     {tarefa.bloqueada ? (
-                                        <button
-                                            className={styles.btnDesbloquear}
-                                            onClick={() => desbloquear(tarefa)}
-                                        >
+                                        <button className={styles.btnDesbloquear} onClick={() => desbloquear(tarefa)}>
                                             Desbloquear
                                         </button>
                                     ) : (
-                                        <button
-                                            className={styles.btnBloquear}
-                                            onClick={() => bloquear(tarefa)}
-                                        >
+                                        <button className={styles.btnBloquear} onClick={() => abrirModalBloquear(tarefa)}>
                                             Bloquear
                                         </button>
                                     )}
@@ -210,6 +187,51 @@ export default function Page() {
                     </tbody>
                 </table>
             </div>
+
+            {modalBloquear && tarefaSelecionada && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalConteudo}>
+                        <button className={styles.botaoFecharModal} onClick={() => setModalBloquear(false)}>×</button>
+                        <h3 className={styles.modalTitulo}>Bloquear Tarefa</h3>
+                        <p className={styles.modalSubtitulo}>{tarefaSelecionada.nome}</p>
+
+                        <div className={styles.listaCategorias}>
+                            {CATEGORIAS.map((cat) => (
+                                <label key={cat} className={styles.opcaoCategoria}>
+                                    <input
+                                        type="radio"
+                                        name="categoria"
+                                        value={cat}
+                                        checked={categoria === cat}
+                                        onChange={() => setCategoria(cat)}
+                                    />
+                                    {cat}
+                                </label>
+                            ))}
+                        </div>
+
+                        {categoria === 'Outro' && (
+                            <textarea
+                                className={styles.campoOutro}
+                                placeholder="Descreva o impedimento (obrigatório)"
+                                value={descricaoImpedimento}
+                                onChange={(e) => setDescricaoImpedimento(e.target.value)}
+                            />
+                        )}
+
+                        <div className={styles.botoes}>
+                            <button className={styles.cancelar} onClick={() => setModalBloquear(false)}>Cancelar</button>
+                            <button
+                                className={styles.confirmar}
+                                onClick={bloquear}
+                                disabled={salvando || !categoria || (categoria === 'Outro' && !descricaoImpedimento.trim())}
+                            >
+                                {salvando ? 'Salvando...' : 'Confirmar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

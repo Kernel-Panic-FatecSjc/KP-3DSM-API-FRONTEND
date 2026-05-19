@@ -135,6 +135,8 @@ export async function buscarTarefasPorFuncionario(usuarioId: number): Promise<Ta
 
 function getUserIdFromToken(): number {
   if (typeof window === 'undefined') return 0;
+  const id = localStorage.getItem('usuarioId');
+  if (id) return Number(id);
   const token = localStorage.getItem('token');
   if (!token) return 0;
   try {
@@ -263,9 +265,14 @@ export default function Page() {
     const uid = getUserIdFromToken();
     setUsuarioId(uid);
     carregarCards(uid);
-    buscarProjetos().then(setProjetos).catch(() => { });
     if (uid) {
-      buscarTarefasPorFuncionario(uid).then(setTarefas).catch(() => { });
+      buscarTarefasPorFuncionario(uid).then(tarefasDoUsuario => {
+        setTarefas(tarefasDoUsuario);
+        const idsProjetos = [...new Set(tarefasDoUsuario.map(t => t.idProjeto))];
+        buscarProjetos().then(todos => {
+          setProjetos(todos.filter(p => idsProjetos.includes(p.id)));
+        }).catch(() => { });
+      }).catch(() => { });
     }
   }, []);
 
@@ -539,9 +546,11 @@ export default function Page() {
                 onChange={e => setForm(prev => ({ ...prev, tipoAtividade: e.target.value }))}
               >
                 <option value="">Selecione...</option>
-                {tarefas.map(t => (
-                  <option key={t.id} value={String(t.id)}>{t.nome}</option>
-                ))}
+                {tarefas
+                  .filter(t => !form.projetoId || String(t.idProjeto) === form.projetoId)
+                  .map(t => (
+                    <option key={t.id} value={String(t.id)}>{t.nome}</option>
+                  ))}
               </select>
             </div>
 

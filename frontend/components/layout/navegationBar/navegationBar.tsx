@@ -9,6 +9,7 @@ type Submenu = {
   id: string;
   title: string;
   route: string;
+  cargos?: string[];
 };
 
 type Menu = {
@@ -22,7 +23,7 @@ type Menu = {
 };
 
 const PERMISSOES: Record<string, string[]> = {
-  profissional: ["profissional", "gestor"],
+  profissional: ["profissional"],
   gestor: ["gestor"],
   financeiro: ["financeiro", "gestor"],
   dashboard: ["profissional", "financeiro", "gestor"],
@@ -175,17 +176,20 @@ export default function NavigationBar() {
         {
           id: "dashboardProfissional",
           title: "Dashboard do Profissional",
-          route: "/"
+          route: "/",
+          cargos: ["profissional", "gestor"]
         },
         {
           id: "dashboardGestor",
           title: "Dashboard do gestor",
-          route: "/"
+          route: "/",
+          cargos: ["gestor"]
         },
         {
           id: "dashboardFinanceiro",
           title: "Dashboard do Financeiro/Admin",
-          route: "/"
+          route: "/",
+          cargos: ["financeiro", "gestor"]
         }
       ]
     }
@@ -216,8 +220,8 @@ export default function NavigationBar() {
             item.route
               ? pathname === item.route
               : item.submenus?.some(
-                  sub => pathname === sub.route
-                );
+                sub => pathname === sub.route
+              );
 
           return (
             <div
@@ -259,7 +263,7 @@ export default function NavigationBar() {
 
                 <div className={styles.dropdown}>
 
-                  {item.submenus.map((sub) => {
+                  {item.submenus.filter(sub => !sub.cargos || sub.cargos.includes(cargo)).map((sub) => {
 
                     const subActive =
                       pathname === sub.route;
@@ -300,21 +304,21 @@ export default function NavigationBar() {
       </div>
 
       <div className={styles.user}>
-  {user ? (
-    <div className={styles.userInfo}>
-      <span>{user.name} ({user.role})</span>
+        {user ? (
+          <div className={styles.userInfo}>
+            <span>{user.name} ({user.role})</span>
 
-      <img
-        src="/images/iconSair.svg"
-        alt="Sair"
-        className={styles.logoutIcon}
-        onClick={logout}
-      />
-    </div>
-  ) : (
-    <span>Carregando...</span>
-  )}
-</div>
+            <img
+              src="/images/iconSair.svg"
+              alt="Sair"
+              className={styles.logoutIcon}
+              onClick={logout}
+            />
+          </div>
+        ) : (
+          <span>Carregando...</span>
+        )}
+      </div>
 
       {mobileOpen && (
 
@@ -371,8 +375,7 @@ export default function NavigationBar() {
 
               <div className={styles.mobileSubmenu}>
 
-                {item.submenus.map((sub) => (
-
+                {item.submenus.filter(sub => !sub.cargos || sub.cargos.includes(cargo)).map((sub) => (
                   <div
                     key={sub.id}
                     className={styles.mobileSubItem}
