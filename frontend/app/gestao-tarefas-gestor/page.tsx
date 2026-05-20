@@ -246,6 +246,7 @@ export default function Page() {
       <div className={styles.containerSelect}>
 
         <Select
+          instanceId="projeto-select"
           options={projetoOptions}
           value={projeto}
           onChange={(s) => setProjeto(s)}
@@ -254,6 +255,7 @@ export default function Page() {
         />
 
         <Select
+          instanceId="responsavel-select"
           options={responsavelOptions}
           value={responsavel}
           onChange={(s) => setResponsavel(s)}
@@ -262,6 +264,7 @@ export default function Page() {
         />
 
         <Select
+          instanceId="status-select"
           options={statusOptions}
           value={status}
           onChange={(s) => setStatus(s)}

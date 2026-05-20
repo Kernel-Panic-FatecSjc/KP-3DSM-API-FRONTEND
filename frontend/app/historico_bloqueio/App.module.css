@@ -1,0 +1,168 @@
+.container {
+  min-height: 100vh;
+  background: #f5f7fb;
+  padding: 20px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.titulo {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0b2341;
+  margin-bottom: 30px;
+}
+
+.filtros {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.selectFiltro,
+.selectFiltroHistorico {
+  height: 42px;
+  min-width: 160px;
+  border: 1px solid #c9d3e0;
+  border-radius: 6px;
+  padding: 0 14px;
+  background: white;
+  color: #374151;
+  font-size: 15px;
+  outline: none;
+  cursor: pointer;
+}
+
+.selectFiltroHistorico {
+  margin-bottom: 28px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #d8e2ef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.subTitulo {
+  font-size: 14px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.informacoesContainer {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.infoCard {
+  flex: 1;
+  background: #edf2f8;
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.infoCard span {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.infoCard strong {
+  font-size: 36px;
+  color: #08213d;
+  font-weight: 700;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead tr {
+  border-bottom: 1px solid #d8e2ef;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 10px;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.table td {
+  padding: 14px 10px;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 15px;
+  color: #111827;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timelineItem p {
+  margin: 0;
+  color: #111827;
+  font-size: 15px;
+}
+
+.bolinha {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.vermelho {
+  background: #c0392b;
+}
+
+.verde {
+  background: #1e9e58;
+}
+
+.cinza {
+  background: #8b8b8b;
+}
+
+.rodape {
+  display: block;
+  margin-top: 24px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .informacoesContainer {
+    flex-direction: column;
+  }
+
+  .filtros {
+    flex-direction: column;
+  }
+
+  .selectFiltro,
+  .selectFiltroHistorico {
+    width: 100%;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+  }
+}
