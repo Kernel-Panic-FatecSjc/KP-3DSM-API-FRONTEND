@@ -36,6 +36,8 @@ export default function Page() {
 
   const [historico, setHistorico] = useState<Historico[]>([]);
 
+  const [historicoGeral, setHistoricoGeral] = useState<Historico[]>([]);
+
   const tarefasFiltradas =
   projetoSelecionado === ''
     ? tarefas
@@ -100,6 +102,7 @@ export default function Page() {
         }
 
         const data = JSON.parse(text);
+        console.log('Histórico recebido:', data);
 
         setHistorico(data);
 
@@ -119,6 +122,65 @@ export default function Page() {
     }
 
     }, [tarefaSelecionada]);
+
+    const fetchHistoricoGeral = async () => {
+
+    try {
+
+      const response = await fetch(
+        'http://localhost:8085/historico'
+      );
+
+      const data = await response.json();
+
+      setHistoricoGeral(data);
+
+    } catch (error) {
+
+      console.error(
+        'Erro ao buscar histórico geral:',
+        error
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchHistoricoGeral();
+  }, []);
+  
+  const bloqueios = historicoGeral.filter(
+    (item) => item.categoriaImpedimento
+  );
+
+  const totalBloqueios = bloqueios.length;
+
+  const tempoTotalMinutos =
+  bloqueios.reduce(
+    (total, item) =>
+      total + (item.tempoBloqueio || 0),
+    0
+  );
+
+  const tempoTotalHoras = (tempoTotalMinutos / 60).toFixed(1);
+
+  const categoriasMap = bloqueios.reduce((acc, item) => {
+
+    const categoria =
+      item.categoriaImpedimento;
+
+    if (!categoria) return acc;
+
+    acc[categoria] =
+      (acc[categoria] || 0) + 1;
+
+    return acc;
+
+  }, {} as Record<string, number>);
+
+  const categoriaMaisRecorrente =
+  Object.entries(categoriasMap)
+    .sort((a, b) => b[1] - a[1])[0]?.[0]
+    || '-';
 
   return (
     <div className={styles.container}>
@@ -161,17 +223,17 @@ export default function Page() {
         <div className={styles.informacoesContainer}>
           <div className={styles.infoCard}>
             <span>Total de bloqueios</span>
-            <strong>8</strong>
+            <strong>{totalBloqueios}</strong>
           </div>
 
           <div className={styles.infoCard}>
             <span>Tempo total parado</span>
-            <strong>14h</strong>
+            <strong>{tempoTotalHoras}h</strong>
           </div>
 
           <div className={styles.infoCard}>
             <span>Categoria mais recorrente</span>
-            <strong>Aguardando Cliente</strong>
+            <strong>{categoriaMaisRecorrente}</strong>
           </div>
         </div>
 
@@ -183,26 +245,40 @@ export default function Page() {
               <th>Tempo total parado</th>
             </tr>
           </thead>
-
           <tbody>
-            <tr>
-              <td>Aguardando Cliente</td>
-              <td>4</td>
-              <td>8h</td>
-            </tr>
+            {Object.entries(categoriasMap).map(
+              ([categoria, ocorrencias]) => {
 
-            <tr>
-              <td>Impedimento Técnico</td>
-              <td>3</td>
-              <td>4h</td>
-            </tr>
+                const tempoCategoria =
+                  bloqueios
+                    .filter(
+                      (b) =>
+                        b.categoriaImpedimento === categoria
+                    )
+                    .reduce(
+                      (total, item) =>
+                        total + (item.tempoBloqueio || 0),
+                      0
+                    );
 
-            <tr>
-              <td>Outro</td>
-              <td>1</td>
-              <td>2h</td>
-            </tr>
-          </tbody>
+                return (
+
+                  <tr key={categoria}>
+
+                    <td>{categoria}</td>
+
+                    <td>{ocorrencias}</td>
+
+                    <td>
+                      {(tempoCategoria / 60).toFixed(1)}h
+                    </td>
+
+                  </tr>
+                );
+              }
+            )}
+
+        </tbody>
         </table>
       </section>
 
@@ -233,7 +309,12 @@ export default function Page() {
         </select>
 
         <div className={styles.timeline}>
-          {historico.map((item) => (
+
+        {historico.length === 0 && (
+          <p>Nenhum histórico encontrado</p>
+        )}
+
+        {historico.map((item) => (
 
             <div
                 key={item.id}
