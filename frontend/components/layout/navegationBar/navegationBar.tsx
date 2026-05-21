@@ -176,7 +176,7 @@ export default function NavigationBar() {
         {
           id: "dashboardProfissional",
           title: "Dashboard do Profissional",
-          route: "/",
+          route: "/dashboardProfissional",
           cargos: ["profissional", "gestor"]
         },
         {
