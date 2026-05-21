@@ -188,7 +188,7 @@ export default function NavigationBar() {
         {
           id: "dashboardFinanceiro",
           title: "Dashboard do Financeiro/Admin",
-          route: "/",
+          route: "/dashboardFinanceiro",
           cargos: ["financeiro", "gestor"]
         }
       ]
