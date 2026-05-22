@@ -15,9 +15,17 @@ type Projeto = {
 
 type ResumoUsuario = {
     usuarioId: number;
+
     percentualAprovado: number;
     percentualRejeitado: number;
     percentualAguardando: number;
+
+    horasPorAtividade: {
+        DESENVOLVIMENTO?: string;
+        TESTES?: string;
+        ANALISE?: string;
+        CORRECAO_BUG?: string;
+    };
 };
 
 export const data = [
@@ -41,6 +49,38 @@ export const data = [
 
 export default function Page() {
 
+    const obterPeriodo = () => {
+
+        const hoje = new Date();
+
+        let dataInicio = new Date();
+
+        if (filtro === "semana") {
+
+            dataInicio.setDate(hoje.getDate() - 7);
+
+        } else {
+
+            dataInicio.setMonth(hoje.getMonth() - 1);
+        }
+
+        return {
+            dataInicio: dataInicio.toISOString().split("T")[0],
+            dataFim: hoje.toISOString().split("T")[0]
+        };
+    };
+
+    const converterDurationParaHoras = (
+        duration?: string
+    ) => {
+
+        if (!duration) return 0;
+
+        const match = duration.match(/PT(\d+)H/);
+
+        return match ? Number(match[1]) : 0;
+    };
+
     const hoje = new Date();
 
     const mes = hoje.getMonth() + 1;
@@ -58,21 +98,48 @@ export default function Page() {
             "Nome",
             "Desenvolvimento",
             { role: "style" },
+
             "Testes",
             { role: "style" },
+
             "Análise",
             { role: "style" },
+
             "Correção de Bug",
             { role: "style" }
         ],
 
-        ...usuarios.map((usuario) => [
-            usuario.nome,
-            20, "#1565C0",
-            10, "#2E7D32",
-            5, "#F9A825",
-            5, "#C62828"
-        ])
+        ...usuarios.map((usuario) => {
+
+            const resumo = resumos.find(
+                r => r.usuarioId === usuario.id
+            );
+
+            return [
+
+                usuario.nome,
+
+                converterDurationParaHoras(
+                    resumo?.horasPorAtividade?.DESENVOLVIMENTO
+                ),
+                "#1565C0",
+
+                converterDurationParaHoras(
+                    resumo?.horasPorAtividade?.TESTES
+                ),
+                "#2E7D32",
+
+                converterDurationParaHoras(
+                    resumo?.horasPorAtividade?.ANALISE
+                ),
+                "#F9A825",
+
+                converterDurationParaHoras(
+                    resumo?.horasPorAtividade?.CORRECAO_BUG
+                ),
+                "#C62828"
+            ];
+        })
     ];
 
     const fetchProjetos = async () => {
@@ -117,8 +184,12 @@ export default function Page() {
 
             usuariosProjeto.map(async (usuario: Usuario) => {
 
+                const periodo = obterPeriodo();
+
                 const response = await fetch(
-                    `http://localhost:8084/hora/resumo/${usuario.id}?mes=${mes}&ano=${ano}`
+                    `http://localhost:8084/horas/resumo/${usuario.id}` +
+                    `?dataInicio=${periodo.dataInicio}` +
+                    `&dataFim=${periodo.dataFim}`
                 );
 
                 return await response.json();
@@ -221,7 +292,14 @@ export default function Page() {
                 <h3 className={styles.subTitulo}>HORAS POR TIPO DE ATIVIDADE POR PROFISSIONAL</h3>
                 <div className={styles.buttonFiltro}>
                     <button
-                        onClick={() => setFiltro("semana")}
+                        onClick={() => {
+                            setFiltro("semana");
+
+                            if (projetoSelecionado) {
+                                buscarUsuariosProjeto(projetoSelecionado);
+                            }
+                        }}
+                        
                         style={{
                         backgroundColor:
                             filtro === "semana" ? "#0b2341" : "white",
@@ -240,7 +318,13 @@ export default function Page() {
                     </button>
 
                     <button
-                        onClick={() => setFiltro("mes")}
+                        onClick={() => {
+                            setFiltro("mes");
+
+                            if (projetoSelecionado) {
+                                buscarUsuariosProjeto(projetoSelecionado);
+                            }
+                        }}
                         style={{
                         backgroundColor:
                             filtro === "mes" ? "#0b2341" : "white",
