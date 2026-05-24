@@ -239,9 +239,6 @@ export default function Page() {
                         </option>
                     ))}
                     </select>
-                <select className={styles.selectFiltro}>
-                    <option>Período</option>
-                </select>
             </div>
             <div className={styles.containerTaxas}>
                 <h3 className={styles.subTitulo}>TAXA DE APROVAÇÃO DE LANÇAMENTOS</h3>
@@ -267,7 +264,7 @@ export default function Page() {
 
                                     <td style={{ color: 'green' }}>
                                         <strong>
-                                            {resumo?.percentualAprovado?.toFixed(1) ?? 0}%
+                                            {(resumo?.percentualAprovado ?? 0).toFixed(1)}%
                                         </strong>
                                     </td>
 
