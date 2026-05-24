@@ -38,6 +38,8 @@ export default function Page() {
 
   const [historicoGeral, setHistoricoGeral] = useState<Historico[]>([]);
 
+  const [periodoSelecionado, setPeriodoSelecionado] = useState('');
+
   const tarefasFiltradas =
   projetoSelecionado === ''
     ? tarefas
@@ -147,8 +149,39 @@ export default function Page() {
   useEffect(() => {
     fetchHistoricoGeral();
   }, []);
+
+  const historicoFiltradoPorPeriodo =
+    historicoGeral.filter((item) => {
+
+      if (!periodoSelecionado) return true;
+
+      const dataEvento =
+        new Date(item.dataEvento);
+
+      const hoje = new Date();
+
+      const diferencaMs =
+        hoje.getTime() - dataEvento.getTime();
+
+      const diferencaDias =
+        diferencaMs / (1000 * 60 * 60 * 24);
+
+      if (periodoSelecionado === 'semana') {
+        return diferencaDias <= 7;
+      }
+
+      if (periodoSelecionado === 'mes') {
+        return diferencaDias <= 30;
+      }
+
+      return true;
+  });
+
+  console.log(historicoFiltradoPorPeriodo);
+
+  console.log(periodoSelecionado);
   
-  const bloqueios = historicoGeral.filter(
+  const bloqueios = historicoFiltradoPorPeriodo.filter(
     (item) => item.categoriaImpedimento
   );
 
@@ -210,8 +243,24 @@ export default function Page() {
           ))}
         </select>
 
-        <select className={styles.selectFiltro}>
-          <option>Período</option>
+        <select
+          className={styles.selectFiltro}
+          value={periodoSelecionado}
+          onChange={(e) =>
+            setPeriodoSelecionado(e.target.value)
+          }
+        >
+          <option value="">
+            Todos os períodos
+          </option>
+
+          <option value="semana">
+            Última semana
+          </option>
+
+          <option value="mes">
+            Último mês
+          </option>
         </select>
       </div>
 
