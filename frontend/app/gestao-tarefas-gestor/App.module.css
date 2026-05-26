@@ -3,6 +3,7 @@
   background-color: #fff;
   min-height: 100vh;
   position: relative;
+  box-sizing: border-box;
 }
 
 .containerSelect {
@@ -13,6 +14,12 @@
   background: #fff;
   padding: 20px;
   border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.containerSelect > div {
+  min-width: 220px;
+  flex: 1;
 }
 
 .containerSelect button {
@@ -25,10 +32,11 @@
   background-color: #012643;
   color: #fff;
   cursor: pointer;
-  min-width: 100px;
+  min-width: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .containerSelect button:hover {
@@ -41,12 +49,14 @@
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   border: 1px solid #eaecef;
+  overflow-x: auto;
 }
 
 .taskTable {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  min-width: 900px;
 }
 
 .taskTable th,
@@ -94,6 +104,7 @@
   border: none;
   cursor: pointer;
   line-height: 1;
+  z-index: 999;
 }
 
 .btnAdicionarMais:hover {
@@ -115,6 +126,8 @@
   align-items: center;
 
   z-index: 1000;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .modal {
@@ -122,11 +135,13 @@
   padding: 24px;
   border-radius: 12px;
 
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
 
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-sizing: border-box;
 }
 
 .modal input,
@@ -138,6 +153,7 @@
   border-radius: 8px;
 
   font-size: 14px;
+  box-sizing: border-box;
 }
 
 .modal textarea {
@@ -148,7 +164,8 @@
 .modalButtons {
   display: flex;
   justify-content: center;
-  gap: 40px;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .modalButton {
@@ -177,4 +194,104 @@
   cursor: pointer;
   padding: 0;
   margin-right: 16px;
+}
+
+.imagemBotao {
+  width: 20px;
+  height: 20px;
+}
+
+/* ========================= */
+/* TABLET */
+/* ========================= */
+
+@media (max-width: 1024px) {
+  .pageContainer {
+    padding: 24px;
+  }
+
+  .taskTable th,
+  .taskTable td {
+    padding: 14px 16px;
+  }
+}
+
+/* ========================= */
+/* MOBILE */
+/* ========================= */
+
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 16px;
+  }
+
+  .containerSelect {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .containerSelect > div {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .containerSelect button {
+    width: 100%;
+  }
+
+  .taskTable {
+    min-width: 700px;
+  }
+
+  .modal {
+    padding: 20px;
+  }
+
+  .modalButtons {
+    flex-direction: column;
+  }
+
+  .modalButton {
+    width: 100%;
+  }
+
+  .btnAdicionarMais {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+    bottom: 20px;
+    right: 20px;
+  }
+}
+
+/* ========================= */
+/* MOBILE PEQUENO */
+/* ========================= */
+
+@media (max-width: 480px) {
+  .pageContainer {
+    padding: 12px;
+  }
+
+  .containerSelect {
+    padding: 12px;
+  }
+
+  .taskTable th,
+  .taskTable td {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .modal {
+    padding: 16px;
+  }
+
+  .btnAdicionarMais {
+    width: 52px;
+    height: 52px;
+    font-size: 24px;
+  }
 }

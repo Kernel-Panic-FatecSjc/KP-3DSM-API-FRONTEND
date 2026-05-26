@@ -1,5 +1,6 @@
 .container {
   padding: 6rem 10rem 2rem;
+  box-sizing: border-box;
 }
 
 .grid {
@@ -18,11 +19,12 @@
   cursor: pointer;
   border: 1px solid #e5e7eb;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0px 8px 20px rgba(0,0,0,0.08);
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.08);
 }
 
 .statusBar {
@@ -34,12 +36,14 @@
 .card h2 {
   font-size: 18px;
   margin-bottom: 6px;
+  word-break: break-word;
 }
 
 .descricao {
   font-size: 14px;
   color: #6b7280;
   margin-bottom: 12px;
+  word-break: break-word;
 }
 
 .info {
@@ -48,12 +52,14 @@
   gap: 4px;
   font-size: 13px;
   color: #374151;
+  word-break: break-word;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .editBtn {
@@ -62,6 +68,7 @@
   cursor: pointer;
   font-size: 16px;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
 .editBtn:hover {
@@ -76,30 +83,48 @@
   font-size: 13px;
   background: #f9fafb;
   cursor: pointer;
+  width: 100%;
 }
 
+/* ========================= */
+/* MODAL */
+/* ========================= */
 
 .modalOverlay {
   position: fixed;
-  inset: 0;              
-  z-index: 2000;          
+  inset: 0;
+  z-index: 2000;
   background: rgba(0, 0, 0, 0.5);
+
   display: flex;
   align-items: flex-start;
   justify-content: center;
+
   padding: 20px 1rem;
+
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .modal {
   background: #fff;
   border-radius: 8px;
   padding: 2rem;
+
   width: 100%;
   max-width: 560px;
-  max-height: calc(100vh - 120px);
+
+  max-height: calc(100vh - 40px);
   overflow-y: auto;
-  margin-top: 70px;
+
+  margin-top: 40px;
   position: relative;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  box-sizing: border-box;
 }
 
 .modal h2 {
@@ -150,16 +175,23 @@
   letter-spacing: 0.5px;
 }
 
+/* ========================= */
+/* ACTIONS */
+/* ========================= */
+
 .modalActions {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 .modalActionsRight {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .modalActionsRight button:first-child {
@@ -211,6 +243,10 @@
   color: white;
 }
 
+/* ========================= */
+/* DELETE CONFIRM */
+/* ========================= */
+
 .deleteConfirm {
   background: #fff5f5;
   border: 1px solid #fee2e2;
@@ -258,6 +294,10 @@
   background: #dc2626;
 }
 
+/* ========================= */
+/* CHECKBOX */
+/* ========================= */
+
 .checkboxGroup {
   display: flex;
   flex-direction: column;
@@ -288,4 +328,106 @@
   text-transform: none;
   letter-spacing: normal;
   font-weight: normal;
+}
+
+/* ========================= */
+/* TABLET */
+/* ========================= */
+
+@media (max-width: 1024px) {
+  .container {
+    padding: 5rem 3rem 2rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================= */
+/* MOBILE */
+/* ========================= */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 5rem 1rem 1.5rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .editBtn {
+    align-self: flex-end;
+  }
+
+  .modal {
+    padding: 1.2rem;
+    margin-top: 10px;
+    max-height: calc(100vh - 20px);
+  }
+
+  .modalActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modalActionsRight {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .modalActionsRight button,
+  .deleteBtn {
+    width: 100%;
+  }
+
+  .deleteConfirmActions {
+    flex-direction: column;
+  }
+}
+
+/* ========================= */
+/* MOBILE PEQUENO */
+/* ========================= */
+
+@media (max-width: 480px) {
+  .container {
+    padding: 4.5rem 0.75rem 1rem;
+  }
+
+  .card h2 {
+    font-size: 16px;
+  }
+
+  .descricao,
+  .info,
+  .select {
+    font-size: 12px;
+  }
+
+  .modal {
+    padding: 1rem;
+    border-radius: 6px;
+  }
+
+  .modal h2 {
+    font-size: 18px;
+  }
+
+  .modal input,
+  .modal textarea,
+  .modal select {
+    font-size: 13px;
+  }
 }
