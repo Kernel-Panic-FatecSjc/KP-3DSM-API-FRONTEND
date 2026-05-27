@@ -176,7 +176,7 @@ export default function NavigationBar() {
         {
           id: "dashboardProfissional",
           title: "Dashboard do Profissional",
-          route: "/",
+          route: "/dashboardProfissional",
           cargos: ["profissional", "gestor"]
         },
         {
@@ -188,7 +188,7 @@ export default function NavigationBar() {
         {
           id: "dashboardFinanceiro",
           title: "Dashboard do Financeiro/Admin",
-          route: "/",
+          route: "/dashboardFinanceiro",
           cargos: ["financeiro", "gestor"]
         }
       ]

@@ -1,0 +1,238 @@
+.container {
+  min-height: 100vh;
+  background: #f4f3ee;
+  padding: 24px;
+}
+
+.dropdownWrapper {
+  margin-bottom: 20px;
+}
+
+.projectDropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: #0f172a;
+  cursor: pointer;
+  min-width: 220px;
+  user-select: none;
+}
+
+.projectDropdown::after {
+  content: "▾";
+  margin-left: auto;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  background: white;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.dropdownItem {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dropdownItem:hover {
+  background: #f1f5f9;
+}
+
+.loading {
+  text-align: center;
+  padding-top: 80px;
+  color: #888780;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metricCard {
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 120px;
+  border: 1px solid #dbe2ea;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: #475569;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metricValue {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  color: #1e3a8a;
+}
+
+.metricSub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.chartCard {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #dbe2ea;
+  padding: 20px;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chartTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 18px;
+}
+
+.toggle {
+  display: inline-flex;
+  background: #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 18px;
+  max-width: 150px;
+}
+
+.toggleButton {
+  border: none;
+  background: transparent;
+  padding: 7px 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  color: #475569;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.activeToggle {
+  border: none;
+  background: #1e3a8a;
+  color: white;
+  padding: 7px 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.pieContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+}
+
+.pieChartWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 180px;
+}
+
+.legendList {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  flex: 1;
+}
+
+.legendItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #334155;
+}
+
+.legendLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.tableWrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 11px;
+  color: #64748b;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dbe2ea;
+  text-transform: uppercase;
+}
+
+.table td {
+  padding: 14px 0;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.right {
+  text-align: right;
+}
+
+.statusBadge {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
