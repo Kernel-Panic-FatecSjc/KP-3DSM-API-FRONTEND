@@ -338,20 +338,19 @@ export default function FinanceiroDashboard() {
           </div>
 
           <div className={styles.chartsGrid}>
-            <ChartCard title="Evolução — Custo real acumulado vs Valor contratado">
-              <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={costOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
-                  <XAxis dataKey="label" stroke="#64748B" tick={{ fontSize: 11 }} />
-                  <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={formatBRLk} />
-                  <Tooltip formatter={(value: any) => formatBRLk(value)} />
-                  <Legend formatter={(value) => value === "realCost" ? "Custo real" : "Valor contratado"} />
-                  <Line type="monotone" dataKey="realCost" name="Custo real" stroke={PRIMARY_BLUE} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="contractedValue" name="Valor contratado" stroke={LIGHT_BLUE} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
+           <ChartCard title="Evolução — Custo real acumulado vs Valor contratado">
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={costOverTime} margin={{ bottom: 20, right: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
+                <XAxis dataKey="label" stroke="#64748B" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={formatBRLk} />
+                <Tooltip formatter={(value: any) => formatBRLk(value)} />
+                <Legend wrapperStyle={{ paddingTop: "15px" }} />
+                <Line type="monotone" dataKey="realCost" name="Custo real" stroke={PRIMARY_BLUE} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="contractedValue" name="Valor contratado" stroke={LIGHT_BLUE} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
             <ChartCard title="Custo real vs Valor contratado por projeto">
               <div className={styles.legendList}>
                 {[{ label: "Custo real", color: PRIMARY_BLUE }, { label: "Valor contratado", color: LIGHT_BLUE }].map((l) => (
@@ -440,10 +439,6 @@ export default function FinanceiroDashboard() {
               </div>
             </ChartCard>
           </div>
-
-          <p className={styles.footer}>
-            Dashboard somente leitura · Dados mockados para visualização
-          </p>
         </>
       )}
     </div>

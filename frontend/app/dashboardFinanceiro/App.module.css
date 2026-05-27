@@ -200,6 +200,8 @@
   min-height: 340px;
   display: flex;
   flex-direction: column;
+  min-width: 0; /* Permite que o contêiner encolha */
+  overflow: hidden; /* Evita que o conteúdo vaze */
 }
 
 .chartTitle {
@@ -240,7 +242,7 @@
 
 .tableWrapper {
   flex: 1;
-  overflow-y: auto;
+  overflow: auto;
 }
 
 .table {
@@ -256,12 +258,14 @@
   padding-bottom: 10px;
   border-bottom: 1px solid #dbe2ea;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .table td {
   padding: 12px 0;
   border-bottom: 1px solid #e2e8f0;
   color: #1e293b;
+  white-space: nowrap;
 }
 
 .right {
@@ -292,4 +296,54 @@
   color: #94a3b8;
   margin-top: 20px;
   letter-spacing: 0.03em;
+}
+
+@media (max-width: 1024px) {
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .filtersRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .dropdownWrapper {
+    width: 100%;
+  }
+
+  .projectDropdown {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 16px;
+  }
+
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .toggle {
+    display: flex;
+    width: 100%;
+  }
+
+  .toggleButton, .activeToggle {
+    flex: 1;
+    text-align: center;
+  }
+
+  .table {
+    min-width: 500px;
+  }
 }
