@@ -76,7 +76,7 @@ const FALLBACK_DATA: DashboardData = {
   ],
 };
 
-const API_BASE_URL = "/api";
+const API_URL = '';
 
 export default function Auditoria() {
   const [dataInicio, setDataInicio] = useState(() => {
@@ -123,7 +123,12 @@ export default function Auditoria() {
 
   useEffect(() => {
     if (!token || !userId) return;
-    fetchDashboardData();
+
+    const timeout = setTimeout(() => {
+      fetchDashboardData();
+    }, 500);
+
+    return () => clearTimeout(timeout);
   }, [token, userId, dataInicio, dataFim, filtroProfissionalId, filtroProjetoId, filtroStatusSelect, filtroPrioridade]);
 
   const fetchDashboardData = async () => {
@@ -137,33 +142,33 @@ export default function Auditoria() {
 
       const profId = filtroProfissionalId || userId;
 
-      const userResponse = await fetch(`${API_BASE_URL}/usuario/buscar/${profId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!userResponse.ok) throw new Error(`Erro ao buscar dados do usuário (${userResponse.status})`);
-      const userData = await userResponse.json();
-
-      let projetosUrl = `${API_BASE_URL}/projeto/profissional/${profId}?dataInicio=${dataInicio}&dataFim=${dataFim}`;
-      if (filtroProjetoId && filtroProjetoId !== "todos") projetosUrl += `&projetoId=${filtroProjetoId}`;
-      if (filtroStatusSelect !== "todos")                 projetosUrl += `&status=${filtroStatusSelect}`;
-
-      let alteracoesUrl = `${API_BASE_URL}/tarefas/alteracoes?dataInicio=${dataInicio}&dataFim=${dataFim}`;
-      if (filtroPrioridade !== "todas")                              alteracoesUrl += `&prioridade=${filtroPrioridade}`;
-      if (filtroProjetoId && filtroProjetoId !== "todos")            alteracoesUrl += `&projetoId=${filtroProjetoId}`;
-
       const headers = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       };
 
-      const [projetosResponse, horasResponse, alteracoesResponse] = await Promise.all([
-        fetch(projetosUrl, { headers }),
-        fetch(`${API_BASE_URL}/horas/profissional/${profId}?dataInicio=${dataInicio}&dataFim=${dataFim}`, { headers }),
-        fetch(alteracoesUrl, { headers }),
-      ]);
+      // Buscar dados do usuário
+      const userResponse = await fetch(`${API_URL}/api/usuario/${profId}`, { headers });
+      if (!userResponse.ok) throw new Error(`Erro ao buscar dados do usuário (${userResponse.status})`);
+      const userData = await userResponse.json();
+
+      // Buscar projetos via /api/projeto (reescrito para port 8082)
+      const projetosResponse = await fetch(`${API_URL}/api/projeto`, { headers });
+
+      // Buscar horas via /api/horas/filtrar (reescrito para port 8084)
+      const horasParams = new URLSearchParams();
+      horasParams.append('usuarioId', profId);
+      horasParams.append('dataInicio', dataInicio);
+      horasParams.append('dataFim', dataFim);
+      const horasResponse = await fetch(`${API_URL}/api/horas/filtrar?${horasParams.toString()}`, { headers });
+
+      // Buscar alterações via /api/tarefas/alteracoes (reescrito para port 8085)
+      const alteracoesParams = new URLSearchParams();
+      alteracoesParams.append('dataInicio', dataInicio);
+      alteracoesParams.append('dataFim', dataFim);
+      if (filtroPrioridade !== "todas") alteracoesParams.append('prioridade', filtroPrioridade);
+      if (filtroProjetoId && filtroProjetoId !== "todos") alteracoesParams.append('projetoId', filtroProjetoId);
+      const alteracoesResponse = await fetch(`${API_URL}/api/tarefas/alteracoes?${alteracoesParams.toString()}`, { headers });
 
       const projetosRaw    = projetosResponse.ok    ? await projetosResponse.json()    : [];
       const horasRaw       = horasResponse.ok       ? await horasResponse.json()       : [];
@@ -179,10 +184,14 @@ export default function Auditoria() {
       if (!alteracoesResponse.ok) partialErrors.push(`alterações (${alteracoesResponse.status})`);
 
       if (partialErrors.length > 0) {
-        console.warn("Erros parciais ao carregar Auditoria:", partialErrors, { projetosStatus: projetosResponse.status, horasStatus: horasResponse.status, alteracoesStatus: alteracoesResponse.status });
-        if (partialErrors.length === 1 && partialErrors[0].startsWith("projetos")) {
-        } else {
-          setError(`Alguns dados não puderam ser carregados: ${partialErrors.join(", ")}.`);
+        const errorDetails = [
+          !projetosResponse.ok && `projetos (${projetosResponse.status})`,
+          !horasResponse.ok && `horas (${horasResponse.status})`,
+          !alteracoesResponse.ok && `alterações (${alteracoesResponse.status})`,
+        ].filter(Boolean).join(", ");
+        console.warn(" Erros ao carregar dados de auditoria:", errorDetails);
+        if (partialErrors.length < 3) {
+          setError(` Alguns dados não puderam ser carregados: ${errorDetails}. Verifique a conexão com o servidor.`);
         }
       }
 
@@ -217,10 +226,10 @@ export default function Auditoria() {
         alteracoesRecentes: alteracoesData.slice(0, 10),
       });
     } catch (err) {
-      console.error("Erro ao carregar dados:", err, { apiBaseUrl: API_BASE_URL, profId: filtroProfissionalId || userId });
+      console.error("Erro ao carregar dados:", err, { profId: filtroProfissionalId || userId });
       const message = err instanceof Error ? err.message : "Erro ao carregar dados. Verifique sua conexão ou tente novamente mais tarde.";
       setError(message.includes("Failed to fetch")
-        ? `Falha de conexão com o backend em ${API_BASE_URL}. Verifique se o servidor está acessível e se o URL está correto.`
+        ? `Falha de conexão com o backend. Verifique se NEXT_PUBLIC_API_URL está configurado corretamente ou se o servidor está rodando.`
         : message
       );
       setDashboardData(FALLBACK_DATA);
