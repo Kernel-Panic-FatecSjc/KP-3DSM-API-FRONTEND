@@ -138,12 +138,7 @@ export default function NavigationBar() {
         {
           id: "relatorioBloqueios",
           title: "Relatório de bloqueios",
-          route: "/"
-        },
-        {
-          id: "historicoAtividades",
-          title: "Histórico de Atividades",
-          route: "/"
+          route: "/historico_bloqueio"
         }
       ]
     },
@@ -154,11 +149,6 @@ export default function NavigationBar() {
       iconActive: "/images/iconFinanceiroAzul.svg",
       cargos: PERMISSOES.financeiro,
       submenus: [
-        {
-          id: "painelFinanceiro",
-          title: "Painel Financeiro",
-          route: "/"
-        },
         {
           id: "auditoriaLancamentos",
           title: "Auditoria de lançamentos",
