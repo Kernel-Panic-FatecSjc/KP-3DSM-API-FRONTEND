@@ -10,7 +10,6 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
-  // LGPD
   const [showModal, setShowModal] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [declined, setDeclined] = useState(false);
@@ -156,7 +155,6 @@ export default function Page() {
         </button>
       </div>
 
-      {/* LGPD */}
       {showModal && (
         <div className={styles.lgpdOverlay}>
           <div className={styles.lgpdModal}>

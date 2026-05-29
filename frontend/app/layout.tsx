@@ -1,6 +1,7 @@
 'use client';
 import "./globals.css";
 import NavigationBar from "@/components/layout/navegationBar/navegationBar";
+import ProtectedRoute from "@/components/ProtectedRoute/ProtectedRoute";
 import { usePathname } from "next/navigation";
 
 export default function RootLayout({
@@ -23,9 +24,12 @@ export default function RootLayout({
             <NavigationBar />
           </header>
         )}
-        <main className="main-wrapper">
-          {children}
-        </main>
+        <ProtectedRoute>
+          <main className="main-wrapper">
+            {children}
+          </main>
+        </ProtectedRoute>
+
       </body>
     </html>
   );
