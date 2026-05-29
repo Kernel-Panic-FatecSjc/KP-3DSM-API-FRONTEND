@@ -162,7 +162,7 @@ export default function NavigationBar() {
         {
           id: "auditoriaLancamentos",
           title: "Auditoria de lançamentos",
-          route: "/"
+          route: "/painel-auditoria"
         }
       ]
     },
@@ -182,7 +182,7 @@ export default function NavigationBar() {
         {
           id: "dashboardGestor",
           title: "Dashboard do gestor",
-          route: "/",
+          route: "/dashboard-gestor",
           cargos: ["gestor"]
         },
         {

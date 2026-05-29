@@ -220,24 +220,24 @@ export default function ProfissionalDashboard() {
   }, [idConsulta]);
 
   const horasAtividade: ActivityDistribution[] = resumo
-    ? Object.entries(resumo.horasPorAtividade).map(([name, dur]) => ({
+    ? Object.entries(resumo.horasPorAtividade ?? {}).map(([name, dur]) => ({
         name: ACTIVITY_LABELS[name] ?? name,
         value: parseDuration(dur),
       }))
     : [];
 
   const launchStatus: LaunchStatus[] = resumo
-    ? Object.entries(resumo.horasPorStatus).map(([key, dur]) => ({
+    ? Object.entries(resumo.horasPorStatus ?? {}).map(([key, dur]) => ({
         name: LAUNCH_LABELS[key] ?? key,
         quantidade: parseDuration(dur),
       }))
     : [];
 
-  const totalAprovado = resumo?.horasPorStatus["APROVADO"]
+  const totalAprovado = resumo?.horasPorStatus?.["APROVADO"]
     ? parseDuration(resumo.horasPorStatus["APROVADO"])
     : 0;
 
-  const totalAguardando = resumo?.horasPorStatus["AGUARDANDO_APROVACAO"]
+  const totalAguardando = resumo?.horasPorStatus?.["AGUARDANDO_APROVACAO"]
     ? parseDuration(resumo.horasPorStatus["AGUARDANDO_APROVACAO"])
     : 0;
 
