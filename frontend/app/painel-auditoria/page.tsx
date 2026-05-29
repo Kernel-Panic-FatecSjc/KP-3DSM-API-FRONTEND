@@ -137,7 +137,7 @@ export default function Auditoria() {
 
       const profId = filtroProfissionalId || userId;
 
-      const userResponse = await fetch(`${API_BASE_URL}/usuario/${profId}`, {
+      const userResponse = await fetch(`${API_BASE_URL}/usuario/buscar/${profId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
