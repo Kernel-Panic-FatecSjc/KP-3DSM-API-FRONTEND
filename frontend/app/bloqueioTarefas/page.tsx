@@ -17,6 +17,8 @@ type Tarefa = {
     idResponsaveis?: number[];
 };
 
+
+
 const CATEGORIAS = [
     'Erro de Analista',
     'Aguardando Cliente',
@@ -54,7 +56,12 @@ export default function Page() {
         carregarTarefas();
     }, []);
 
-    const uid = Number(localStorage.getItem('usuarioId') || '0');
+    const [uid, setUid] = useState(0);
+
+    useEffect(() => {
+        const usuarioId = localStorage.getItem('usuarioId');
+        setUid(Number(usuarioId || '0'));
+    }, []);
 
     const tarefasFiltradas = tarefas.filter((t) => {
         const matchResponsavel = t.idResponsaveis?.includes(uid);
