@@ -8,7 +8,7 @@ type Usuario = {
   nome: string;
   email: string;
   cargo: string;
-  tipoContrato: string;
+  tipoContratacao: string;
   salario: string;
   ativo: boolean;
   senha: string;
@@ -29,7 +29,7 @@ export default function Page() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [cargo, setCargo] = useState('ROLE_PROFISSIONAL');
-  const [tipoContrato, setTipoContrato] = useState('CLT');
+  const [tipoContratacao, setTipoContratacao] = useState('CLT');
   const [valorHora, setValorHora] = useState('');
   const [ativo, setAtivo] = useState('true');
 
@@ -40,7 +40,7 @@ export default function Page() {
   const [emailEdit, setEmailEdit] = useState('');
   const [senhaEdit, setSenhaEdit] = useState('');
   const [cargoEdit, setCargoEdit] = useState('');
-  const [tipoContratoEdit, setTipoContratoEdit] = useState('');
+  const [tipoContratacaoEdit, setTipoContratacaoEdit] = useState('');
   const [salarioEdit, setSalarioEdit] = useState('');
   const [ativoEdit, setAtivoEdit] = useState('');
 
@@ -62,18 +62,17 @@ export default function Page() {
     }
   };
 
-  const getContratoLabel = (tipoContrato: string) => {
-    switch (tipoContrato) {
+  const getContratoLabel = (tipoContratacao: string) => {
+    switch (tipoContratacao) {
       case "CLT": return "CLT";
-      case "PJ": return "PJ";
-      case "PJ/HORA": return "PJ/HORA";
-      default: return tipoContrato ?? "-";
+      case "PJ_HORAS_FIXAS": return "PJ";
+      case "PJ_HORAS_VARIAVEIS": return "PJ/HORA";
+      default: return tipoContratacao ?? "-";
     }
   };
 
   const handleClick = async () => {
     try {
-
       const body = {
         nome,
         email,
@@ -81,10 +80,8 @@ export default function Page() {
         cargo,
         salario: valorHora,
         ativo: ativo === 'true',
-        tipoContrato
+        tipoContratacao
       };
-
-      console.log('ENVIANDO:', body);
 
       const response = await fetch('http://localhost:8083/usuario/cadastro', {
         method: 'POST',
@@ -95,20 +92,13 @@ export default function Page() {
         body: JSON.stringify(body)
       });
 
-      console.log('STATUS:', response.status);
-
       const texto = await response.text();
-
-      console.log('RESPOSTA:', texto);
 
       if (!response.ok) {
         throw new Error(texto);
       }
 
-      console.log('Usuário salvo com sucesso');
-
       setModalCadastro(false);
-
       fetchUsuarios();
 
     } catch (error) {
@@ -118,7 +108,7 @@ export default function Page() {
 
   const fetchUsuarios = async () => {
     try {
-      const currentToken = localStorage.getItem('token'); // <- lê direto
+      const currentToken = localStorage.getItem('token');
 
       const response = await fetch('http://localhost:8083/usuario/todos', {
         headers: {
@@ -135,7 +125,7 @@ export default function Page() {
   };
 
   useEffect(() => {
-    fetchUsuarios(); // <- sem depender do state token
+    fetchUsuarios();
   }, []);
 
   useEffect(() => {
@@ -145,7 +135,6 @@ export default function Page() {
   }, [token]);
 
   const atualizarUsuario = async () => {
-
     if (!usuarioSelecionado) return;
 
     try {
@@ -166,7 +155,7 @@ export default function Page() {
             senha: senhaEdit,
             cargo: cargoEdit,
             salario: salarioEdit,
-            tipoContrato: tipoContratoEdit,
+            tipoContratacao: tipoContratacaoEdit,
             ativo: ativoEdit === 'true'
           })
         }
@@ -176,10 +165,7 @@ export default function Page() {
         throw new Error('Erro ao atualizar');
       }
 
-      console.log('Usuário atualizado com sucesso');
-
       setModalAtualizar(false);
-
       fetchUsuarios();
 
     } catch (error) {
@@ -189,7 +175,6 @@ export default function Page() {
 
   const deletarUsuario = async (id: number) => {
     try {
-
       const response = await fetch(`http://localhost:8083/usuario/${id}`, {
         method: 'DELETE',
         headers: {
@@ -201,8 +186,6 @@ export default function Page() {
         throw new Error('Erro ao deletar usuário');
       }
 
-      console.log('Usuário deletado com sucesso');
-
       fetchUsuarios();
 
     } catch (error) {
@@ -211,44 +194,23 @@ export default function Page() {
   };
 
   const usuariosFiltrados = usuarios.filter((usuario) => {
-
-    const nomeOk = usuario.nome
-      .toLowerCase()
-      .includes(filtroNome.toLowerCase());
-
-    const cargoOk =
-      cargoSelecionado === '' ||
-      usuario.cargo === cargoSelecionado;
-
-    const contratoOk =
-      contratoSelecionado === '' ||
-      usuario.tipoContrato === contratoSelecionado;
-
+    const nomeOk = usuario.nome.toLowerCase().includes(filtroNome.toLowerCase());
+    const cargoOk = cargoSelecionado === '' || usuario.cargo === cargoSelecionado;
+    const contratoOk = contratoSelecionado === '' || usuario.tipoContratacao === contratoSelecionado;
     return nomeOk && cargoOk && contratoOk;
   });
 
   const indiceUltimoItem = paginaAtual * itensPorPagina;
   const indicePrimeiroItem = indiceUltimoItem - itensPorPagina;
-
-  const usuariosPaginaAtual = usuariosFiltrados.slice(
-    indicePrimeiroItem,
-    indiceUltimoItem
-  );
-
-  const totalPaginas = Math.ceil(
-    usuariosFiltrados.length / itensPorPagina
-  );
-
+  const usuariosPaginaAtual = usuariosFiltrados.slice(indicePrimeiroItem, indiceUltimoItem);
+  const totalPaginas = Math.ceil(usuariosFiltrados.length / itensPorPagina);
 
   return (
     <div className={styles.container}>
 
-      <h1 className={styles.titulo}>
-        Página de Usuários
-      </h1>
+      <h1 className={styles.titulo}>Página de Usuários</h1>
 
       <div className={styles.filtros}>
-
         <input
           type="text"
           placeholder="Buscar por nome..."
@@ -275,16 +237,13 @@ export default function Page() {
         >
           <option value="">Todos os contratos</option>
           <option value="CLT">CLT</option>
-          <option value="PJ">PJ</option>
-          <option value="PJ/HORA">PJ/Hora</option>
+          <option value="PJ_HORAS_FIXAS">PJ</option>
+          <option value="PJ_HORAS_VARIAVEIS">PJ/HORA</option>
         </select>
-
       </div>
 
       <div className={styles.tabelaContainer}>
-
         <table className={styles.tabela}>
-
           <thead>
             <tr>
               <th>Nome</th>
@@ -295,75 +254,52 @@ export default function Page() {
               <th>Ações</th>
             </tr>
           </thead>
-
           <tbody>
-
             {usuariosPaginaAtual.map((usuario) => (
-
               <tr key={usuario.id}>
-
                 <td>{usuario.nome}</td>
                 <td>{usuario.email}</td>
                 <td>{usuario.salario}</td>
                 <td>{getCargoLabel(usuario.cargo)}</td>
-                <td>{getContratoLabel(usuario.tipoContrato)}</td>
-
+                <td>{getContratoLabel(usuario.tipoContratacao)}</td>
                 <td className={styles.acoes}>
-
                   <button
                     className={styles.botaoAbrirEdicao}
                     onClick={() => {
-
                       setUsuarioSelecionado(usuario);
-
                       setNomeEdit(usuario.nome);
                       setEmailEdit(usuario.email);
                       setCargoEdit(usuario.cargo);
-                      setTipoContratoEdit(usuario.tipoContrato);
+                      setTipoContratacaoEdit(usuario.tipoContratacao);
                       setSalarioEdit(usuario.salario);
                       setAtivoEdit(usuario.ativo ? 'true' : 'false');
                       setModalAtualizar(true);
                     }}
                   >
-
-                    <img
-                      src="/images/atualizar.svg"
-                      className={styles.imagemBotao}
-                      alt="Atualizar"
-                    />
-
+                    <img src="/images/atualizar.svg" className={styles.imagemBotao} alt="Atualizar" />
                   </button>
-
                   <button
                     className={styles.botaoExcluir}
                     onClick={() => deletarUsuario(usuario.id)}
                   >
-
-                    <img
-                      src="/images/deletar.svg"
-                      className={styles.imagemBotao}
-                      alt="Deletar"
-                    />
-
+                    <img src="/images/deletar.svg" className={styles.imagemBotao} alt="Deletar" />
                   </button>
-
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
-
         </table>
-
       </div>
 
       {totalPaginas > 0 && (
         <div className={styles.paginacao}>
           <button disabled={paginaAtual === 1} onClick={() => setPaginaAtual(paginaAtual - 1)}>{'<'}</button>
           {[...Array(totalPaginas)].map((_, index) => (
-            <button key={index} className={paginaAtual === index + 1 ? styles.pagAtivo : ''} onClick={() => setPaginaAtual(index + 1)}>
+            <button
+              key={index}
+              className={paginaAtual === index + 1 ? styles.pagAtivo : ''}
+              onClick={() => setPaginaAtual(index + 1)}
+            >
               {index + 1}
             </button>
           ))}
@@ -371,217 +307,92 @@ export default function Page() {
         </div>
       )}
 
-      <button
-        className={styles.botaoAbrirModal}
-        onClick={() => setModalCadastro(true)}
-      >
-        +
-      </button>
+      <button className={styles.botaoAbrirModal} onClick={() => setModalCadastro(true)}>+</button>
 
       {modalCadastro && (
-
         <div className={styles.modalOverlay}>
-
           <div className={styles.modalConteudo}>
-
-            <button
-              className={styles.botaoFecharModal}
-              onClick={() => setModalCadastro(false)}
-            >
-              ×
-            </button>
-
-            <h2 className={styles.tituloModal}>
-              Cadastro de Usuários
-            </h2>
+            <button className={styles.botaoFecharModal} onClick={() => setModalCadastro(false)}>×</button>
+            <h2 className={styles.tituloModal}>Cadastro de Usuários</h2>
 
             <div className={styles.inputWrapper}>
               <label>Nome</label>
-
-              <input
-                className={styles.inputStyle}
-                type="text"
-                value={nome}
-                placeholder="Nome"
-                onChange={(e) => setNome(e.target.value)}
-              />
+              <input className={styles.inputStyle} type="text" value={nome} placeholder="Nome" onChange={(e) => setNome(e.target.value)} />
             </div>
 
             <div className={styles.inputWrapper}>
               <label>Email</label>
-
-              <input
-                className={styles.inputStyle}
-                type="email"
-                value={email}
-                placeholder="nome@gmail.com"
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <input className={styles.inputStyle} type="email" value={email} placeholder="nome@gmail.com" onChange={(e) => setEmail(e.target.value)} />
             </div>
 
             <div className={styles.inputWrapper}>
               <label>Senha</label>
-
-              <input
-                className={styles.inputStyle}
-                type="password"
-                value={senha}
-                placeholder="******"
-                onChange={(e) => setSenha(e.target.value)}
-              />
+              <input className={styles.inputStyle} type="password" value={senha} placeholder="******" onChange={(e) => setSenha(e.target.value)} />
             </div>
 
             <div className={styles.row}>
-
               <div className={styles.inputWrapper}>
-
                 <label>Valor Custo/Hora</label>
-
-                <input
-                  className={styles.inputStyle}
-                  type="number"
-                  value={valorHora}
-                  placeholder="R$"
-                  onChange={(e) => setValorHora(e.target.value)}
-                />
-
+                <input className={styles.inputStyle} type="number" value={valorHora} placeholder="R$" onChange={(e) => setValorHora(e.target.value)} />
               </div>
 
               <div className={styles.inputWrapper}>
-
                 <label>Cargo</label>
-
-                <select
-                  className={styles.selectStyle}
-                  value={cargo}
-                  onChange={(e) => setCargo(e.target.value)}
-                >
+                <select className={styles.selectStyle} value={cargo} onChange={(e) => setCargo(e.target.value)}>
                   <option value="ROLE_GESTOR">Gestor</option>
                   <option value="ROLE_FINANCEIRO">Financeiro</option>
                   <option value="ROLE_PROFISSIONAL">Profissional</option>
                 </select>
-
               </div>
 
               <div className={styles.inputWrapper}>
-
                 <label>Tipo de Contrato</label>
-
-                <select
-                  className={styles.selectStyle}
-                  value={tipoContrato}
-                  onChange={(e) => setTipoContrato(e.target.value)}
-                >
+                <select className={styles.selectStyle} value={tipoContratacao} onChange={(e) => setTipoContratacao(e.target.value)}>
                   <option value="CLT">CLT</option>
-                  <option value="PJ">PJ</option>
-                  <option value="PJ/HORA">PJ/HORA</option>
+                  <option value="PJ_HORAS_FIXAS">PJ</option>
+                  <option value="PJ_HORAS_VARIAVEIS">PJ/HORA</option>
                 </select>
-
               </div>
-
             </div>
 
             <div className={styles.botoes}>
-
-              <button
-                className={styles.cancelar}
-                onClick={() => setModalCadastro(false)}
-              >
-                Cancel
-              </button>
-
-              <button
-                className={styles.confirmar}
-                onClick={handleClick}
-              >
-                Confirm
-              </button>
-
+              <button className={styles.cancelar} onClick={() => setModalCadastro(false)}>Cancel</button>
+              <button className={styles.confirmar} onClick={handleClick}>Confirm</button>
             </div>
-
           </div>
-
         </div>
-
       )}
 
       {modalAtualizar && (
-
         <div className={styles.modalOverlay}>
-
           <div className={styles.modalConteudo}>
-
-            <button
-              className={styles.botaoFecharModal}
-              onClick={() => setModalAtualizar(false)}
-            >
-              ×
-            </button>
-
-            <h2 className={styles.tituloModal}>
-              Atualizar Usuário
-            </h2>
+            <button className={styles.botaoFecharModal} onClick={() => setModalAtualizar(false)}>×</button>
+            <h2 className={styles.tituloModal}>Atualizar Usuário</h2>
 
             <div className={styles.inputWrapper}>
-
               <label>Nome</label>
-
-              <input
-                className={styles.inputStyle}
-                type="text"
-                value={nomeEdit}
-                onChange={(e) => setNomeEdit(e.target.value)}
-              />
-
+              <input className={styles.inputStyle} type="text" value={nomeEdit} onChange={(e) => setNomeEdit(e.target.value)} />
             </div>
 
             <div className={styles.inputWrapper}>
-
               <label>Email</label>
-
-              <input
-                className={styles.inputStyle}
-                type="email"
-                value={emailEdit}
-                onChange={(e) => setEmailEdit(e.target.value)}
-              />
-
+              <input className={styles.inputStyle} type="email" value={emailEdit} onChange={(e) => setEmailEdit(e.target.value)} />
             </div>
 
             <div className={styles.inputWrapper}>
-
               <label>Senha</label>
-
-              <input
-                className={styles.inputStyle}
-                type="password"
-                placeholder="******"
-                value={senhaEdit}
-                onChange={(e) => setSenhaEdit(e.target.value)}
-              />
-
+              <input className={styles.inputStyle} type="password" placeholder="******" value={senhaEdit} onChange={(e) => setSenhaEdit(e.target.value)} />
             </div>
 
             <div className={styles.row}>
-
               <div className={styles.inputWrapper}>
                 <label>Valor Custo/Hora</label>
-                <input
-                  className={styles.inputStyle}
-                  type="number"
-                  value={salarioEdit}
-                  placeholder="R$"
-                  onChange={(e) => setSalarioEdit(e.target.value)}
-                />
+                <input className={styles.inputStyle} type="number" value={salarioEdit} placeholder="R$" onChange={(e) => setSalarioEdit(e.target.value)} />
               </div>
 
               <div className={styles.inputWrapper}>
                 <label>Cargo</label>
-                <select
-                  className={styles.selectStyle}
-                  value={cargoEdit}
-                  onChange={(e) => setCargoEdit(e.target.value)}
-                >
+                <select className={styles.selectStyle} value={cargoEdit} onChange={(e) => setCargoEdit(e.target.value)}>
                   <option value="ROLE_GESTOR">Gestor</option>
                   <option value="ROLE_FINANCEIRO">Financeiro</option>
                   <option value="ROLE_PROFISSIONAL">Profissional</option>
@@ -590,41 +401,20 @@ export default function Page() {
 
               <div className={styles.inputWrapper}>
                 <label>Tipo de Contrato</label>
-                <select
-                  className={styles.selectStyle}
-                  value={tipoContratoEdit}
-                  onChange={(e) => setTipoContratoEdit(e.target.value)}
-                >
+                <select className={styles.selectStyle} value={tipoContratacaoEdit} onChange={(e) => setTipoContratacaoEdit(e.target.value)}>
                   <option value="CLT">CLT</option>
-                  <option value="PJ">PJ</option>
-                  <option value="PJ/HORA">PJ/HORA</option>
+                  <option value="PJ_HORAS_FIXAS">PJ</option>
+                  <option value="PJ_HORAS_VARIAVEIS">PJ/HORA</option>
                 </select>
               </div>
-
             </div>
 
             <div className={styles.botoes}>
-
-              <button
-                className={styles.cancelar}
-                onClick={() => setModalAtualizar(false)}
-              >
-                Cancel
-              </button>
-
-              <button
-                className={styles.confirmar}
-                onClick={atualizarUsuario}
-              >
-                Confirm
-              </button>
-
+              <button className={styles.cancelar} onClick={() => setModalAtualizar(false)}>Cancel</button>
+              <button className={styles.confirmar} onClick={atualizarUsuario}>Confirm</button>
             </div>
-
           </div>
-
         </div>
-
       )}
 
     </div>
