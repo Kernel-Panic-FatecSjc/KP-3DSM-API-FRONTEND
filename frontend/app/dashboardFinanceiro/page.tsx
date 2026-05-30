@@ -1,130 +1,127 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend,
 } from "recharts";
 import styles from "./App.module.css";
 
-type ProjectCost = {
+// ================================================================
+// TIPOS — espelham os DTOs e enums Java
+// ================================================================
+
+type PeriodicidadeFinanceira = "SEMANAL" | "MENSAL";
+
+type StatusFinanceiroProjeto =
+  | "DENTRO_DO_ORCAMENTO"
+  | "PROXIMO_DO_LIMITE"
+  | "ACIMA_DO_LIMITE";
+
+interface AlertaIndicadorFinanceiroDTO {
+  usuarioId: number;
+  codigo: string;
+  mensagem: string;
+}
+
+// Alerta com contexto de projeto — usado apenas internamente no front
+interface AlertaComProjeto extends AlertaIndicadorFinanceiroDTO {
+  projectName: string;
+}
+
+interface EvolucaoFinanceiraProjetoDTO {
+  data: string;             // ISO date: "2026-01-15"
+  custoAcumulado: number;
+  valorContratado: number;
+}
+
+interface IndicadorFinanceiroProjetoDTO {
+  projetoId: number;
+  nome: string;
+  periodoInicio: string;
+  periodoFim: string;
+  periodicidade: PeriodicidadeFinanceira;
+  valorContratado: number;
+  custoRealAcumulado: number;
+  percentualConsumido: number;
+  statusFinanceiro: StatusFinanceiroProjeto;
+  faturamentoPrevisto: number;  // calculado pelo back: CLT ÷220h | PJ fixo ÷160h | PJ variável valor/hora
+  baseCalculoCusto: string;
+  alertas: AlertaIndicadorFinanceiroDTO[];
+  evolucao: EvolucaoFinanceiraProjetoDTO[];
+}
+
+// Tipos internos do front
+interface ProjectCost {
+  projetoId: number;
   projectName: string;
   realCost: number;
   contractedValue: number;
-};
+  percentConsumed: number;
+  status: StatusFinanceiroProjeto;
+}
 
-type CostEntry = {
+interface CostEntry {
   label: string;
   realCost: number;
   contractedValue: number;
-};
+}
 
-type ProfessionalCost = {
-  professionalName: string;
-  [projectName: string]: number | string;
-};
+// ================================================================
+// MOCKS TEMPORÁRIOS
+// Remover quando os endpoints abaixo estiverem prontos no back:
+//   GET /projeto/custo-profissional?projetoIds=...
+//   GET /projeto/historico-financeiro?projetoId=...
+// ================================================================
 
-type FinancialChange = {
-  id: string;
-  date: string;
-  projectName: string;
-  professionalName: string;
-  description: string;
-  impact: number;
-};
+const MOCK_PROFESSIONAL_COSTS = [
+  { professionalName: "Carlos",   Alpha: 18, Beta: 10, Gama: 6  },
+  { professionalName: "Fernanda", Alpha: 15, Beta: 12, Gama: 8  },
+  { professionalName: "João",     Alpha: 12, Beta: 9,  Gama: 5  },
+  { professionalName: "Amanda",   Alpha: 15, Beta: 11, Gama: 14 },
+];
 
-type User = { id: string; name: string };
-type Perfil = "gestor" | "profissional";
-type Periodo = "semanal" | "mensal";
+const MOCK_FINANCIAL_CHANGES = [
+  { id: "1", date: "02/05/2026", projectName: "Alpha", professionalName: "Carlos Mendes",  description: "Horas extras aprovadas",     impact:  4500 },
+  { id: "2", date: "06/05/2026", projectName: "Beta",  professionalName: "Fernanda Lima",  description: "Redução de escopo",           impact: -3200 },
+  { id: "3", date: "11/05/2026", projectName: "Gama",  professionalName: "João Pedro",     description: "Nova contratação temporária", impact:  6800 },
+  { id: "4", date: "17/05/2026", projectName: "Alpha", professionalName: "Amanda Souza",   description: "Mudança de fornecedor",       impact: -1800 },
+];
+
+// ================================================================
+// API
+// ================================================================
+
+const API_BASE_URL = "http://localhost:8082";
+
+async function fetchIndicadoresFinanceiros(
+  periodicidade: PeriodicidadeFinanceira,
+  ano: number,
+  mes: number
+): Promise<IndicadorFinanceiroProjetoDTO[]> {
+  const url = new URL(`${API_BASE_URL}/projeto/indicadores-financeiros`);
+  url.searchParams.set("periodicidade", periodicidade);
+  url.searchParams.set("ano", String(ano));
+  url.searchParams.set("mes", String(mes));
+
+  const res = await fetch(url.toString(), {
+    headers: { "Content-Type": "application/json" },
+    // headers: { Authorization: `Bearer ${getToken()}` }, // descomente para auth
+  });
+
+  if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+// ================================================================
+// HELPERS
+// ================================================================
 
 const PRIMARY_BLUE = "#1E3A8A";
-const MEDIUM_BLUE = "#3B82F6";
-const LIGHT_BLUE = "#93C5FD";
-
-const LINE_COLORS = [PRIMARY_BLUE, MEDIUM_BLUE, LIGHT_BLUE];
-const PROJECT_KEYS = ["Alpha", "Beta", "Gama"];
-
-const MOCK_WEEKLY: Record<string, { costOverTime: CostEntry[]; projectCosts: ProjectCost[] }> = {
-  Alpha: {
-    costOverTime: [
-      { label: "Sem 1", realCost: 20, contractedValue: 55 },
-      { label: "Sem 2", realCost: 35, contractedValue: 55 },
-      { label: "Sem 3", realCost: 48, contractedValue: 55 },
-      { label: "Sem 4", realCost: 60, contractedValue: 55 },
-    ],
-    projectCosts: [{ projectName: "Alpha", realCost: 60, contractedValue: 55 }],
-  },
-  Beta: {
-    costOverTime: [
-      { label: "Sem 1", realCost: 15, contractedValue: 50 },
-      { label: "Sem 2", realCost: 22, contractedValue: 50 },
-      { label: "Sem 3", realCost: 30, contractedValue: 50 },
-      { label: "Sem 4", realCost: 42, contractedValue: 50 },
-    ],
-    projectCosts: [{ projectName: "Beta", realCost: 42, contractedValue: 50 }],
-  },
-  Gama: {
-    costOverTime: [
-      { label: "Sem 1", realCost: 10, contractedValue: 35 },
-      { label: "Sem 2", realCost: 18, contractedValue: 35 },
-      { label: "Sem 3", realCost: 25, contractedValue: 35 },
-      { label: "Sem 4", realCost: 33, contractedValue: 35 },
-    ],
-    projectCosts: [{ projectName: "Gama", realCost: 33, contractedValue: 35 }],
-  },
-};
-
-const MOCK_MONTHLY: Record<string, { costOverTime: CostEntry[]; projectCosts: ProjectCost[] }> = {
-  Alpha: {
-    costOverTime: [
-      { label: "Jan", realCost: 45, contractedValue: 200 },
-      { label: "Fev", realCost: 95, contractedValue: 200 },
-      { label: "Mar", realCost: 160, contractedValue: 200 },
-      { label: "Abr", realCost: 230, contractedValue: 200 },
-    ],
-    projectCosts: [{ projectName: "Alpha", realCost: 230, contractedValue: 200 }],
-  },
-  Beta: {
-    costOverTime: [
-      { label: "Jan", realCost: 40, contractedValue: 180 },
-      { label: "Fev", realCost: 80, contractedValue: 180 },
-      { label: "Mar", realCost: 120, contractedValue: 180 },
-      { label: "Abr", realCost: 155, contractedValue: 180 },
-    ],
-    projectCosts: [{ projectName: "Beta", realCost: 155, contractedValue: 180 }],
-  },
-  Gama: {
-    costOverTime: [
-      { label: "Jan", realCost: 30, contractedValue: 140 },
-      { label: "Fev", realCost: 65, contractedValue: 140 },
-      { label: "Mar", realCost: 100, contractedValue: 140 },
-      { label: "Abr", realCost: 138, contractedValue: 140 },
-    ],
-    projectCosts: [{ projectName: "Gama", realCost: 138, contractedValue: 140 }],
-  },
-};
-
-const ALL_PROFESSIONAL_COSTS: ProfessionalCost[] = [
-  { professionalName: "Carlos", Alpha: 18, Beta: 10, Gama: 6 },
-  { professionalName: "Fernanda", Alpha: 15, Beta: 12, Gama: 8 },
-  { professionalName: "João", Alpha: 12, Beta: 9, Gama: 5 },
-  { professionalName: "Amanda", Alpha: 15, Beta: 11, Gama: 14 },
-];
-
-const ALL_FINANCIAL_CHANGES: FinancialChange[] = [
-  { id: "1", date: "02/05/2026", projectName: "Alpha", professionalName: "Carlos Mendes", description: "Horas extras aprovadas", impact: 4500 },
-  { id: "2", date: "06/05/2026", projectName: "Beta", professionalName: "Fernanda Lima", description: "Redução de escopo", impact: -3200 },
-  { id: "3", date: "11/05/2026", projectName: "Gama", professionalName: "João Pedro", description: "Nova contratação temporária", impact: 6800 },
-  { id: "4", date: "17/05/2026", projectName: "Alpha", professionalName: "Amanda Souza", description: "Mudança de fornecedor", impact: -1800 },
-];
+const MEDIUM_BLUE  = "#3B82F6";
+const LIGHT_BLUE   = "#93C5FD";
+const LINE_COLORS  = [PRIMARY_BLUE, MEDIUM_BLUE, LIGHT_BLUE];
 
 function formatBRL(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -138,7 +135,21 @@ function formatBRLk(value: number) {
   return `R$${value}k`;
 }
 
-function MetricCard({ label, value, sub, alert }: { label: string; value: string; sub?: string; alert?: boolean }) {
+function formatarLabel(data: string, periodicidade: PeriodicidadeFinanceira): string {
+  const d = new Date(data + "T00:00:00");
+  if (periodicidade === "MENSAL") {
+    return d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+  }
+  return `Sem ${Math.ceil(d.getDate() / 7)}`;
+}
+
+// ================================================================
+// COMPONENTES DE UI
+// ================================================================
+
+function MetricCard({ label, value, sub, alert }: {
+  label: string; value: string; sub?: string; alert?: boolean;
+}) {
   return (
     <div className={`${styles.metricCard} ${alert ? styles.metricCardAlert : ""}`}>
       <p className={styles.metricLabel}>{label}</p>
@@ -158,23 +169,22 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 }
 
 function ImpactBadge({ value }: { value: number }) {
-  const positive = value >= 0;
   return (
-    <span className={`${styles.statusBadge} ${positive ? styles.positive : styles.negative}`}>
-      {positive ? "+" : ""}{formatBRL(value)}
+    <span className={`${styles.statusBadge} ${value >= 0 ? styles.positive : styles.negative}`}>
+      {value >= 0 ? "+" : ""}{formatBRL(value)}
     </span>
   );
 }
 
-function OverBudgetAlert({ projects }: { projects: ProjectCost[] }) {
-  if (projects.length === 0) return null;
+function AlertaBanner({ alertas }: { alertas: AlertaComProjeto[] }) {
+  if (alertas.length === 0) return null;
   return (
     <div className={styles.overBudgetAlert}>
       <div>
-        <strong>Projetos acima do orçamento:</strong>{" "}
-        {projects.map((p) => (
-          <span key={p.projectName} className={styles.overBudgetTag}>
-            {p.projectName} ({formatBRLk(p.realCost)} / {formatBRLk(p.contractedValue)})
+        <strong>Alertas financeiros:</strong>{" "}
+        {alertas.map((a, i) => (
+          <span key={i} className={styles.overBudgetTag}>
+            {a.projectName} — {a.mensagem}
           </span>
         ))}
       </div>
@@ -182,101 +192,127 @@ function OverBudgetAlert({ projects }: { projects: ProjectCost[] }) {
   );
 }
 
-export default function FinanceiroDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [perfil] = useState<Perfil>("gestor");
+// ================================================================
+// DASHBOARD
+// ================================================================
 
-  const [users] = useState<User[]>([
-    { id: "all", name: "Todos os projetos" },
-    { id: "alpha", name: "Alpha" },
-    { id: "beta", name: "Beta" },
-    { id: "gama", name: "Gama" },
-  ]);
+export default function FinanceiroDashboard() {
+  const [periodoUI, setPeriodoUI] = useState<"semanal" | "mensal">("semanal");
+  const periodicidade: PeriodicidadeFinanceira = periodoUI === "semanal" ? "SEMANAL" : "MENSAL";
 
   const [selectedProject, setSelectedProject] = useState<string>("all");
-  const [openProjectDropdown, setOpenProjectDropdown] = useState(false);
-  const [periodo, setPeriodo] = useState<Periodo>("semanal");
+  const [openDropdown, setOpenDropdown] = useState(false);
 
-  const [professionalCosts] = useState<ProfessionalCost[]>(ALL_PROFESSIONAL_COSTS);
-  const [financialChanges] = useState<FinancialChange[]>(ALL_FINANCIAL_CHANGES);
+  const [indicadores, setIndicadores] = useState<IndicadorFinanceiroProjetoDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // ── Fetch ──────────────────────────────────────────────────────
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 700);
-    return () => clearTimeout(t);
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const mockData = periodo === "semanal" ? MOCK_WEEKLY : MOCK_MONTHLY;
+    const now = new Date();
+    fetchIndicadoresFinanceiros(periodicidade, now.getFullYear(), now.getMonth() + 1)
+      .then((data) => { if (!cancelled) setIndicadores(data); })
+      .catch((err: Error) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-  const projectCosts: ProjectCost[] = useMemo(() => {
-    if (selectedProject === "all") return PROJECT_KEYS.map((k) => mockData[k].projectCosts[0]);
-    const key = selectedProject.charAt(0).toUpperCase() + selectedProject.slice(1);
-    return mockData[key]?.projectCosts ?? [];
-  }, [selectedProject, mockData]);
+    return () => { cancelled = true; };
+  }, [periodicidade]);
+
+  // ── Filtragem ──────────────────────────────────────────────────
+  const indicadoresFiltrados = useMemo(() => {
+    if (selectedProject === "all") return indicadores;
+    return indicadores.filter((p) => String(p.projetoId) === selectedProject);
+  }, [indicadores, selectedProject]);
+
+  // ── Dados derivados ────────────────────────────────────────────
+  const projectCosts: ProjectCost[] = useMemo(
+    () => indicadoresFiltrados.map((p) => ({
+      projetoId: p.projetoId,
+      projectName: p.nome,
+      realCost: p.custoRealAcumulado,
+      contractedValue: p.valorContratado,
+      percentConsumed: p.percentualConsumido,
+      status: p.statusFinanceiro,
+    })),
+    [indicadoresFiltrados]
+  );
 
   const costOverTime: CostEntry[] = useMemo(() => {
-    if (selectedProject === "all") {
-      const base = mockData[PROJECT_KEYS[0]].costOverTime;
-      return base.map((entry, i) => ({
-        label: entry.label,
-        realCost: PROJECT_KEYS.reduce((s, k) => s + mockData[k].costOverTime[i].realCost, 0),
-        contractedValue: PROJECT_KEYS.reduce((s, k) => s + mockData[k].costOverTime[i].contractedValue, 0),
+    const dateMap = new Map<string, { realCost: number; contractedValue: number }>();
+    indicadoresFiltrados.forEach((p) =>
+      p.evolucao.forEach((e) => {
+        const prev = dateMap.get(e.data) ?? { realCost: 0, contractedValue: 0 };
+        dateMap.set(e.data, {
+          realCost: prev.realCost + e.custoAcumulado,
+          contractedValue: prev.contractedValue + e.valorContratado,
+        });
+      })
+    );
+    return Array.from(dateMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([data, v]) => ({
+        label: formatarLabel(data, periodicidade),
+        realCost: v.realCost,
+        contractedValue: v.contractedValue,
       }));
-    }
-    const key = selectedProject.charAt(0).toUpperCase() + selectedProject.slice(1);
-    return mockData[key]?.costOverTime ?? [];
-  }, [selectedProject, mockData]);
+  }, [indicadoresFiltrados, periodicidade]);
 
-  const filteredFinancialChanges = useMemo(() => {
-    if (selectedProject === "all") return financialChanges;
-    const key = selectedProject.charAt(0).toUpperCase() + selectedProject.slice(1);
-    return financialChanges.filter((c) => c.projectName === key);
-  }, [selectedProject, financialChanges]);
-
-  const filteredProfessionalCosts = useMemo(() => {
-    if (selectedProject === "all") return professionalCosts;
-    const key = selectedProject.charAt(0).toUpperCase() + selectedProject.slice(1);
-    return professionalCosts.map((pc) => ({ professionalName: pc.professionalName, [key]: pc[key] ?? 0 }));
-  }, [selectedProject, professionalCosts]);
-
-  const visibleProjectKeys = useMemo(() => {
-    if (selectedProject === "all") return PROJECT_KEYS;
-    return [selectedProject.charAt(0).toUpperCase() + selectedProject.slice(1)];
-  }, [selectedProject]);
-
-  const totalRealCost = projectCosts.reduce((s, p) => s + p.realCost, 0);
-  const totalContracted = projectCosts.reduce((s, p) => s + p.contractedValue, 0);
-  const overBudgetProjects = projectCosts.filter((p) => p.realCost > p.contractedValue);
-
-  const periodoTotalPeriods = periodo === "semanal" ? 4 : 12;
-  const periodoCurrentPeriod = costOverTime.length;
-  const faturamentoPrevisto =
-    periodoCurrentPeriod > 0
-      ? Math.round((totalRealCost / periodoCurrentPeriod) * periodoTotalPeriods)
-      : 0;
+  const totalRealCost      = useMemo(() => projectCosts.reduce((s, p) => s + p.realCost, 0), [projectCosts]);
+  const totalContracted    = useMemo(() => projectCosts.reduce((s, p) => s + p.contractedValue, 0), [projectCosts]);
+  const faturamentoPrevisto = useMemo(() => indicadoresFiltrados.reduce((s, p) => s + p.faturamentoPrevisto, 0), [indicadoresFiltrados]);
   const faturamentoVariacao = faturamentoPrevisto - totalContracted;
+  const overBudgetCount    = useMemo(() => projectCosts.filter((p) => p.status === "ACIMA_DO_LIMITE").length, [projectCosts]);
 
-  const selectedProjectLabel = users.find((u) => u.id === selectedProject)?.name ?? "Todos os projetos";
+  const alertasComProjeto = useMemo<AlertaComProjeto[]>(
+    () => indicadoresFiltrados.flatMap((p) =>
+      p.alertas.map((a) => ({ ...a, projectName: p.nome }))
+    ),
+    [indicadoresFiltrados]
+  );
 
+  // Dropdown de projetos populado pela API
+  const projectOptions = useMemo(() => [
+    { id: "all", name: "Todos os projetos" },
+    ...indicadores.map((p) => ({ id: String(p.projetoId), name: p.nome })),
+  ], [indicadores]);
+
+  const visibleProjectKeys = useMemo(() => projectCosts.map((p) => p.projectName), [projectCosts]);
+
+  // Mocks temporários filtrados por projeto
+  const professionalCosts = useMemo(() => {
+    if (selectedProject === "all") return MOCK_PROFESSIONAL_COSTS;
+    const nome = indicadores.find((p) => String(p.projetoId) === selectedProject)?.nome ?? "";
+    return MOCK_PROFESSIONAL_COSTS.map((pc) => ({ professionalName: pc.professionalName, [nome]: (pc as any)[nome] ?? 0 }));
+  }, [selectedProject, indicadores]);
+
+  const financialChanges = useMemo(() => {
+    if (selectedProject === "all") return MOCK_FINANCIAL_CHANGES;
+    const nome = indicadores.find((p) => String(p.projetoId) === selectedProject)?.nome ?? "";
+    return MOCK_FINANCIAL_CHANGES.filter((c) => c.projectName === nome);
+  }, [selectedProject, indicadores]);
+
+  const selectedLabel = projectOptions.find((u) => u.id === selectedProject)?.name ?? "Todos os projetos";
+
+  // ── Render ─────────────────────────────────────────────────────
   return (
     <div className={styles.container}>
+
+      {/* Filtros */}
       <div className={styles.filtersRow}>
         <div className={styles.dropdownWrapper}>
-          <div
-            className={styles.projectDropdown}
-            onClick={() => setOpenProjectDropdown(!openProjectDropdown)}
-          >
-            {selectedProjectLabel}
-            {openProjectDropdown && (
+          <div className={styles.projectDropdown} onClick={() => setOpenDropdown(!openDropdown)}>
+            {selectedLabel}
+            {openDropdown && (
               <div className={styles.dropdownMenu}>
-                {users.map((u) => (
+                {projectOptions.map((u) => (
                   <div
                     key={u.id}
                     className={`${styles.dropdownItem} ${selectedProject === u.id ? styles.dropdownItemActive : ""}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedProject(u.id);
-                      setOpenProjectDropdown(false);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedProject(u.id); setOpenDropdown(false); }}
                   >
                     {u.name}
                   </div>
@@ -285,34 +321,30 @@ export default function FinanceiroDashboard() {
             )}
           </div>
         </div>
-
         <div className={styles.toggle}>
-          <button
-            className={periodo === "semanal" ? styles.activeToggle : styles.toggleButton}
-            onClick={() => setPeriodo("semanal")}
-          >
-            Semanal
-          </button>
-          <button
-            className={periodo === "mensal" ? styles.activeToggle : styles.toggleButton}
-            onClick={() => setPeriodo("mensal")}
-          >
-            Mensal
-          </button>
+          <button className={periodoUI === "semanal" ? styles.activeToggle : styles.toggleButton} onClick={() => setPeriodoUI("semanal")}>Semanal</button>
+          <button className={periodoUI === "mensal"  ? styles.activeToggle : styles.toggleButton} onClick={() => setPeriodoUI("mensal")}>Mensal</button>
         </div>
       </div>
 
-      {loading ? (
-        <div className={styles.loading}>Carregando...</div>
-      ) : (
-        <>
-          <OverBudgetAlert projects={overBudgetProjects} />
+      {loading && <div className={styles.loading}>Carregando...</div>}
 
+      {error && (
+        <div className={styles.overBudgetAlert} style={{ borderColor: "#EF4444" }}>
+          <strong>Erro ao carregar dados:</strong> {error}
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
+          <AlertaBanner alertas={alertasComProjeto} />
+
+          {/* Métricas */}
           <div className={styles.metricsGrid}>
             <MetricCard
               label="Custo total acumulado"
               value={formatBRLk(totalRealCost)}
-              sub={periodo === "semanal" ? "Últimas 4 semanas" : "Últimos 4 meses"}
+              sub={periodoUI === "semanal" ? "Últimas semanas" : "Mês atual"}
             />
             <MetricCard
               label="Valor contratado"
@@ -320,7 +352,7 @@ export default function FinanceiroDashboard() {
               sub={`${projectCosts.length} projeto(s) ativo(s)`}
             />
             <MetricCard
-              label={`Previsão de faturamento — ${periodo === "semanal" ? "mensal" : "anual"}`}
+              label={`Previsão de faturamento — ${periodoUI === "semanal" ? "mensal" : "anual"}`}
               value={formatBRLk(faturamentoPrevisto)}
               sub={
                 faturamentoVariacao > 0
@@ -331,26 +363,29 @@ export default function FinanceiroDashboard() {
             />
             <MetricCard
               label="Projetos acima do orçamento"
-              value={String(overBudgetProjects.length)}
-              sub={overBudgetProjects.length > 0 ? "⚠ Ação necessária" : "Dentro do orçamento"}
-              alert={overBudgetProjects.length > 0}
+              value={String(overBudgetCount)}
+              sub={overBudgetCount > 0 ? "⚠ Ação necessária" : "Dentro do orçamento"}
+              alert={overBudgetCount > 0}
             />
           </div>
 
+          {/* Gráficos */}
           <div className={styles.chartsGrid}>
-           <ChartCard title="Evolução — Custo real acumulado vs Valor contratado">
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={costOverTime} margin={{ bottom: 20, right: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
-                <XAxis dataKey="label" stroke="#64748B" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={formatBRLk} />
-                <Tooltip formatter={(value: any) => formatBRLk(value)} />
-                <Legend wrapperStyle={{ paddingTop: "15px" }} />
-                <Line type="monotone" dataKey="realCost" name="Custo real" stroke={PRIMARY_BLUE} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="contractedValue" name="Valor contratado" stroke={LIGHT_BLUE} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
+
+            <ChartCard title="Evolução — Custo real acumulado vs Valor contratado">
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={costOverTime} margin={{ bottom: 20, right: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
+                  <XAxis dataKey="label" stroke="#64748B" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={formatBRLk} />
+                  <Tooltip formatter={(v: any) => formatBRLk(v)} />
+                  <Legend wrapperStyle={{ paddingTop: "15px" }} />
+                  <Line type="monotone" dataKey="realCost" name="Custo real" stroke={PRIMARY_BLUE} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="contractedValue" name="Valor contratado" stroke={LIGHT_BLUE} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
             <ChartCard title="Custo real vs Valor contratado por projeto">
               <div className={styles.legendList}>
                 {[{ label: "Custo real", color: PRIMARY_BLUE }, { label: "Valor contratado", color: LIGHT_BLUE }].map((l) => (
@@ -367,13 +402,14 @@ export default function FinanceiroDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
                   <XAxis dataKey="projectName" stroke="#64748B" tick={{ fontSize: 11 }} />
                   <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={formatBRLk} />
-                  <Tooltip formatter={(value: any) => formatBRLk(value)} />
+                  <Tooltip formatter={(v: any) => formatBRLk(v)} />
                   <Bar dataKey="realCost" name="Custo real" fill={PRIMARY_BLUE} radius={[3, 3, 0, 0]} />
                   <Bar dataKey="contractedValue" name="Valor contratado" fill={LIGHT_BLUE} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
 
+            {/* TODO: substituir por endpoint real quando disponível */}
             <ChartCard title="Custo por profissional">
               <div className={styles.legendList} style={{ flexDirection: "row", gap: 16, marginBottom: 12 }}>
                 {visibleProjectKeys.map((k, i) => (
@@ -386,27 +422,23 @@ export default function FinanceiroDashboard() {
                 ))}
               </div>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={filteredProfessionalCosts}>
+                <BarChart data={professionalCosts}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
                   <XAxis dataKey="professionalName" stroke="#64748B" tick={{ fontSize: 11 }} />
                   <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={formatBRLk} />
-                  <Tooltip formatter={(value: any) => formatBRLk(value)} />
+                  <Tooltip formatter={(v: any) => formatBRLk(v)} />
                   {visibleProjectKeys.map((k, i) => (
-                    <Bar
-                      key={k}
-                      dataKey={k}
-                      stackId="a"
-                      fill={LINE_COLORS[i % LINE_COLORS.length]}
-                      radius={i === visibleProjectKeys.length - 1 ? [3, 3, 0, 0] : undefined}
-                    />
+                    <Bar key={k} dataKey={k} stackId="a" fill={LINE_COLORS[i % LINE_COLORS.length]}
+                      radius={i === visibleProjectKeys.length - 1 ? [3, 3, 0, 0] : undefined} />
                   ))}
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
 
+            {/* TODO: substituir por endpoint real quando disponível */}
             <ChartCard title="Histórico de alterações com impacto financeiro">
               <div className={styles.tableWrapper}>
-                {filteredFinancialChanges.length === 0 ? (
+                {financialChanges.length === 0 ? (
                   <div style={{ color: "#94A3B8", fontSize: 13, paddingTop: 12 }}>
                     Nenhuma alteração registrada no período.
                   </div>
@@ -414,23 +446,18 @@ export default function FinanceiroDashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>Data</th>
-                        <th>Projeto</th>
-                        <th>Profissional</th>
-                        <th>Descrição</th>
+                        <th>Data</th><th>Projeto</th><th>Profissional</th><th>Descrição</th>
                         <th className={styles.right}>Impacto</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredFinancialChanges.map((ch) => (
+                      {financialChanges.map((ch) => (
                         <tr key={ch.id}>
                           <td>{ch.date}</td>
                           <td>{ch.projectName}</td>
                           <td>{ch.professionalName}</td>
                           <td>{ch.description}</td>
-                          <td className={styles.right}>
-                            <ImpactBadge value={ch.impact} />
-                          </td>
+                          <td className={styles.right}><ImpactBadge value={ch.impact} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -438,6 +465,7 @@ export default function FinanceiroDashboard() {
                 )}
               </div>
             </ChartCard>
+
           </div>
         </>
       )}
