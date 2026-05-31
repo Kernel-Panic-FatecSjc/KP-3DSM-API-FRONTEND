@@ -50,6 +50,7 @@ export default function Page() {
   const [responsavel, setResponsavel] = useState<Option | null>(null);
   const [status, setStatus] = useState<Option | null>(null);
   const [modalProjeto, setModalProjeto] = useState(false);
+  const [projetoModal, setProjetoModal] = useState<Option | null>(null);
   const [responsaveisModal, setResponsaveisModal] = useState<Option[]>([]);
   const [nomeTarefa, setNomeTarefa] = useState("");
   const [descricaoTarefa, setDescricaoTarefa] = useState("");
@@ -107,7 +108,7 @@ export default function Page() {
   }, [projeto]);
 
   const salvarTarefa = async () => {
-    if (!projeto || projeto.value === "") {
+    if (!projetoModal || projetoModal.value === "") {
       alert("Selecione um projeto");
       return;
     }
@@ -116,7 +117,7 @@ export default function Page() {
       await axios.post(API, {
         nome: nomeTarefa,
         descricao: descricaoTarefa,
-        idProjeto: Number(projeto.value),
+        idProjeto: Number(projetoModal.value),
         idResponsaveis: responsaveisModal.map(r => Number(r.value)),
         statusTarefa: "TO_DO"
       });
@@ -124,6 +125,7 @@ export default function Page() {
       setNomeTarefa("");
       setDescricaoTarefa("");
       setResponsaveisModal([]);
+      setProjetoModal(null);
       fetchTarefas();
     } catch (e) {
       console.error(e);
@@ -294,9 +296,15 @@ export default function Page() {
         </table>
       </main>
 
-      {projeto && projeto.value !== "" && (
-        <button className={styles.btnAdicionarMais} onClick={() => setModalProjeto(true)}>+</button>
-      )}
+      <button
+        className={styles.btnAdicionarMais}
+        onClick={() => {
+          setProjetoModal(projeto && projeto.value !== "" ? projeto : null);
+          setModalProjeto(true);
+        }}
+      >
+        +
+      </button>
 
       {modalProjeto && (
         <div className={styles.modalOverlay} onClick={() => setModalProjeto(false)}>
@@ -304,6 +312,14 @@ export default function Page() {
             <h2>Nova Tarefa</h2>
             <input placeholder="Insira o nome da Tarefa" value={nomeTarefa} onChange={(e) => setNomeTarefa(e.target.value)} />
             <textarea placeholder="Insira a descrição da Tarefa" value={descricaoTarefa} onChange={(e) => setDescricaoTarefa(e.target.value)} />
+            <Select
+              instanceId="select-projeto-modal"
+              options={projetoOptions.filter(o => o.value)}
+              value={projetoModal}
+              onChange={(s) => setProjetoModal(s)}
+              styles={modalSelectStyles}
+              placeholder="Selecione o projeto"
+            />
             <Select
               instanceId="select-responsaveis-modal"
               isMulti
