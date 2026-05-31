@@ -206,6 +206,22 @@ export default function Page() {
     
 
     const [filtro, setFiltro] = useState("semana");
+
+    // Busca/atualiza os dados sempre que o projeto OU o filtro (semana/mês) mudam.
+    // Antes, o fetch era disparado no mesmo clique que chamava setFiltro(...), então
+    // obterPeriodo() lia o `filtro` ANTERIOR (estado ainda não re-renderizado) — por isso
+    // os dados só "apareciam" depois de alternar mês/semana. Com o efeito, o fetch roda
+    // após o re-render, já com o filtro correto.
+    useEffect(() => {
+        if (!projetoSelecionado) {
+            setUsuarios([]);
+            setResumos([]);
+            return;
+        }
+        buscarUsuariosProjeto(projetoSelecionado);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filtro, projetoSelecionado]);
+
     return (
         <div className={styles.container}>
             <h1 className={styles.titulo}>Dashboard do Gestor</h1>
@@ -213,18 +229,7 @@ export default function Page() {
                 <select
                     className={styles.selectFiltro}
                     value={projetoSelecionado}
-                    onChange={(e) => {
-                        const value = e.target.value;
-
-                        setProjetoSelecionado(value);
-
-                        if (!value) {
-                            setUsuarios([]);
-                            return;
-                        }
-
-                        buscarUsuariosProjeto(value);
-                    }}
+                    onChange={(e) => setProjetoSelecionado(e.target.value)}
                 >
                     <option value="">
                         Selecione um projeto
@@ -289,13 +294,7 @@ export default function Page() {
                 <h3 className={styles.subTitulo}>HORAS POR TIPO DE ATIVIDADE POR PROFISSIONAL</h3>
                 <div className={styles.buttonFiltro}>
                     <button
-                        onClick={() => {
-                            setFiltro("semana");
-
-                            if (projetoSelecionado) {
-                                buscarUsuariosProjeto(projetoSelecionado);
-                            }
-                        }}
+                        onClick={() => setFiltro("semana")}
                         
                         style={{
                         backgroundColor:
@@ -315,13 +314,7 @@ export default function Page() {
                     </button>
 
                     <button
-                        onClick={() => {
-                            setFiltro("mes");
-
-                            if (projetoSelecionado) {
-                                buscarUsuariosProjeto(projetoSelecionado);
-                            }
-                        }}
+                        onClick={() => setFiltro("mes")}
                         style={{
                         backgroundColor:
                             filtro === "mes" ? "#0b2341" : "white",

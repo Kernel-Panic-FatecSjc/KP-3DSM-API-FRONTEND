@@ -391,7 +391,7 @@ export default function Page() {
   const mesAtual = hojeISO().substring(0, 7);
   const totalMensal = cards
     .filter(c => c.dataLancamento.startsWith(mesAtual))
-    .reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+    .reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim, c.dataLancamento, c.dataFim), 0);
 
   const retroativo = isRetroativo(form.dataLancamento);
   const gridColunas = isMobile ? '1fr auto' : '1fr 100px 100px 110px 120px 100px';
