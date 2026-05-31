@@ -18,7 +18,6 @@ interface Projeto {
   dataInicio: string;
   dataFim: string;
   horasRegistradas: number;
-  horasPrevistas: number;
   status: string;
 }
 
@@ -51,29 +50,6 @@ interface ExportFields {
   periodo: boolean;
   horasTotais: boolean;
 }
-
-const FALLBACK_DATA: DashboardData = {
-  totalHoras: 126,
-  totalProjetos: 4,
-  totalAlteracoes: 8,
-  profissional: {
-    id: 1,
-    nome: "Gabriel Henrique",
-    email: "gabriel@empresa.com",
-    cargo: "Desenvolvedor",
-  },
-  projetos: [
-    { id: 1, nome: "Sistema Financeiro", dataInicio: "2026-05-01", dataFim: "2026-05-22", horasRegistradas: 42, horasPrevistas: 40, status: "concluido" },
-    { id: 2, nome: "Dashboard React",    dataInicio: "2026-05-10", dataFim: "2026-05-22", horasRegistradas: 28, horasPrevistas: 32, status: "em_andamento" },
-    { id: 3, nome: "API Spring",         dataInicio: "2026-05-05", dataFim: "2026-05-22", horasRegistradas: 35, horasPrevistas: 40, status: "em_andamento" },
-    { id: 4, nome: "Mobile App",         dataInicio: "2026-05-15", dataFim: "2026-05-22", horasRegistradas: 21, horasPrevistas: 24, status: "atrasado" },
-  ],
-  alteracoesRecentes: [
-    { id: 1, tarefaId: 101, tarefaNome: "Implementar autenticação", campoAlterado: "status",      valorAnterior: "pendente", valorNovo: "em_andamento", dataAlteracao: "2026-05-21T10:30:00", usuario: "Gabriel Henrique" },
-    { id: 2, tarefaId: 102, tarefaNome: "Criar dashboard",          campoAlterado: "prioridade",  valorAnterior: "baixa",    valorNovo: "alta",         dataAlteracao: "2026-05-20T15:45:00", usuario: "Gabriel Henrique" },
-    { id: 3, tarefaId: 103, tarefaNome: "Configurar API",           campoAlterado: "responsavel", valorAnterior: "Carlos",   valorNovo: "Ana",          dataAlteracao: "2026-05-19T09:15:00", usuario: "Ana Lima" },
-  ],
-};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const resolveApiUrl = (path: string) => API_URL ? `${API_URL}${path.replace(/^\/api/, "")}` : path;
@@ -147,18 +123,27 @@ export default function Auditoria() {
         "Content-Type": "application/json",
       };
 
+      // GET /usuario/{id} → UsuarioExibirDTO
       const userResponse = await fetch(resolveApiUrl(`/api/usuario/${profId}`), { headers });
       if (!userResponse.ok) throw new Error(`Erro ao buscar dados do usuário (${userResponse.status})`);
       const userData = await userResponse.json();
 
-      const projetosResponse = await fetch(resolveApiUrl('/api/projeto'), { headers });
+      // GET /projeto/profissional/{profissionalId}?dataInicio&dataFim&projetoId&status → List<ProjetoExibirDTO>
+      const projetosParams = new URLSearchParams();
+      projetosParams.append('dataInicio', dataInicio);
+      projetosParams.append('dataFim', dataFim);
+      if (filtroProjetoId && filtroProjetoId !== "todos") projetosParams.append('projetoId', filtroProjetoId);
+      if (filtroStatusSelect !== "todos") projetosParams.append('status', filtroStatusSelect);
+      const projetosResponse = await fetch(resolveApiUrl(`/api/projeto/profissional/${profId}?${projetosParams.toString()}`), { headers });
 
+      // GET /horas/filtrar?usuarioId&dataInicio&dataFim → List<HorasExibirDTO>
       const horasParams = new URLSearchParams();
       horasParams.append('usuarioId', profId);
       horasParams.append('dataInicio', dataInicio);
       horasParams.append('dataFim', dataFim);
       const horasResponse = await fetch(resolveApiUrl(`/api/horas/filtrar?${horasParams.toString()}`), { headers });
 
+      // GET /tarefas/alteracoes?dataInicio&dataFim&prioridade&projetoId → List<AuditoriaAlteracaoDTO>
       const alteracoesParams = new URLSearchParams();
       alteracoesParams.append('dataInicio', dataInicio);
       alteracoesParams.append('dataFim', dataFim);
@@ -171,8 +156,8 @@ export default function Auditoria() {
       const alteracoesRaw  = alteracoesResponse.ok  ? await alteracoesResponse.json()  : [];
 
       const projetosData   = Array.isArray(projetosRaw)   ? projetosRaw   : (projetosRaw.content   ?? projetosRaw.data   ?? []);
-      const horasData      = Array.isArray(horasRaw)      ? horasRaw      : (horasRaw.content      ?? horasRaw.data      ?? horasRaw.horas      ?? []);
-      const alteracoesData = Array.isArray(alteracoesRaw) ? alteracoesRaw : (alteracoesRaw.content ?? alteracoesRaw.data ?? alteracoesRaw.alteracoes ?? []);
+      const horasData      = Array.isArray(horasRaw)      ? horasRaw      : (horasRaw.content      ?? horasRaw.data      ?? []);
+      const alteracoesData = Array.isArray(alteracoesRaw) ? alteracoesRaw : (alteracoesRaw.content ?? alteracoesRaw.data ?? []);
 
       const partialErrors: string[] = [];
       if (!projetosResponse.ok)   partialErrors.push(`projetos (${projetosResponse.status})`);
@@ -180,38 +165,43 @@ export default function Auditoria() {
       if (!alteracoesResponse.ok) partialErrors.push(`alterações (${alteracoesResponse.status})`);
 
       if (partialErrors.length > 0) {
-        const errorDetails = [
-          !projetosResponse.ok && `projetos (${projetosResponse.status})`,
-          !horasResponse.ok && `horas (${horasResponse.status})`,
-          !alteracoesResponse.ok && `alterações (${alteracoesResponse.status})`,
-        ].filter(Boolean).join(", ");
-        console.warn(" Erros ao carregar dados de auditoria:", errorDetails);
-        if (partialErrors.length < 3) {
-          setError(` Alguns dados não puderam ser carregados: ${errorDetails}. Verifique a conexão com o servidor.`);
-        }
+        const errorDetails = partialErrors.join(", ");
+        console.warn("Erros ao carregar dados de auditoria:", errorDetails);
+        setError(`Alguns dados não puderam ser carregados: ${errorDetails}. Verifique a conexão com o servidor.`);
       }
 
       const totalHoras = horasData.reduce(
-        (acc: number, h: any) => acc + (h.horasTrabalhadas ?? h.horas ?? 0),
+        (acc: number, h: any) => acc + (h.horasTrabalhadas ?? 0),
         0
       );
 
       const projetosFormatados: Projeto[] = projetosData.map((p: any) => ({
         id: p.id,
         nome: p.nome,
-        dataInicio: p.dataInicio || dataInicio,
-        dataFim:    p.dataFim    || dataFim,
+        dataInicio: p.dataInicio ? String(p.dataInicio).split("T")[0] : dataInicio,
+        dataFim:    p.dataFim    ? String(p.dataFim).split("T")[0]    : dataFim,
         horasRegistradas: horasData
           .filter((h: any) => h.projetoId === p.id)
-          .reduce((acc: number, h: any) => acc + (h.horasTrabalhadas ?? h.horas ?? 0), 0),
-        horasPrevistas: p.horasPrevistas ?? p.tempo ?? 8,
+          .reduce((acc: number, h: any) => acc + (h.horasTrabalhadas ?? 0), 0),
         status: p.status || "em_andamento",
+      }));
+
+      // Mapear AuditoriaAlteracaoDTO para interface Alteracao
+      const alteracoesFormatadas: Alteracao[] = alteracoesData.map((a: any) => ({
+        id: a.id,
+        tarefaId: a.tarefaId,
+        tarefaNome: a.tarefaNome || "",
+        campoAlterado: a.campoAlterado || "",
+        valorAnterior: a.valorAnterior || "",
+        valorNovo: a.valorNovo || "",
+        dataAlteracao: a.dataAlteracao || "",
+        usuario: a.usuarioNome || "",
       }));
 
       setDashboardData({
         totalHoras,
         totalProjetos:     projetosData.length,
-        totalAlteracoes:   alteracoesData.length,
+        totalAlteracoes:   alteracoesFormatadas.length,
         profissional: {
           id:    userData.id,
           nome:  userData.nome,
@@ -219,16 +209,15 @@ export default function Auditoria() {
           cargo: userData.cargo  || "Profissional",
         },
         projetos:           projetosFormatados,
-        alteracoesRecentes: alteracoesData.slice(0, 10),
+        alteracoesRecentes: alteracoesFormatadas.slice(0, 10),
       });
     } catch (err) {
       console.error("Erro ao carregar dados:", err, { profId: filtroProfissionalId || userId });
       const message = err instanceof Error ? err.message : "Erro ao carregar dados. Verifique sua conexão ou tente novamente mais tarde.";
       setError(message.includes("Failed to fetch")
-        ? `Falha de conexão com o backend. Verifique se NEXT_PUBLIC_API_URL está configurado corretamente ou se o servidor está rodando.`
+        ? "Falha de conexão com o backend. Verifique se NEXT_PUBLIC_API_URL está configurado corretamente ou se o servidor está rodando."
         : message
       );
-      setDashboardData(FALLBACK_DATA);
     } finally {
       setLoading(false);
     }
@@ -239,26 +228,27 @@ export default function Auditoria() {
   const alteracoes   = dashboardData?.alteracoesRecentes || [];
   const totalHoras   = dashboardData?.totalHoras   || 0;
 
-  const projetosFiltrados = projetos.filter((projeto) => {
-    if (filtroStatusSelect === "todos") return true;
-    return projeto.status === filtroStatusSelect;
-  });
+  // Filtros de status e projeto são aplicados server-side via /projeto/profissional/{id}
+  const projetosFiltrados = projetos;
 
-  function getStatusBadge(horasRegistradas: number, horasPrevistas: number) {
-    if (horasRegistradas > horasPrevistas) return { label: `+${horasRegistradas - horasPrevistas}h acima`, cls: "statusAtrasado" };
-    if (horasRegistradas < horasPrevistas) return { label: `-${horasPrevistas - horasRegistradas}h abaixo`, cls: "statusAbaixo" };
-    return { label: "no prazo", cls: "statusPrazo" };
+  function getStatusLabel(status: string) {
+    const labels: Record<string, string> = {
+      concluido: "Concluído",
+      em_andamento: "Em andamento",
+      atrasado: "Atrasado",
+      pendente: "Pendente",
+    };
+    return labels[status] || status;
   }
 
-  function getBarColor(horasRegistradas: number, horasPrevistas: number) {
-    if (horasRegistradas > horasPrevistas) return "#ef4444";
-    if (horasRegistradas < horasPrevistas) return "#22c55e";
-    return "#4f46e5";
-  }
-
-  function getBarWidth(horasRegistradas: number, horasPrevistas: number) {
-    const maxHoras = Math.max(horasRegistradas, horasPrevistas);
-    return Math.min((horasRegistradas / maxHoras) * 100, 100);
+  function getStatusCls(status: string) {
+    const map: Record<string, string> = {
+      concluido: "statusPrazo",
+      em_andamento: "statusAbaixo",
+      atrasado: "statusAtrasado",
+      pendente: "statusAbaixo",
+    };
+    return map[status] || "statusAbaixo";
   }
 
   const openModal  = () => { setShowModal(true); setExported(false); };
@@ -295,14 +285,11 @@ export default function Auditoria() {
     if (fields.projetos) {
       rows.push(``);
       rows.push(`== PROJETOS ==`);
-      rows.push(`Nome${sep}Data Inicio${sep}Data Fim${sep}Horas Registradas${sep}Meta de Horas${sep}Situacao`);
+      rows.push(`Nome${sep}Data Inicio${sep}Data Fim${sep}Horas Registradas${sep}Status`);
       projetosFiltrados.forEach((p) => {
-        const situacao =
-          p.horasRegistradas > p.horasPrevistas ? "Acima do previsto" :
-          p.horasRegistradas < p.horasPrevistas ? "Abaixo do previsto" : "No prazo";
-        rows.push(`${p.nome}${sep}${fmtDate(p.dataInicio)}${sep}${fmtDate(p.dataFim)}${sep}${p.horasRegistradas}h${sep}${p.horasPrevistas}h${sep}${situacao}`);
+        rows.push(`${p.nome}${sep}${fmtDate(p.dataInicio)}${sep}${fmtDate(p.dataFim)}${sep}${p.horasRegistradas}h${sep}${getStatusLabel(p.status)}`);
       });
-      rows.push(`Total${sep}${sep}${sep}${projetosFiltrados.reduce((a, p) => a + p.horasRegistradas, 0)}h${sep}${projetosFiltrados.reduce((a, p) => a + p.horasPrevistas, 0)}h${sep}`);
+      rows.push(`Total${sep}${sep}${sep}${projetosFiltrados.reduce((a, p) => a + p.horasRegistradas, 0)}h${sep}`);
     }
 
     if (fields.tarefas) {
@@ -483,14 +470,12 @@ export default function Auditoria() {
                 <tr>
                   <th>Projeto</th>
                   <th>Período</th>
-                  <th>Horas</th>
-                  <th>Progresso</th>
+                  <th>Horas Registradas</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {projetosFiltrados.map((p) => {
-                  const badge = getStatusBadge(p.horasRegistradas, p.horasPrevistas);
                   return (
                     <tr key={p.id}>
                       <td className={styles.projetoTitulo}>{p.nome}</td>
@@ -500,23 +485,11 @@ export default function Auditoria() {
                       <td>
                         <div className={styles.horasInfo}>
                           <span>{p.horasRegistradas}h</span>
-                          <span className={styles.horasMeta}>/ {p.horasPrevistas}h</span>
                         </div>
                       </td>
                       <td>
-                        <div className={styles.progressBar}>
-                          <div
-                            className={styles.progressFill}
-                            style={{
-                              width: `${getBarWidth(p.horasRegistradas, p.horasPrevistas)}%`,
-                              backgroundColor: getBarColor(p.horasRegistradas, p.horasPrevistas),
-                            }}
-                          />
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`${styles.statusBadge} ${styles[badge.cls]}`}>
-                          {badge.label}
+                        <span className={`${styles.statusBadge} ${styles[getStatusCls(p.status)]}`}>
+                          {getStatusLabel(p.status)}
                         </span>
                       </td>
                     </tr>
@@ -524,7 +497,7 @@ export default function Auditoria() {
                 })}
                 {projetosFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan={5} className={styles.emptyState}>
+                    <td colSpan={4} className={styles.emptyState}>
                       Nenhum projeto encontrado no período selecionado
                     </td>
                   </tr>
@@ -579,16 +552,16 @@ export default function Auditoria() {
         <div className={styles.footer}>
           <div className={styles.legendRow}>
             <div className={styles.legendItem}>
-              <div className={styles.dot} style={{ backgroundColor: "#ef4444" }} />
-              <span> Acima do prazo</span>
+              <div className={styles.dot} style={{ backgroundColor: "#4f46e5" }} />
+              <span> Concluído</span>
             </div>
             <div className={styles.legendItem}>
               <div className={styles.dot} style={{ backgroundColor: "#22c55e" }} />
-              <span> Abaixo do prazo</span>
+              <span> Em andamento</span>
             </div>
             <div className={styles.legendItem}>
-              <div className={styles.dot} style={{ backgroundColor: "#4f46e5" }} />
-              <span> No prazo</span>
+              <div className={styles.dot} style={{ backgroundColor: "#ef4444" }} />
+              <span> Atrasado</span>
             </div>
           </div>
         </div>
@@ -734,7 +707,7 @@ export default function Auditoria() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                 <thead>
                   <tr style={{ background: "#f1f0fe" }}>
-                    {["Projeto", "Período", "Horas Registradas", "Meta", "Situação"].map((col) => (
+                    {["Projeto", "Período", "Horas Registradas", "Status"].map((col) => (
                       <th key={col} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#4338ca", borderBottom: "2px solid #c7d2fe", whiteSpace: "nowrap" }}>
                         {col}
                       </th>
@@ -743,21 +716,14 @@ export default function Auditoria() {
                 </thead>
                 <tbody>
                   {projetosFiltrados.map((p, i) => {
-                    const situacao =
-                      p.horasRegistradas > p.horasPrevistas
-                        ? { label: `+${p.horasRegistradas - p.horasPrevistas}h acima`, color: "#ef4444", bg: "#fef2f2" }
-                        : p.horasRegistradas < p.horasPrevistas
-                        ? { label: `-${p.horasPrevistas - p.horasRegistradas}h abaixo`, color: "#16a34a", bg: "#f0fdf4" }
-                        : { label: "No prazo", color: "#4338ca", bg: "#eef2ff" };
                     return (
                       <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #e5e7eb" }}>
                         <td style={{ padding: "9px 12px", fontWeight: 600, color: "#111827" }}>{p.nome}</td>
                         <td style={{ padding: "9px 12px", color: "#6b7280" }}>{fmtDate(p.dataInicio)} – {fmtDate(p.dataFim)}</td>
                         <td style={{ padding: "9px 12px", fontWeight: 600, color: "#111827" }}>{p.horasRegistradas}h</td>
-                        <td style={{ padding: "9px 12px", color: "#6b7280" }}>{p.horasPrevistas}h</td>
                         <td style={{ padding: "9px 12px" }}>
-                          <span style={{ background: situacao.bg, color: situacao.color, padding: "3px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 600 }}>
-                            {situacao.label}
+                          <span style={{ background: "#eef2ff", color: "#4338ca", padding: "3px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 600 }}>
+                            {getStatusLabel(p.status)}
                           </span>
                         </td>
                       </tr>
@@ -769,9 +735,6 @@ export default function Auditoria() {
                     <td style={{ padding: "9px 12px" }} />
                     <td style={{ padding: "9px 12px", color: "#1e1b4b" }}>
                       {projetosFiltrados.reduce((a, p) => a + p.horasRegistradas, 0)}h
-                    </td>
-                    <td style={{ padding: "9px 12px", color: "#1e1b4b" }}>
-                      {projetosFiltrados.reduce((a, p) => a + p.horasPrevistas, 0)}h
                     </td>
                     <td style={{ padding: "9px 12px" }} />
                   </tr>

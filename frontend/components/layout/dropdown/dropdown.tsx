@@ -133,24 +133,16 @@ export function DropdownProfissional({
           }));
           setProfissionais(items);
         } else {
-          console.error(" Falha ao carregar profissionais:", response.status, response.statusText, url);
-          setProfissionais([
-            { label: "Gabriel Henrique", value: "1" },
-            { label: "Ana Lima", value: "2" },
-            { label: "Carlos Souza", value: "3" },
-          ]);
+          console.error("Falha ao carregar profissionais:", response.status, response.statusText, url);
+          setProfissionais([]);
         }
       } catch (error: any) {
         if (error.name === "AbortError") {
-          console.error("⏱ Timeout ao carregar profissionais (5s):", { apiBaseUrl: API_BASE_URL });
+          console.error("Timeout ao carregar profissionais (5s):", { apiBaseUrl: API_BASE_URL });
         } else {
-          console.error(" Erro ao carregar profissionais:", error, { apiBaseUrl: API_BASE_URL });
+          console.error("Erro ao carregar profissionais:", error, { apiBaseUrl: API_BASE_URL });
         }
-        setProfissionais([
-          { label: "Gabriel Henrique", value: "1" },
-          { label: "Ana Lima", value: "2" },
-          { label: "Carlos Souza", value: "3" },
-        ]);
+        setProfissionais([]);
       } finally {
         setLoading(false);
       }
@@ -224,18 +216,10 @@ export function DropdownProjeto({
         }
 
         console.error("Nenhum endpoint de projetos respondeu corretamente");
-        setProjetos([
-          { label: "Sistema Financeiro", value: "1" },
-          { label: "Dashboard React", value: "2" },
-          { label: "API Spring", value: "3" },
-        ]);
+        setProjetos([]);
       } catch (error) {
         console.error("Erro ao carregar projetos:", error);
-        setProjetos([
-          { label: "Sistema Financeiro", value: "1" },
-          { label: "Dashboard React", value: "2" },
-          { label: "API Spring", value: "3" },
-        ]);
+        setProjetos([]);
       } finally {
         setLoading(false);
       }
