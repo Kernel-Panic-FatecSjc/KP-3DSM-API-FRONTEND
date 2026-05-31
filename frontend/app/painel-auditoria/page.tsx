@@ -129,12 +129,6 @@ export default function Auditoria() {
     }, 500);
 
     return () => clearTimeout(timeout);
-
-    const timeout = setTimeout(() => {
-      fetchDashboardData();
-    }, 500);
-
-    return () => clearTimeout(timeout);
   }, [token, userId, dataInicio, dataFim, filtroProfissionalId, filtroProjetoId, filtroStatusSelect, filtroPrioridade]);
 
   const fetchDashboardData = async () => {
@@ -194,14 +188,6 @@ export default function Auditoria() {
         console.warn(" Erros ao carregar dados de auditoria:", errorDetails);
         if (partialErrors.length < 3) {
           setError(` Alguns dados não puderam ser carregados: ${errorDetails}. Verifique a conexão com o servidor.`);
-        const errorDetails = [
-          !projetosResponse.ok && `projetos (${projetosResponse.status})`,
-          !horasResponse.ok && `horas (${horasResponse.status})`,
-          !alteracoesResponse.ok && `alterações (${alteracoesResponse.status})`,
-        ].filter(Boolean).join(", ");
-        console.warn(" Erros ao carregar dados de auditoria:", errorDetails);
-        if (partialErrors.length < 3) {
-          setError(` Alguns dados não puderam ser carregados: ${errorDetails}. Verifique a conexão com o servidor.`);
         }
       }
 
@@ -237,10 +223,8 @@ export default function Auditoria() {
       });
     } catch (err) {
       console.error("Erro ao carregar dados:", err, { profId: filtroProfissionalId || userId });
-      console.error("Erro ao carregar dados:", err, { profId: filtroProfissionalId || userId });
       const message = err instanceof Error ? err.message : "Erro ao carregar dados. Verifique sua conexão ou tente novamente mais tarde.";
       setError(message.includes("Failed to fetch")
-        ? `Falha de conexão com o backend. Verifique se NEXT_PUBLIC_API_URL está configurado corretamente ou se o servidor está rodando.`
         ? `Falha de conexão com o backend. Verifique se NEXT_PUBLIC_API_URL está configurado corretamente ou se o servidor está rodando.`
         : message
       );
