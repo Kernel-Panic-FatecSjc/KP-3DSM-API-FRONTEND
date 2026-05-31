@@ -10,6 +10,7 @@ export default function Page() {
   const [modalOpen, setModalOpen] = useState(false);
   const [projetoEditando, setProjetoEditando] = useState<any>(null);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
+  const [filtroStatus, setFiltroStatus] = useState<string>("TODOS");
 
   useEffect(() => {
     const fetchProjetos = async () => {
@@ -36,6 +37,10 @@ export default function Page() {
 
   const gestores = usuarios.filter((u) => u.cargo === "ROLE_GESTOR");
   const profissionais = usuarios.filter((u) => u.cargo === "ROLE_PROFISSIONAL");
+
+  const projetosFiltrados = projetos.filter(
+    (p) => filtroStatus === "TODOS" || (p.status ?? "") === filtroStatus
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -140,11 +145,29 @@ export default function Page() {
     <div className={styles.container}>
       <h1>Projetos</h1>
 
+      <div className={styles.toolbar}>
+        <label htmlFor="filtroStatus">Filtrar por status:</label>
+        <select
+          id="filtroStatus"
+          className={styles.filterSelect}
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+        >
+          <option value="TODOS">Todos</option>
+          <option value="EM_PLANEJAMENTO">Em planejamento</option>
+          <option value="EM_ANDAMENTO">Em andamento</option>
+          <option value="CONCLUIDO">Concluído</option>
+        </select>
+        <span className={styles.filterCount}>
+          {projetosFiltrados.length} projeto{projetosFiltrados.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
       <div className={styles.grid}>
-        {projetos.length === 0 ? (
+        {projetosFiltrados.length === 0 ? (
           <p>Nenhum projeto encontrado.</p>
         ) : (
-          projetos.map((projeto) => {
+          projetosFiltrados.map((projeto) => {
             console.log("responsavelId:", projeto.responsavelId);
             console.log("usuarios:", usuarios);
             return (

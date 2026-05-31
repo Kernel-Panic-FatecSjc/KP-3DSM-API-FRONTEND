@@ -22,8 +22,16 @@ const statusOptions: Option[] = [
   { value: "", label: "Todos os Status" },
   { value: "TO_DO", label: "To Do" },
   { value: "DOING", label: "Doing" },
-  { value: "DONE", label: "Done" }
+  { value: "DONE", label: "Done" },
+  { value: "BLOCKED", label: "Bloqueada" }
 ];
+
+// O task-service devolve o status em formatos diferentes conforme o endpoint:
+//  - GET /tarefas              -> "To Do" / "Doing" / "Done"  (label amigável)
+//  - GET /tarefas/projeto/{id} -> "TO_DO" / "DOING" / ...      (nome do enum)
+// Normaliza ambos para o valor canônico do enum para comparar e exibir.
+const normalizeStatus = (s: string | null | undefined): string =>
+  (s ?? "").trim().toUpperCase().replace(/\s+/g, "_");
 
 export default function Page() {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
@@ -173,7 +181,7 @@ export default function Page() {
       t.idResponsaveis.includes(Number(responsavel.value));
     const matchStatus =
       !status || status.value === "" ||
-      t.status === status.value;
+      normalizeStatus(t.status) === status.value;
     return matchResp && matchStatus;
   });
 
@@ -258,7 +266,7 @@ export default function Page() {
                   <Select
                     instanceId={`select-status-table-${t.id}`}
                     options={statusOptions.filter(o => o.value)}
-                    value={statusOptions.find(o => o.value === t.status || o.label === t.status)}
+                    value={statusOptions.find(o => o.value === normalizeStatus(t.status))}
                     onChange={(s) => atualizarStatus(t.id, s!.value)}
                     styles={tableSelectStyles}
                   />
