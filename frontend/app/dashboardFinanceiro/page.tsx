@@ -89,7 +89,7 @@ const MOCK_FINANCIAL_CHANGES = [
   { id: "4", date: "17/05/2026", projectName: "Alpha", professionalName: "Amanda Souza",   description: "Mudança de fornecedor",       impact: -1800 },
 ];
 
-// ================================================================
+
 // API
 // ================================================================
 
