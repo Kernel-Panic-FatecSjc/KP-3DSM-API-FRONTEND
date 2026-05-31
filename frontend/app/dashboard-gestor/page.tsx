@@ -28,25 +28,6 @@ type ResumoUsuario = {
     };
 };
 
-export const data = [
-  [
-    "Nome",
-    "Desenvolvimento",
-    { role: "style" },
-    "Testes",
-    { role: "style" },
-    "Análise",
-    { role: "style" },
-    "Correção de Bug",
-    { role: "style" }
-  ],
-
-  ["José", 20, "#1565C0", 10, "#2E7D32", 5, "#F9A825", 5, "#C62828"],
-  ["Daniele", 20, "#1565C0", 10, "#2E7D32", 5, "#F9A825", 5, "#C62828"],
-  ["Hanna", 20, "#1565C0", 10, "#2E7D32", 5, "#F9A825", 5, "#C62828"],
-  ["Frida", 20, "#1565C0", 10, "#2E7D32", 5, "#F9A825", 5, "#C62828"],
-];
-
 export default function Page() {
 
     const obterPeriodo = () => {

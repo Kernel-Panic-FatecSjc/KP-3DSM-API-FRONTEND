@@ -68,26 +68,26 @@ interface CostEntry {
   contractedValue: number;
 }
 
-// ================================================================
-// MOCKS TEMPORÁRIOS
-// Remover quando os endpoints abaixo estiverem prontos no back:
-//   GET /projeto/custo-profissional?projetoIds=...
-//   GET /projeto/historico-financeiro?projetoId=...
-// ================================================================
+// Custo de um profissional em um projeto (GET /projeto/custo-profissional)
+interface CustoProfissionalDTO {
+  usuarioId: number;
+  usuarioNome: string;
+  projetoId: number;
+  projetoNome: string;
+  horasAprovadas: number;
+  custoTotal: number;
+}
 
-const MOCK_PROFESSIONAL_COSTS = [
-  { professionalName: "Carlos",   Alpha: 18, Beta: 10, Gama: 6  },
-  { professionalName: "Fernanda", Alpha: 15, Beta: 12, Gama: 8  },
-  { professionalName: "João",     Alpha: 12, Beta: 9,  Gama: 5  },
-  { professionalName: "Amanda",   Alpha: 15, Beta: 11, Gama: 14 },
-];
-
-const MOCK_FINANCIAL_CHANGES = [
-  { id: "1", date: "02/05/2026", projectName: "Alpha", professionalName: "Carlos Mendes",  description: "Horas extras aprovadas",     impact:  4500 },
-  { id: "2", date: "06/05/2026", projectName: "Beta",  professionalName: "Fernanda Lima",  description: "Redução de escopo",           impact: -3200 },
-  { id: "3", date: "11/05/2026", projectName: "Gama",  professionalName: "João Pedro",     description: "Nova contratação temporária", impact:  6800 },
-  { id: "4", date: "17/05/2026", projectName: "Alpha", professionalName: "Amanda Souza",   description: "Mudança de fornecedor",       impact: -1800 },
-];
+// Item da trilha de auditoria financeira (GET /projeto/historico-financeiro)
+interface AuditoriaFinanceiraDTO {
+  id: number;
+  data: string;
+  projetoId: number | null;
+  projetoNome: string | null;
+  tipo: string;
+  descricao: string;
+  impacto: number;
+}
 
 // ================================================================
 // API
@@ -111,6 +111,32 @@ async function fetchIndicadoresFinanceiros(
   });
 
   if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+async function fetchCustoProfissional(
+  periodicidade: PeriodicidadeFinanceira,
+  ano: number,
+  mes: number
+): Promise<CustoProfissionalDTO[]> {
+  const url = new URL(`${API_BASE_URL}/projeto/custo-profissional`);
+  url.searchParams.set("periodicidade", periodicidade);
+  url.searchParams.set("ano", String(ano));
+  url.searchParams.set("mes", String(mes));
+
+  const res = await fetch(url.toString(), { headers: { "Content-Type": "application/json" } });
+  if (!res.ok) throw new Error(`Erro ${res.status}`);
+  return res.json();
+}
+
+async function fetchHistoricoFinanceiro(projetoId?: string): Promise<AuditoriaFinanceiraDTO[]> {
+  const url = new URL(`${API_BASE_URL}/projeto/historico-financeiro`);
+  if (projetoId && projetoId !== "all") {
+    url.searchParams.set("projetoId", projetoId);
+  }
+
+  const res = await fetch(url.toString(), { headers: { "Content-Type": "application/json" } });
+  if (!res.ok) throw new Error(`Erro ${res.status}`);
   return res.json();
 }
 
@@ -207,6 +233,9 @@ export default function FinanceiroDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [custoProfissional, setCustoProfissional] = useState<CustoProfissionalDTO[]>([]);
+  const [historico, setHistorico] = useState<AuditoriaFinanceiraDTO[]>([]);
+
   // ── Fetch ──────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -221,6 +250,25 @@ export default function FinanceiroDashboard() {
 
     return () => { cancelled = true; };
   }, [periodicidade]);
+
+  // Custo por profissional — mesmo período (mês corrente) dos indicadores.
+  useEffect(() => {
+    let cancelled = false;
+    const now = new Date();
+    fetchCustoProfissional(periodicidade, now.getFullYear(), now.getMonth() + 1)
+      .then((data) => { if (!cancelled) setCustoProfissional(data); })
+      .catch(() => { if (!cancelled) setCustoProfissional([]); });
+    return () => { cancelled = true; };
+  }, [periodicidade]);
+
+  // Histórico de alterações financeiras — filtrado pelo projeto selecionado.
+  useEffect(() => {
+    let cancelled = false;
+    fetchHistoricoFinanceiro(selectedProject)
+      .then((data) => { if (!cancelled) setHistorico(data); })
+      .catch(() => { if (!cancelled) setHistorico([]); });
+    return () => { cancelled = true; };
+  }, [selectedProject]);
 
   // ── Filtragem ──────────────────────────────────────────────────
   const indicadoresFiltrados = useMemo(() => {
@@ -282,18 +330,36 @@ export default function FinanceiroDashboard() {
 
   const visibleProjectKeys = useMemo(() => projectCosts.map((p) => p.projectName), [projectCosts]);
 
-  // Mocks temporários filtrados por projeto
+  // Custo por profissional, pivotado para o gráfico empilhado: uma linha por
+  // profissional, com uma chave (= nome do projeto) por série.
   const professionalCosts = useMemo(() => {
-    if (selectedProject === "all") return MOCK_PROFESSIONAL_COSTS;
-    const nome = indicadores.find((p) => String(p.projetoId) === selectedProject)?.nome ?? "";
-    return MOCK_PROFESSIONAL_COSTS.map((pc) => ({ professionalName: pc.professionalName, [nome]: (pc as any)[nome] ?? 0 }));
-  }, [selectedProject, indicadores]);
+    const linhas = custoProfissional.filter(
+      (c) => selectedProject === "all" || String(c.projetoId) === selectedProject
+    );
+    const porProfissional = new Map<string, Record<string, number | string>>();
+    linhas.forEach((c) => {
+      const chave = c.usuarioNome ?? `Profissional ${c.usuarioId}`;
+      const registro = porProfissional.get(chave) ?? { professionalName: chave };
+      const atual = Number(registro[c.projetoNome] ?? 0);
+      registro[c.projetoNome] = atual + Number(c.custoTotal ?? 0);
+      porProfissional.set(chave, registro);
+    });
+    return Array.from(porProfissional.values());
+  }, [custoProfissional, selectedProject]);
 
-  const financialChanges = useMemo(() => {
-    if (selectedProject === "all") return MOCK_FINANCIAL_CHANGES;
-    const nome = indicadores.find((p) => String(p.projetoId) === selectedProject)?.nome ?? "";
-    return MOCK_FINANCIAL_CHANGES.filter((c) => c.projectName === nome);
-  }, [selectedProject, indicadores]);
+  // Histórico de alterações com impacto financeiro (auditoria do projeto-service).
+  const financialChanges = useMemo(
+    () =>
+      historico.map((h) => ({
+        id: String(h.id),
+        date: h.data ? new Date(h.data).toLocaleDateString("pt-BR") : "",
+        projectName: h.projetoNome ?? "—",
+        professionalName: "—",
+        description: h.descricao ?? "",
+        impact: Number(h.impacto ?? 0),
+      })),
+    [historico]
+  );
 
   const selectedLabel = projectOptions.find((u) => u.id === selectedProject)?.name ?? "Todos os projetos";
 
@@ -409,7 +475,6 @@ export default function FinanceiroDashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            {/* TODO: substituir por endpoint real quando disponível */}
             <ChartCard title="Custo por profissional">
               <div className={styles.legendList} style={{ flexDirection: "row", gap: 16, marginBottom: 12 }}>
                 {visibleProjectKeys.map((k, i) => (
@@ -435,7 +500,6 @@ export default function FinanceiroDashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            {/* TODO: substituir por endpoint real quando disponível */}
             <ChartCard title="Histórico de alterações com impacto financeiro">
               <div className={styles.tableWrapper}>
                 {financialChanges.length === 0 ? (
