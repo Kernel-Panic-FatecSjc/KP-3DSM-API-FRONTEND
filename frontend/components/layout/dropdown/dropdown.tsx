@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import styles from "./dropdown.module.css";
 
-const API_BASE_URL = "/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const resolveApiBaseUrl = (path: string) => API_BASE_URL ? `${API_BASE_URL}${path.replace(/^\/api/, "")}` : path;
 
 interface DropdownProps {
   label: string;
@@ -110,13 +111,19 @@ export function DropdownProfissional({
     const fetchProfissionais = async () => {
       setLoading(true);
       try {
-        const url = `${API_BASE_URL}/usuario/todos`;
+        const url = resolveApiBaseUrl('/api/usuario/todos');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); 
+        
+
         const response = await fetch(url, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
 
         if (response.ok) {
           const data = await response.json();
@@ -126,10 +133,19 @@ export function DropdownProfissional({
           }));
           setProfissionais(items);
         } else {
-          console.error("Falha ao carregar profissionais:", response.status, response.statusText, url);
+          console.error(" Falha ao carregar profissionais:", response.status, response.statusText, url);
+          setProfissionais([
+            { label: "Gabriel Henrique", value: "1" },
+            { label: "Ana Lima", value: "2" },
+            { label: "Carlos Souza", value: "3" },
+          ]);
         }
-      } catch (error) {
-        console.error("Erro ao carregar profissionais:", error, { apiBaseUrl: API_BASE_URL });
+      } catch (error: any) {
+        if (error.name === "AbortError") {
+          console.error("⏱ Timeout ao carregar profissionais (5s):", { apiBaseUrl: API_BASE_URL });
+        } else {
+          console.error(" Erro ao carregar profissionais:", error, { apiBaseUrl: API_BASE_URL });
+        }
         setProfissionais([
           { label: "Gabriel Henrique", value: "1" },
           { label: "Ana Lima", value: "2" },
@@ -172,25 +188,47 @@ export function DropdownProjeto({
     const fetchProjetos = async () => {
       setLoading(true);
       try {
-        const url = profissionalId
-          ? `${API_BASE_URL}/projeto/profissional/${profissionalId}`
-          : `${API_BASE_URL}/projeto`;
+        const urls = profissionalId
+          ? [
+              resolveApiBaseUrl(`/api/projeto/profissional/${profissionalId}`),
+              resolveApiBaseUrl(`/api/projetos/profissional/${profissionalId}`),
+              resolveApiBaseUrl('/api/projeto'),
+            ]
+          : [resolveApiBaseUrl('/api/projeto')];
 
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const items = data.map((projeto: any) => ({
-            label: projeto.nome,
-            value: projeto.id.toString(),
-          }));
-          setProjetos(items);
+        let response: Response | null = null;
+        for (const url of urls) {
+          try {
+            response = await fetch(url, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            });
+            if (response.ok) {
+              const data = await response.json();
+              const items = Array.isArray(data)
+                ? data.map((projeto: any) => ({
+                    label: projeto.nome,
+                    value: projeto.id.toString(),
+                  }))
+                : [];
+              if (items.length > 0) {
+                setProjetos(items);
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn(`Tentativa falhada para ${url}:`, e);
+          }
         }
+
+        console.error("Nenhum endpoint de projetos respondeu corretamente");
+        setProjetos([
+          { label: "Sistema Financeiro", value: "1" },
+          { label: "Dashboard React", value: "2" },
+          { label: "API Spring", value: "3" },
+        ]);
       } catch (error) {
         console.error("Erro ao carregar projetos:", error);
         setProjetos([

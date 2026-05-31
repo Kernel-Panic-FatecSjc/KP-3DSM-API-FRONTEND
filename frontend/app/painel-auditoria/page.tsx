@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import styles from "./app.module.css";
-import NavigationBar from "../../components/layout/navegationBar/navegationBar";
 import { DropdownProfissional, DropdownProjeto, DropdownStatus, DropdownPrioridade } from "../../components/layout/dropdown/dropdown";
 import generatePDF from "react-to-pdf";
 
@@ -76,7 +75,8 @@ const FALLBACK_DATA: DashboardData = {
   ],
 };
 
-const API_BASE_URL = "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const resolveApiUrl = (path: string) => API_URL ? `${API_URL}${path.replace(/^\/api/, "")}` : path;
 
 export default function Auditoria() {
   const [dataInicio, setDataInicio] = useState(() => {
@@ -123,7 +123,12 @@ export default function Auditoria() {
 
   useEffect(() => {
     if (!token || !userId) return;
-    fetchDashboardData();
+
+    const timeout = setTimeout(() => {
+      fetchDashboardData();
+    }, 500);
+
+    return () => clearTimeout(timeout);
   }, [token, userId, dataInicio, dataFim, filtroProfissionalId, filtroProjetoId, filtroStatusSelect, filtroPrioridade]);
 
   const fetchDashboardData = async () => {
@@ -137,33 +142,29 @@ export default function Auditoria() {
 
       const profId = filtroProfissionalId || userId;
 
-      const userResponse = await fetch(`${API_BASE_URL}/usuario/buscar/${profId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!userResponse.ok) throw new Error(`Erro ao buscar dados do usuário (${userResponse.status})`);
-      const userData = await userResponse.json();
-
-      let projetosUrl = `${API_BASE_URL}/projeto/profissional/${profId}?dataInicio=${dataInicio}&dataFim=${dataFim}`;
-      if (filtroProjetoId && filtroProjetoId !== "todos") projetosUrl += `&projetoId=${filtroProjetoId}`;
-      if (filtroStatusSelect !== "todos")                 projetosUrl += `&status=${filtroStatusSelect}`;
-
-      let alteracoesUrl = `${API_BASE_URL}/tarefas/alteracoes?dataInicio=${dataInicio}&dataFim=${dataFim}`;
-      if (filtroPrioridade !== "todas")                              alteracoesUrl += `&prioridade=${filtroPrioridade}`;
-      if (filtroProjetoId && filtroProjetoId !== "todos")            alteracoesUrl += `&projetoId=${filtroProjetoId}`;
-
       const headers = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       };
 
-      const [projetosResponse, horasResponse, alteracoesResponse] = await Promise.all([
-        fetch(projetosUrl, { headers }),
-        fetch(`${API_BASE_URL}/horas/profissional/${profId}?dataInicio=${dataInicio}&dataFim=${dataFim}`, { headers }),
-        fetch(alteracoesUrl, { headers }),
-      ]);
+      const userResponse = await fetch(resolveApiUrl(`/api/usuario/${profId}`), { headers });
+      if (!userResponse.ok) throw new Error(`Erro ao buscar dados do usuário (${userResponse.status})`);
+      const userData = await userResponse.json();
+
+      const projetosResponse = await fetch(resolveApiUrl('/api/projeto'), { headers });
+
+      const horasParams = new URLSearchParams();
+      horasParams.append('usuarioId', profId);
+      horasParams.append('dataInicio', dataInicio);
+      horasParams.append('dataFim', dataFim);
+      const horasResponse = await fetch(resolveApiUrl(`/api/horas/filtrar?${horasParams.toString()}`), { headers });
+
+      const alteracoesParams = new URLSearchParams();
+      alteracoesParams.append('dataInicio', dataInicio);
+      alteracoesParams.append('dataFim', dataFim);
+      if (filtroPrioridade !== "todas") alteracoesParams.append('prioridade', filtroPrioridade);
+      if (filtroProjetoId && filtroProjetoId !== "todos") alteracoesParams.append('projetoId', filtroProjetoId);
+      const alteracoesResponse = await fetch(resolveApiUrl(`/api/tarefas/alteracoes?${alteracoesParams.toString()}`), { headers });
 
       const projetosRaw    = projetosResponse.ok    ? await projetosResponse.json()    : [];
       const horasRaw       = horasResponse.ok       ? await horasResponse.json()       : [];
@@ -179,10 +180,14 @@ export default function Auditoria() {
       if (!alteracoesResponse.ok) partialErrors.push(`alterações (${alteracoesResponse.status})`);
 
       if (partialErrors.length > 0) {
-        console.warn("Erros parciais ao carregar Auditoria:", partialErrors, { projetosStatus: projetosResponse.status, horasStatus: horasResponse.status, alteracoesStatus: alteracoesResponse.status });
-        if (partialErrors.length === 1 && partialErrors[0].startsWith("projetos")) {
-        } else {
-          setError(`Alguns dados não puderam ser carregados: ${partialErrors.join(", ")}.`);
+        const errorDetails = [
+          !projetosResponse.ok && `projetos (${projetosResponse.status})`,
+          !horasResponse.ok && `horas (${horasResponse.status})`,
+          !alteracoesResponse.ok && `alterações (${alteracoesResponse.status})`,
+        ].filter(Boolean).join(", ");
+        console.warn(" Erros ao carregar dados de auditoria:", errorDetails);
+        if (partialErrors.length < 3) {
+          setError(` Alguns dados não puderam ser carregados: ${errorDetails}. Verifique a conexão com o servidor.`);
         }
       }
 
@@ -217,10 +222,10 @@ export default function Auditoria() {
         alteracoesRecentes: alteracoesData.slice(0, 10),
       });
     } catch (err) {
-      console.error("Erro ao carregar dados:", err, { apiBaseUrl: API_BASE_URL, profId: filtroProfissionalId || userId });
+      console.error("Erro ao carregar dados:", err, { profId: filtroProfissionalId || userId });
       const message = err instanceof Error ? err.message : "Erro ao carregar dados. Verifique sua conexão ou tente novamente mais tarde.";
       setError(message.includes("Failed to fetch")
-        ? `Falha de conexão com o backend em ${API_BASE_URL}. Verifique se o servidor está acessível e se o URL está correto.`
+        ? `Falha de conexão com o backend. Verifique se NEXT_PUBLIC_API_URL está configurado corretamente ou se o servidor está rodando.`
         : message
       );
       setDashboardData(FALLBACK_DATA);
@@ -274,28 +279,43 @@ export default function Auditoria() {
   const toggleField = (key: keyof ExportFields) =>
     setFields((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  // ── CSV melhorado ──────────────────────────────────────────────────────────
   const exportarCSV = () => {
     const rows: string[] = [];
     const sep = ";";
 
-    if (fields.periodo)      rows.push(`Período${sep}${fmtDate(dataInicio)} – ${fmtDate(dataFim)}`);
+    rows.push(`RELATORIO DE AUDITORIA`);
+    rows.push(`Gerado em${sep}${new Date().toLocaleString("pt-BR")}`);
+    rows.push(``);
+
+    if (fields.periodo)      rows.push(`Periodo${sep}${fmtDate(dataInicio)} ate ${fmtDate(dataFim)}`);
     if (fields.profissional) rows.push(`Profissional${sep}${profissional.nome}`);
-    if (fields.horasTotais)  rows.push(`Total de horas${sep}${totalHoras}h`);
+    if (fields.horasTotais)  rows.push(`Total de Horas${sep}${totalHoras}h`);
 
     if (fields.projetos) {
-      rows.push("", "Projetos", `Nome${sep}Data Início${sep}Data Fim${sep}Horas registradas${sep}Meta${sep}Status`);
+      rows.push(``);
+      rows.push(`== PROJETOS ==`);
+      rows.push(`Nome${sep}Data Inicio${sep}Data Fim${sep}Horas Registradas${sep}Meta de Horas${sep}Situacao`);
       projetosFiltrados.forEach((p) => {
-        const status = p.horasRegistradas > p.horasPrevistas ? "Acima" : p.horasRegistradas < p.horasPrevistas ? "Abaixo" : "No prazo";
-        rows.push(`${p.nome}${sep}${fmtDate(p.dataInicio)}${sep}${fmtDate(p.dataFim)}${sep}${p.horasRegistradas}h${sep}${p.horasPrevistas}h${sep}${status}`);
+        const situacao =
+          p.horasRegistradas > p.horasPrevistas ? "Acima do previsto" :
+          p.horasRegistradas < p.horasPrevistas ? "Abaixo do previsto" : "No prazo";
+        rows.push(`${p.nome}${sep}${fmtDate(p.dataInicio)}${sep}${fmtDate(p.dataFim)}${sep}${p.horasRegistradas}h${sep}${p.horasPrevistas}h${sep}${situacao}`);
       });
+      rows.push(`Total${sep}${sep}${sep}${projetosFiltrados.reduce((a, p) => a + p.horasRegistradas, 0)}h${sep}${projetosFiltrados.reduce((a, p) => a + p.horasPrevistas, 0)}h${sep}`);
     }
 
     if (fields.tarefas) {
-      rows.push("", "Alterações recentes", `Tarefa${sep}Campo alterado${sep}Valor anterior${sep}Valor novo${sep}Data${sep}Usuário`);
+      rows.push(``);
+      rows.push(`== ALTERACOES RECENTES ==`);
+      rows.push(`Tarefa${sep}Campo Alterado${sep}Valor Anterior${sep}Valor Novo${sep}Data e Hora${sep}Responsavel`);
       alteracoes.forEach((a) => {
         rows.push(`${a.tarefaNome}${sep}${a.campoAlterado}${sep}${a.valorAnterior}${sep}${a.valorNovo}${sep}${fmtDateTime(a.dataAlteracao)}${sep}${a.usuario}`);
       });
     }
+
+    rows.push(``);
+    rows.push(`Fim do relatorio`);
 
     const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url  = URL.createObjectURL(blob);
@@ -652,39 +672,159 @@ export default function Auditoria() {
         </div>
       )}
 
+      {/* ── PDF melhorado ───────────────────────────────────────────────────── */}
       <div className={styles.pdfContainer}>
         <div ref={targetRef} className={styles.pdfContent}>
-          <div className={styles.pdfHeader}>
-            <h1>Relatório de Auditoria</h1>
-            <p>Gerado em {new Date().toLocaleString("pt-BR")}</p>
+
+          {/* Cabeçalho com gradiente */}
+          <div style={{
+            background: "linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)",
+            color: "#fff",
+            padding: "32px 40px 24px",
+            marginBottom: "32px",
+            borderRadius: "4px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, letterSpacing: "-0.5px" }}>
+                  Relatório de Auditoria
+                </h1>
+                <p style={{ margin: "6px 0 0", fontSize: "13px", opacity: 0.75 }}>
+                  Gerado em {new Date().toLocaleString("pt-BR")}
+                </p>
+              </div>
+              <div style={{ textAlign: "right", fontSize: "13px", opacity: 0.85 }}>
+                {fields.periodo      && <p style={{ margin: 0 }}>Período: {fmtDate(dataInicio)} – {fmtDate(dataFim)}</p>}
+                {fields.profissional && <p style={{ margin: "4px 0 0" }}>Profissional: {profissional.nome}</p>}
+              </div>
+            </div>
+
+            {/* KPI cards no cabeçalho */}
+            <div style={{ display: "flex", gap: "16px", marginTop: "24px" }}>
+              {fields.horasTotais && (
+                <div style={{ background: "rgba(255,255,255,0.12)", borderRadius: "8px", padding: "12px 20px", minWidth: "100px" }}>
+                  <div style={{ fontSize: "22px", fontWeight: 700 }}>{totalHoras}h</div>
+                  <div style={{ fontSize: "11px", opacity: 0.75, marginTop: "2px" }}>Total de horas</div>
+                </div>
+              )}
+              {fields.projetos && (
+                <div style={{ background: "rgba(255,255,255,0.12)", borderRadius: "8px", padding: "12px 20px", minWidth: "100px" }}>
+                  <div style={{ fontSize: "22px", fontWeight: 700 }}>{projetosFiltrados.length}</div>
+                  <div style={{ fontSize: "11px", opacity: 0.75, marginTop: "2px" }}>Projetos</div>
+                </div>
+              )}
+              {fields.tarefas && (
+                <div style={{ background: "rgba(255,255,255,0.12)", borderRadius: "8px", padding: "12px 20px", minWidth: "100px" }}>
+                  <div style={{ fontSize: "22px", fontWeight: 700 }}>{alteracoes.length}</div>
+                  <div style={{ fontSize: "11px", opacity: 0.75, marginTop: "2px" }}>Alterações</div>
+                </div>
+              )}
+            </div>
           </div>
-          {fields.periodo      && <p> Período: {fmtDate(dataInicio)} – {fmtDate(dataFim)}</p>}
-          {fields.profissional && <p> Profissional: {profissional.nome}</p>}
-          {fields.horasTotais  && <p> Total de horas: {totalHoras}h</p>}
+
+          {/* Seção Projetos */}
           {fields.projetos && (
-            <>
-              <h2> Projetos</h2>
-              {projetosFiltrados.map((p) => (
-                <div key={p.id} className={styles.pdfItem}>
-                  <p><strong>{p.nome}</strong></p>
-                  <p>Período: {fmtDate(p.dataInicio)} – {fmtDate(p.dataFim)}</p>
-                  <p>Horas: {p.horasRegistradas}h / {p.horasPrevistas}h</p>
-                </div>
-              ))}
-            </>
+            <div style={{ marginBottom: "32px", padding: "0 4px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                <div style={{ width: "4px", height: "20px", background: "#4338ca", borderRadius: "2px" }} />
+                <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#1e1b4b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Projetos
+                </h2>
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <thead>
+                  <tr style={{ background: "#f1f0fe" }}>
+                    {["Projeto", "Período", "Horas Registradas", "Meta", "Situação"].map((col) => (
+                      <th key={col} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#4338ca", borderBottom: "2px solid #c7d2fe", whiteSpace: "nowrap" }}>
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {projetosFiltrados.map((p, i) => {
+                    const situacao =
+                      p.horasRegistradas > p.horasPrevistas
+                        ? { label: `+${p.horasRegistradas - p.horasPrevistas}h acima`, color: "#ef4444", bg: "#fef2f2" }
+                        : p.horasRegistradas < p.horasPrevistas
+                        ? { label: `-${p.horasPrevistas - p.horasRegistradas}h abaixo`, color: "#16a34a", bg: "#f0fdf4" }
+                        : { label: "No prazo", color: "#4338ca", bg: "#eef2ff" };
+                    return (
+                      <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #e5e7eb" }}>
+                        <td style={{ padding: "9px 12px", fontWeight: 600, color: "#111827" }}>{p.nome}</td>
+                        <td style={{ padding: "9px 12px", color: "#6b7280" }}>{fmtDate(p.dataInicio)} – {fmtDate(p.dataFim)}</td>
+                        <td style={{ padding: "9px 12px", fontWeight: 600, color: "#111827" }}>{p.horasRegistradas}h</td>
+                        <td style={{ padding: "9px 12px", color: "#6b7280" }}>{p.horasPrevistas}h</td>
+                        <td style={{ padding: "9px 12px" }}>
+                          <span style={{ background: situacao.bg, color: situacao.color, padding: "3px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 600 }}>
+                            {situacao.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* Linha de totais */}
+                  <tr style={{ background: "#f1f0fe", fontWeight: 700, borderTop: "2px solid #c7d2fe" }}>
+                    <td style={{ padding: "9px 12px", color: "#1e1b4b" }}>Total</td>
+                    <td style={{ padding: "9px 12px" }} />
+                    <td style={{ padding: "9px 12px", color: "#1e1b4b" }}>
+                      {projetosFiltrados.reduce((a, p) => a + p.horasRegistradas, 0)}h
+                    </td>
+                    <td style={{ padding: "9px 12px", color: "#1e1b4b" }}>
+                      {projetosFiltrados.reduce((a, p) => a + p.horasPrevistas, 0)}h
+                    </td>
+                    <td style={{ padding: "9px 12px" }} />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           )}
+
+          {/* Seção Alterações */}
           {fields.tarefas && (
-            <>
-              <h2> Alterações</h2>
-              {alteracoes.map((a) => (
-                <div key={a.id} className={styles.pdfItem}>
-                  <p><strong>{a.tarefaNome}</strong></p>
-                  <p>{a.campoAlterado}: {a.valorAnterior} → {a.valorNovo}</p>
-                  <p>Data: {fmtDateTime(a.dataAlteracao)}</p>
-                </div>
-              ))}
-            </>
+            <div style={{ padding: "0 4px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                <div style={{ width: "4px", height: "20px", background: "#7c3aed", borderRadius: "2px" }} />
+                <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#1e1b4b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Alterações Recentes
+                </h2>
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <thead>
+                  <tr style={{ background: "#f5f3ff" }}>
+                    {["Tarefa", "Campo", "Valor Anterior", "Valor Novo", "Data", "Responsável"].map((col) => (
+                      <th key={col} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#7c3aed", borderBottom: "2px solid #ddd6fe", whiteSpace: "nowrap" }}>
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {alteracoes.map((a, i) => (
+                    <tr key={a.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #e5e7eb" }}>
+                      <td style={{ padding: "9px 12px", fontWeight: 600, color: "#111827" }}>{a.tarefaNome}</td>
+                      <td style={{ padding: "9px 12px" }}>
+                        <span style={{ background: "#ede9fe", color: "#7c3aed", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 500 }}>
+                          {a.campoAlterado}
+                        </span>
+                      </td>
+                      <td style={{ padding: "9px 12px", color: "#ef4444", textDecoration: "line-through" }}>{a.valorAnterior}</td>
+                      <td style={{ padding: "9px 12px", color: "#16a34a", fontWeight: 600 }}>{a.valorNovo}</td>
+                      <td style={{ padding: "9px 12px", color: "#6b7280", fontSize: "11px" }}>{fmtDateTime(a.dataAlteracao)}</td>
+                      <td style={{ padding: "9px 12px", color: "#374151" }}>{a.usuario}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
+
+          {/* Rodapé do PDF */}
+          <div style={{ marginTop: "40px", paddingTop: "16px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#9ca3af" }}>
+            <span>Relatório gerado automaticamente pelo sistema</span>
+            <span>{new Date().toLocaleDateString("pt-BR")}</span>
+          </div>
+
         </div>
       </div>
     </div>
