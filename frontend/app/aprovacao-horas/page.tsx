@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8084';
 const PROJETO_URL = 'http://localhost:8082';
 const TASK_URL = 'http://localhost:8085';
 const USUARIO_URL = 'http://localhost:8083';

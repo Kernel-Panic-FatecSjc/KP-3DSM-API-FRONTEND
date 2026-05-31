@@ -33,10 +33,11 @@ type User = {
 };
 
 function normalizeStatus(value: unknown): TaskStatus {
-  const status = String(value ?? "").toUpperCase();
-  if (status === "TODO") return "todo";
+  const status = String(value ?? "").toUpperCase().replace(/\s+/g, "_");
+  if (status === "TODO" || status === "TO_DO") return "todo";
   if (status === "DOING") return "doing";
   if (status === "DONE") return "done";
+  if (status === "BLOCKED") return "blocked";
   return "todo";
 }
 

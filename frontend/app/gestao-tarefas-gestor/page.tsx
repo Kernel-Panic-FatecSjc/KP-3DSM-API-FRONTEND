@@ -16,6 +16,10 @@ type Tarefa = {
   idProjeto: number;
   idResponsaveis: number[];
   status: string;
+  // GET /tarefas (TarefaResponseDTO) reporta BLOCKED como status "Doing" e só
+  // sinaliza o bloqueio neste boolean. GET /tarefas/projeto/{id} não envia o
+  // campo (status já vem "BLOCKED"). Ver statusEfetivo.
+  bloqueada?: boolean;
 };
 
 const statusOptions: Option[] = [
@@ -32,6 +36,11 @@ const statusOptions: Option[] = [
 // Normaliza ambos para o valor canônico do enum para comparar e exibir.
 const normalizeStatus = (s: string | null | undefined): string =>
   (s ?? "").trim().toUpperCase().replace(/\s+/g, "_");
+
+// Status canônico de uma tarefa, lidando com a perda de BLOCKED no GET /tarefas:
+// se o backend marcou `bloqueada`, vale BLOCKED; senão usa o status normalizado.
+const statusEfetivo = (t: Tarefa): string =>
+  t.bloqueada ? "BLOCKED" : normalizeStatus(t.status);
 
 export default function Page() {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
@@ -129,7 +138,7 @@ export default function Page() {
         descricao: descricaoEdit,
         idProjeto: tarefaEditando.idProjeto,
         idResponsaveis: responsaveisEdit.map(r => Number(r.value)),
-        statusTarefa: normalizeStatus(tarefaEditando.status)
+        statusTarefa: statusEfetivo(tarefaEditando)
       });
       setModalEditar(false);
       setTarefaEditando(null);
@@ -181,7 +190,7 @@ export default function Page() {
       t.idResponsaveis.includes(Number(responsavel.value));
     const matchStatus =
       !status || status.value === "" ||
-      normalizeStatus(t.status) === status.value;
+      statusEfetivo(t) === status.value;
     return matchResp && matchStatus;
   });
 
@@ -266,7 +275,7 @@ export default function Page() {
                   <Select
                     instanceId={`select-status-table-${t.id}`}
                     options={statusOptions.filter(o => o.value)}
-                    value={statusOptions.find(o => o.value === normalizeStatus(t.status))}
+                    value={statusOptions.find(o => o.value === statusEfetivo(t))}
                     onChange={(s) => atualizarStatus(t.id, s!.value)}
                     styles={tableSelectStyles}
                   />
