@@ -201,10 +201,13 @@ export default function ProfissionalDashboard() {
 
     const token = localStorage.getItem("token");
 
+    const dataInicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const dataFim = new Date(ano, mes, 0).toISOString().slice(0, 10);
+
     setLoading(true);
     setErro(null);
 
-    fetch(`${BASE_URL}/horas/${idConsulta}/resumo?mes=${mes}&ano=${ano}`, {
+    fetch(`${BASE_URL}/horas/${idConsulta}/resumo?dataInicio=${dataInicio}&dataFim=${dataFim}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

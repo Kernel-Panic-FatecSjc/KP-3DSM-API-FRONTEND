@@ -93,19 +93,22 @@ const MOCK_FINANCIAL_CHANGES = [
 // API
 // ================================================================
 
-const API_BASE_URL = "http://localhost:8082";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const resolveApiUrl = (path: string) => API_URL ? `${API_URL}${path.replace(/^\/api/, "")}` : path;
 
 async function fetchIndicadoresFinanceiros(
   periodicidade: PeriodicidadeFinanceira,
   ano: number,
   mes: number
 ): Promise<IndicadorFinanceiroProjetoDTO[]> {
-  const url = new URL(`${API_BASE_URL}/projeto/indicadores-financeiros`);
-  url.searchParams.set("periodicidade", periodicidade);
-  url.searchParams.set("ano", String(ano));
-  url.searchParams.set("mes", String(mes));
+  const endpoint = resolveApiUrl('/api/projeto/indicadores-financeiros');
+  const params = new URLSearchParams({
+    periodicidade,
+    ano: String(ano),
+    mes: String(mes),
+  });
 
-  const res = await fetch(url.toString(), {
+  const res = await fetch(`${endpoint}?${params.toString()}`, {
     headers: { "Content-Type": "application/json" },
     // headers: { Authorization: `Bearer ${getToken()}` }, // descomente para auth
   });

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
+import { buscarProjetos, buscarUsuarios } from '../entrada-saida/page';
 
 // --- INTEGRAÇÃO COM O BACKEND ---
 const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8080';
@@ -11,6 +12,7 @@ export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJ
 export interface HorasExibirDTO {
     id: number;
     tarefaId: number | null;
+    projetoId: number | null;
     usuarioId: number;
     tituloSessao: string;
     tipoAtividade: string;
@@ -51,10 +53,11 @@ export async function filtrarHoras(params: HorasFiltroParams): Promise<HorasExib
     return handleResponse<HorasExibirDTO[]>(res);
 }
 
-const MOCK_NOME_PROJETO = 'Aerocode';
 interface Card {
     id: number;
     nomeProjeto: string;
+    projetoId: number | null;
+    responsavel: string;
     tituloSessao: string;
     descricao: string;
     inicio: string;
@@ -62,30 +65,6 @@ interface Card {
     dataLancamento: string;
     motivoReprovacao: string;
 }
-
-// CARDS mockados 
-const cardsMockados: Card[] = [
-    {
-        id: -1,
-        nomeProjeto: 'Aerocode',
-        tituloSessao: 'Reunião de planejamento',
-        descricao: 'Frontend',
-        inicio: '08:00',
-        fim: '10:00',
-        dataLancamento: '2025-02-17',
-        motivoReprovacao: 'Horário inconsistente com o registro do sistema.',
-    },
-    {
-        id: -2,
-        nomeProjeto: 'Aerocode',
-        tituloSessao: 'Implementação de tela de login',
-        descricao: 'Frontend',
-        inicio: '09:30',
-        fim: '12:00',
-        dataLancamento: '2025-02-10',
-        motivoReprovacao: 'Atividade já registrada em outra sessão.',
-    },
-];
 
 function calcularTotal(inicio: string, fim: string): number {
     if (!inicio || !fim) return 0;
@@ -136,20 +115,32 @@ export default function Page() {
                 setCarregando(true);
                 setErro(null);
                 const uid = Number(localStorage.getItem('usuarioId') || '0');
-                const dados = await filtrarHoras({ usuarioId: uid, estado: 'REJEITADO' });
+                const [dados, projetos, usuarios] = await Promise.all([
+                    filtrarHoras({ usuarioId: uid, estado: 'REJEITADO' }),
+                    buscarProjetos(),
+                    buscarUsuarios(),
+                ]);
 
-                const comDados: Card[] = dados.map((h) => ({
-                    id: Number(h.id),
-                    nomeProjeto: MOCK_NOME_PROJETO,
-                    tituloSessao: h.tituloSessao,
-                    descricao: h.descricao || '',
-                    inicio: h.inicio.substring(0, 5),
-                    fim: h.fim.substring(0, 5),
-                    dataLancamento: h.dataLancamento,
-                    motivoReprovacao: h.motivoRejeicao || '',
-                }));
+                const comDados: Card[] = dados.map((h) => {
+                    const projeto = projetos.find(p => p.id === h.projetoId);
+                    const usuario = usuarios.find(u => u.id === h.usuarioId);
+
+                    return {
+                        id: Number(h.id),
+                        nomeProjeto: projeto?.nome ?? '-',
+                        projetoId: h.projetoId,
+                        responsavel: usuario?.nome ?? String(h.usuarioId),
+                        tituloSessao: h.tituloSessao,
+                        descricao: h.descricao || '',
+                        inicio: h.inicio.substring(0, 5),
+                        fim: h.fim.substring(0, 5),
+                        dataLancamento: h.dataLancamento,
+                        motivoReprovacao: h.motivoRejeicao || '',
+                    };
+                });
                 setCardsAPI(comDados);
-            } catch {
+            } catch (e) {
+                console.error(e);
                 setErro('Não foi possível carregar os registros.');
             } finally {
                 setCarregando(false);
@@ -160,10 +151,12 @@ export default function Page() {
 
     const cards = cardsAPI;
 
-    const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
+    const projetos = cards.filter(
+        (card, index, lista) => card.projetoId !== null && lista.findIndex(c => c.projetoId === card.projetoId) === index
+    );
 
     const cardsFiltrados = cards.filter(c => {
-        const matchProjeto = filtroProjeto === '' || c.nomeProjeto === filtroProjeto;
+        const matchProjeto = filtroProjeto === '' || String(c.projetoId) === filtroProjeto;
         const matchData = filtroData === '' || c.dataLancamento === filtroData;
         return matchProjeto && matchData;
     });
@@ -202,7 +195,7 @@ export default function Page() {
                     >
                         <option value="">Todos os projetos</option>
                         {projetos.map(p => (
-                            <option key={p} value={p}>{p}</option>
+                            <option key={p.projetoId} value={String(p.projetoId)}>{p.nomeProjeto}</option>
                         ))}
                     </select>
                     {/* FILTRO por data de lançamento */}
@@ -250,6 +243,7 @@ export default function Page() {
                             <div className={styles.cardTitulo}>{card.tituloSessao}</div>
                             <div className={styles.cardTags}>
                                 <span className={styles.cardTag}>{card.descricao}</span>
+                                <span className={styles.cardTag}>{card.responsavel}</span>
                             </div>
                             <div style={{ fontSize: '11px', color: '#C0392B', background: '#FADADD', marginTop: '6px', fontWeight: 500, padding: '3px 10px', borderRadius: '20px', display: 'inline-block' }}>
                                 {card.motivoReprovacao}

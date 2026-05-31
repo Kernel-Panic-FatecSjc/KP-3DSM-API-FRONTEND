@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
+import { buscarProjetos, buscarUsuarios } from '../entrada-saida/page';
 
 // --- INTEGRAÇÃO COM O BACKEND ---
 const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8080';
@@ -11,6 +12,7 @@ export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJ
 export interface HorasExibirDTO {
   id: number;
   tarefaId: number | null;
+  projetoId: number | null;
   usuarioId: number;
   tituloSessao: string;
   tipoAtividade: string;
@@ -51,11 +53,11 @@ export async function filtrarHoras(params: HorasFiltroParams): Promise<HorasExib
   return handleResponse<HorasExibirDTO[]>(res);
 }
 
-const MOCK_NOME_PROJETO = 'Aerocode';
-
 interface Card {
   id: number;
   nomeProjeto: string;
+  projetoId: number | null;
+  responsavel: string;
   tituloSessao: string;
   descricao: string;
   tipoAtividade: string;
@@ -129,21 +131,33 @@ export default function Page() {
         setErro(null);
 
         const uid = Number(localStorage.getItem('usuarioId') || '0');
-        const dados = await filtrarHoras({ usuarioId: uid });
+        const [dados, projetos, usuarios] = await Promise.all([
+          filtrarHoras({ usuarioId: uid }),
+          buscarProjetos(),
+          buscarUsuarios(),
+        ]);
 
-        const comDados: Card[] = dados.map((h) => ({
-          id: Number(h.id),
-          nomeProjeto: MOCK_NOME_PROJETO,
-          tituloSessao: h.tituloSessao,
-          descricao: h.descricao || '',
-          tipoAtividade: h.tipoAtividade,
-          inicio: h.inicio.substring(0, 5),
-          fim: h.fim.substring(0, 5),
-          dataLancamento: h.dataLancamento,
-          estado: h.estado,
-        }));
+        const comDados: Card[] = dados.map((h) => {
+          const projeto = projetos.find(p => p.id === h.projetoId);
+          const usuario = usuarios.find(u => u.id === h.usuarioId);
+
+          return {
+            id: Number(h.id),
+            nomeProjeto: projeto?.nome ?? '-',
+            projetoId: h.projetoId,
+            responsavel: usuario?.nome ?? String(h.usuarioId),
+            tituloSessao: h.tituloSessao,
+            descricao: h.descricao || '',
+            tipoAtividade: h.tipoAtividade,
+            inicio: h.inicio.substring(0, 5),
+            fim: h.fim.substring(0, 5),
+            dataLancamento: h.dataLancamento,
+            estado: h.estado,
+          };
+        });
         setCardsAPI(comDados);
-      } catch {
+      } catch (e) {
+        console.error(e);
         setErro('Não foi possível carregar os registros.');
       } finally {
         setCarregando(false);
@@ -154,10 +168,12 @@ export default function Page() {
 
   const cards = cardsAPI;
 
-  const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
+  const projetos = cards.filter(
+    (card, index, lista) => card.projetoId !== null && lista.findIndex(c => c.projetoId === card.projetoId) === index
+  );
 
   const cardsFiltrados = cards.filter(c => {
-    const matchProjeto = filtroProjeto === '' || c.nomeProjeto === filtroProjeto;
+    const matchProjeto = filtroProjeto === '' || String(c.projetoId) === filtroProjeto;
     const matchData = filtroData === '' || c.dataLancamento === filtroData;
     return matchProjeto && matchData;
   });
@@ -200,7 +216,7 @@ export default function Page() {
           >
             <option value="">Todos os projetos</option>
             {projetos.map(p => (
-              <option key={p} value={p}>{p}</option>
+              <option key={p.projetoId} value={String(p.projetoId)}>{p.nomeProjeto}</option>
             ))}
           </select>
           {/* FILTRO por data de lançamento */}
@@ -250,6 +266,7 @@ export default function Page() {
               <div className={styles.cardTags}>
                 <span className={styles.cardTag}>{card.descricao}</span>
                 <span className={styles.cardTag}>{card.tipoAtividade}</span>
+                <span className={styles.cardTag}>{card.responsavel}</span>
               </div>
               {/* CELULAR*/}
               {isMobile && (

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
-import { filtrarHoras, buscarProjetos, buscarTarefasPorFuncionario } from '../entrada-saida/page';
+import { filtrarHoras, buscarProjetos, buscarUsuarios } from '../entrada-saida/page';
 
 // usuarioId extraído do JWT
 function getUserIdFromToken(): number {
@@ -19,11 +19,10 @@ function getUserIdFromToken(): number {
   }
 }
 
-const MOCK_NOME_PROJETO = 'Aerocode';
-
 interface Card {
   id: number;
   nomeProjeto: string;
+  projetoId: number | null;
   tituloSessao: string;
   descricao: string;
   responsavel: string;
@@ -73,10 +72,10 @@ export default function Page() {
         const primeiroDia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
         const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
 
-        const [dados, projetos, tarefas, horasDoMes] = await Promise.all([
+        const [dados, projetos, usuarios, horasDoMes] = await Promise.all([
           filtrarHoras({ usuarioId: uid, estado: 'AGUARDANDO_APROVACAO' }),
           buscarProjetos(),
-          buscarTarefasPorFuncionario(uid),
+          buscarUsuarios(),
           filtrarHoras({ usuarioId: uid, dataInicio: primeiroDia, dataFim: ultimoDia })
         ]);
 
@@ -86,27 +85,24 @@ export default function Page() {
         setTotalMes(totalMesMinutos);
 
         const comDados: Card[] = dados.map((h) => {
-          let nomeProjeto = '-';
-          if (h.tarefaId) {
-            const tarefa = tarefas.find(t => t.id === h.tarefaId);
-            if (tarefa) {
-              const projeto = projetos.find(p => p.id === tarefa.idProjeto);
-              nomeProjeto = projeto?.nome ?? '-';
-            }
-          }
+          const projeto = projetos.find(p => p.id === h.projetoId);
+          const usuario = usuarios.find(u => u.id === h.usuarioId);
+
           return {
             id: Number(h.id),
-            nomeProjeto,
+            nomeProjeto: projeto?.nome ?? '-',
+            projetoId: h.projetoId,
             tituloSessao: h.tituloSessao,
             descricao: h.descricao || '',
-            responsavel: String(h.usuarioId),
+            responsavel: usuario?.nome ?? String(h.usuarioId),
             inicio: h.inicio.substring(0, 5),
             fim: h.fim.substring(0, 5),
             dataLancamento: h.dataLancamento,
           };
         });
         setCardsAPI(comDados);
-      } catch {
+      } catch (e) {
+        console.error(e);
         setErro('Não foi possível carregar os registros.');
       } finally {
         setCarregando(false);
@@ -116,10 +112,12 @@ export default function Page() {
   }, []);
 
   const cards = cardsAPI;
-  const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
+  const projetosFiltro = cards.filter(
+    (card, index, lista) => card.projetoId !== null && lista.findIndex(c => c.projetoId === card.projetoId) === index
+  );
 
   const cardsFiltrados = cards.filter(c => {
-    const matchProjeto = filtroProjeto === '' || c.nomeProjeto === filtroProjeto;
+    const matchProjeto = filtroProjeto === '' || String(c.projetoId) === filtroProjeto;
     const matchData = filtroData === '' || c.dataLancamento === filtroData;
     return matchProjeto && matchData;
   });
@@ -155,8 +153,8 @@ export default function Page() {
             onChange={e => setFiltroProjeto(e.target.value)}
           >
             <option value="">Todos os projetos</option>
-            {projetos.map(p => (
-              <option key={p} value={p}>{p}</option>
+            {projetosFiltro.map(p => (
+              <option key={p.projetoId} value={String(p.projetoId)}>{p.nomeProjeto}</option>
             ))}
           </select>
           <input

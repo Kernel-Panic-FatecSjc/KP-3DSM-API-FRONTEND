@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import styles from "./dropdown.module.css";
 
-const API_BASE_URL = "/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const resolveApiBaseUrl = (path: string) => API_BASE_URL ? `${API_BASE_URL}${path.replace(/^\/api/, "")}` : path;
 
 interface DropdownProps {
   label: string;
@@ -110,7 +111,7 @@ export function DropdownProfissional({
     const fetchProfissionais = async () => {
       setLoading(true);
       try {
-        const url = `${API_BASE_URL}/usuario/todos`;
+        const url = resolveApiBaseUrl('/api/usuario/todos');
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000); 
         
@@ -189,11 +190,11 @@ export function DropdownProjeto({
       try {
         const urls = profissionalId
           ? [
-              `${API_BASE_URL}/projeto/profissional/${profissionalId}`,
-              `${API_BASE_URL}/projetos/profissional/${profissionalId}`,
-              `${API_BASE_URL}/projeto`,
+              resolveApiBaseUrl(`/api/projeto/profissional/${profissionalId}`),
+              resolveApiBaseUrl(`/api/projetos/profissional/${profissionalId}`),
+              resolveApiBaseUrl('/api/projeto'),
             ]
-          : [`${API_BASE_URL}/projeto`];
+          : [resolveApiBaseUrl('/api/projeto')];
 
         let response: Response | null = null;
         for (const url of urls) {

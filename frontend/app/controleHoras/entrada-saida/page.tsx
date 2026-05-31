@@ -13,6 +13,7 @@ export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJ
 export interface HorasExibirDTO {
   id: number;
   tarefaId: number | null;
+  projetoId: number | null;
   usuarioId: number;
   tituloSessao: string;
   tipoAtividade: string;
@@ -57,12 +58,17 @@ export interface HorasFiltroParams {
   dataFim?: string;
 }
 
-interface ProjetoExibirDTO {
+export interface ProjetoExibirDTO {
   id: number;
   nome: string;
 }
 
-interface TarefaExibirDTO {
+export interface UsuarioExibirDTO {
+  id: number;
+  nome: string;
+}
+
+export interface TarefaExibirDTO {
   id: number;
   nome: string;
   idProjeto: number;
@@ -121,6 +127,11 @@ export async function buscarProjetos(): Promise<ProjetoExibirDTO[]> {
   return handleResponse<ProjetoExibirDTO[]>(res);
 }
 
+export async function buscarUsuarios(): Promise<UsuarioExibirDTO[]> {
+  const res = await fetch('http://localhost:8083/usuario/todos');
+  return handleResponse<UsuarioExibirDTO[]>(res);
+}
+
 export async function buscarTarefa(tarefaId: number): Promise<TarefaExibirDTO> {
   const res = await fetch(`${TASK_URL}/tarefas/${tarefaId}`);
   return handleResponse<TarefaExibirDTO>(res);
@@ -159,6 +170,7 @@ interface Card {
   id: number;
   nomeProjeto: string;
   projetoId: number | null;
+  responsavel: string;
   tituloSessao: string;
   descricao: string;
   inicio: string;
@@ -169,7 +181,7 @@ interface Card {
   justificativa?: string;
 }
 
-function calcularTotal(inicio: string, fim: string, dataInicio: string, dataFim: string): number {
+function calcularTotal(inicio: string, fim: string, dataInicio?: string, dataFim?: string): number {
   if (!inicio || !fim) return 0;
   const [hI, mI] = inicio.substring(0, 5).split(':').map(Number);
   const [hF, mF] = fim.substring(0, 5).split(':').map(Number);
@@ -239,22 +251,33 @@ export default function Page() {
     try {
       setCarregando(true);
       setErro(null);
-      const dados = await filtrarHoras({ usuarioId: uid, estado: 'PENDENTE' });
-      const comDados: Card[] = dados.map((h) => ({
-        id: Number(h.id),
-        nomeProjeto: '',
-        projetoId: h.tarefaId,
-        tituloSessao: h.tituloSessao,
-        descricao: h.descricao || '',
-        inicio: h.inicio.substring(0, 5),
-        fim: h.fim.substring(0, 5),
-        tipoAtividade: h.tipoAtividade,
-        dataLancamento: h.dataLancamento,
-        dataFim: h.dataLancamento,
-        justificativa: h.justificativa || '',
-      }));
+      const [dados, projetos, usuarios] = await Promise.all([
+        filtrarHoras({ usuarioId: uid, estado: 'PENDENTE' }),
+        buscarProjetos(),
+        buscarUsuarios(),
+      ]);
+      const comDados: Card[] = dados.map((h) => {
+        const projeto = projetos.find(p => p.id === h.projetoId);
+        const usuario = usuarios.find(u => u.id === h.usuarioId);
+
+        return {
+          id: Number(h.id),
+          nomeProjeto: projeto?.nome ?? '-',
+          projetoId: h.projetoId,
+          responsavel: usuario?.nome ?? String(h.usuarioId),
+          tituloSessao: h.tituloSessao,
+          descricao: h.descricao || '',
+          inicio: h.inicio.substring(0, 5),
+          fim: h.fim.substring(0, 5),
+          tipoAtividade: h.tipoAtividade,
+          dataLancamento: h.dataLancamento,
+          dataFim: h.dataLancamento,
+          justificativa: h.justificativa || '',
+        };
+      });
       setCards(comDados);
     } catch (e) {
+      console.error(e);
       setErro('Não foi possível carregar os registros.');
     } finally {
       setCarregando(false);
@@ -468,6 +491,7 @@ export default function Page() {
               <div className={styles.cardTags}>
                 <span className={styles.cardTag}>{card.descricao}</span>
                 <span className={styles.cardTag}>{card.tipoAtividade}</span>
+                <span className={styles.cardTag}>{card.responsavel}</span>
               </div>
               {isMobile && (
                 <div style={{ fontSize: '12px', color: '#0A4FA8', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
