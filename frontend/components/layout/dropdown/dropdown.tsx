@@ -122,7 +122,9 @@ export function DropdownProfissional({
             "Content-Type": "application/json",
           },
           signal: controller.signal,
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
         clearTimeout(timeout);
 
         if (response.ok) {
@@ -133,6 +135,19 @@ export function DropdownProfissional({
           }));
           setProfissionais(items);
         } else {
+          console.error(" Falha ao carregar profissionais:", response.status, response.statusText, url);
+          setProfissionais([
+            { label: "Gabriel Henrique", value: "1" },
+            { label: "Ana Lima", value: "2" },
+            { label: "Carlos Souza", value: "3" },
+          ]);
+        }
+      } catch (error: any) {
+        if (error.name === "AbortError") {
+          console.error("⏱ Timeout ao carregar profissionais (5s):", { apiBaseUrl: API_BASE_URL });
+        } else {
+          console.error(" Erro ao carregar profissionais:", error, { apiBaseUrl: API_BASE_URL });
+        }
           console.error(" Falha ao carregar profissionais:", response.status, response.statusText, url);
           setProfissionais([
             { label: "Gabriel Henrique", value: "1" },
@@ -196,6 +211,39 @@ export function DropdownProjeto({
             ]
           : [resolveApiBaseUrl('/api/projeto')];
 
+        let response: Response | null = null;
+        for (const url of urls) {
+          try {
+            response = await fetch(url, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            });
+            if (response.ok) {
+              const data = await response.json();
+              const items = Array.isArray(data)
+                ? data.map((projeto: any) => ({
+                    label: projeto.nome,
+                    value: projeto.id.toString(),
+                  }))
+                : [];
+              if (items.length > 0) {
+                setProjetos(items);
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn(`Tentativa falhada para ${url}:`, e);
+          }
+        }
+
+        console.error("Nenhum endpoint de projetos respondeu corretamente");
+        setProjetos([
+          { label: "Sistema Financeiro", value: "1" },
+          { label: "Dashboard React", value: "2" },
+          { label: "API Spring", value: "3" },
+        ]);
         let response: Response | null = null;
         for (const url of urls) {
           try {
