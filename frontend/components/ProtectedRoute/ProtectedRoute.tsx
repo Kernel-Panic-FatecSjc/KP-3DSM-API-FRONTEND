@@ -14,9 +14,9 @@ const REGRAS_DE_ACESSO: Record<string, string[]> = {
   '/visualizacaoTime': ['gestor'],
   '/historico_bloqueio': ['gestor'],
   '/dashboard-gestor': ['gestor'],
-  '/painel-auditoria': ['financeiro'],
-  '/controleHoras': ['profissional'],
-  '/bloqueioTarefas': ['profissional'],
+  '/painel-auditoria': ['financeiro', 'gestor'],
+  '/controleHoras': ['profissional', 'gestor'],
+  '/bloqueioTarefas': ['profissional', 'gestor'],
 };
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
