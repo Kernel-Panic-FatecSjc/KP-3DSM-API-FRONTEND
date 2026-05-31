@@ -4,7 +4,7 @@ import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
 
 // --- INTEGRAÇÃO COM O BACKEND ---
-const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8080';
+const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8084';
 
 export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
 
