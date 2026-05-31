@@ -22,7 +22,7 @@ type Task = {
   id: string;
   title: string;
   status: TaskStatus;
-  projectName: string;
+  projectId: string;
 };
 
 type ActivityDistribution = {
@@ -89,25 +89,45 @@ const STATUS_CONFIG = {
   blocked: { label: "Bloqueada", color: "#7C2D12", bg: "#FED7AA" },
 };
 
-const BASE_URL = "http://localhost:8084";
-const USUARIO_URL = "http://localhost:8083";
+// URLs diretas por serviço — mesmo padrão das outras páginas (visualizacaoTime,
+// dashboard-gestor, projetos): cada rota fala com o serviço dono do dado/banco.
+const BASE_URL = "http://localhost:8084";     // apontamentohoras-service
+const USUARIO_URL = "http://localhost:8083";  // usuario-service
+const PROJETO_URL = "http://localhost:8082";  // projeto-service
+const TASK_URL = "http://localhost:8085";     // task-service
 
-function parseDuration(iso: string): number {
-  if (!iso) return 0;
-  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+// StatusTarefa do backend (TO_DO / DOING / DONE / BLOCKED) -> status do card.
+function normalizeStatus(value: unknown): TaskStatus {
+  const s = String(value ?? "").toUpperCase();
+  if (s === "TO_DO" || s === "TODO") return "todo";
+  if (s === "DOING") return "doing";
+  if (s === "DONE") return "done";
+  if (s === "BLOCKED") return "blocked";
+  return "todo";
+}
+
+// O backend (apontamentohoras-service) serializa java.time.Duration. Dependendo da
+// config do Jackson, isso chega como string ISO-8601 ("PT8H30M") OU como número de
+// segundos (ex.: 28800). Normalizamos os dois casos para segundos antes de formatar.
+function durationToSeconds(value: string | number | null | undefined): number {
+  if (value == null) return 0;
+  if (typeof value === "number") return value;
+  const match = value.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
   if (!match) return 0;
   const h = parseInt(match[1] || "0");
   const m = parseInt(match[2] || "0");
-  const s = parseInt(match[3] || "0");
-  return Math.round(h + m / 60 + s / 3600);
+  const s = parseFloat(match[3] || "0");
+  return h * 3600 + m * 60 + s;
 }
 
-function formatHoras(iso: string): string {
-  if (!iso) return "0h";
-  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-  if (!match) return "0h";
-  const h = parseInt(match[1] || "0");
-  const m = parseInt(match[2] || "0");
+function parseDuration(value: string | number): number {
+  return Math.round(durationToSeconds(value) / 3600);
+}
+
+function formatHoras(value: string | number): string {
+  const totalSec = durationToSeconds(value);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
@@ -139,11 +159,6 @@ function StatusBadge({ status }: { status: TaskStatus }) {
   );
 }
 
-const MOCK_TASKS: Task[] = [
-  { id: "1", title: "Implementar login", status: "done", projectName: "Alpha" },
-  { id: "2", title: "Corrigir relatório", status: "doing", projectName: "Beta" },
-];
-
 export default function ProfissionalDashboard() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -157,6 +172,9 @@ export default function ProfissionalDashboard() {
   const [openDropdown, setOpenDropdown] = useState(false);
 
   const [resumo, setResumo] = useState<HorasResumoDTO | null>(null);
+
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projetos, setProjetos] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const cargo = localStorage.getItem("cargo");
@@ -193,6 +211,14 @@ export default function ProfissionalDashboard() {
   const mes = now.getMonth() + 1;
   const ano = now.getFullYear();
 
+  // O endpoint GET /horas/{id}/resumo espera dataInicio e dataFim como LocalDate
+  // (yyyy-MM-dd) e ambos são obrigatórios. Montamos o primeiro e o último dia do mês
+  // corrente sem passar por toISOString() (que converte p/ UTC e pode virar o dia).
+  const mmStr = String(mes).padStart(2, "0");
+  const dataInicio = `${ano}-${mmStr}-01`;
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const dataFim = `${ano}-${mmStr}-${String(ultimoDia).padStart(2, "0")}`;
+
   useEffect(() => {
     if (!idConsulta) {
       setLoading(false);
@@ -204,7 +230,7 @@ export default function ProfissionalDashboard() {
     setLoading(true);
     setErro(null);
 
-    fetch(`${BASE_URL}/horas/${idConsulta}/resumo?mes=${mes}&ano=${ano}`, {
+    fetch(`${BASE_URL}/horas/${idConsulta}/resumo?dataInicio=${dataInicio}&dataFim=${dataFim}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -217,6 +243,42 @@ export default function ProfissionalDashboard() {
       .then((data: HorasResumoDTO) => setResumo(data))
       .catch((e) => setErro(e.message))
       .finally(() => setLoading(false));
+  }, [idConsulta]);
+
+  // Tarefas do profissional + nomes dos projetos (mesmo padrão da visualizacaoTime:
+  // task-service em /tarefas/funcionario/{id} e projeto-service em /projeto).
+  useEffect(() => {
+    if (!idConsulta) {
+      setTasks([]);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}` };
+
+    fetch(`${PROJETO_URL}/projeto`, { headers })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        const mapa: Record<string, string> = {};
+        (Array.isArray(data) ? data : []).forEach((p: any) => {
+          mapa[String(p.id)] = p.nome ?? p.name ?? `Projeto ${p.id}`;
+        });
+        setProjetos(mapa);
+      })
+      .catch(() => setProjetos({}));
+
+    fetch(`${TASK_URL}/tarefas/funcionario/${idConsulta}`, { headers })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        const lista: Task[] = (Array.isArray(data) ? data : []).map((t: any) => ({
+          id: String(t.id),
+          title: t.nome ?? "Sem nome",
+          status: t.bloqueada ? "blocked" : normalizeStatus(t.status ?? t.statusTarefa),
+          projectId: String(t.idProjeto),
+        }));
+        setTasks(lista);
+      })
+      .catch(() => setTasks([]));
   }, [idConsulta]);
 
   const horasAtividade: ActivityDistribution[] = resumo
@@ -392,19 +454,25 @@ export default function ProfissionalDashboard() {
 
             <ChartCard title="Tarefas">
               <div className={styles.tableWrapper}>
-                <table className={styles.table}>
-                  <tbody>
-                    {MOCK_TASKS.map((task) => (
-                      <tr key={task.id}>
-                        <td>{task.title}</td>
-                        <td>{task.projectName}</td>
-                        <td className={styles.right}>
-                          <StatusBadge status={task.status} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {tasks.length === 0 ? (
+                  <div style={{ color: "#94A3B8", fontSize: 13, paddingTop: 12 }}>
+                    Nenhuma tarefa atribuída.
+                  </div>
+                ) : (
+                  <table className={styles.table}>
+                    <tbody>
+                      {tasks.map((task) => (
+                        <tr key={task.id}>
+                          <td>{task.title}</td>
+                          <td>{projetos[task.projectId] ?? `Projeto #${task.projectId}`}</td>
+                          <td className={styles.right}>
+                            <StatusBadge status={task.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </ChartCard>
           </div>
