@@ -169,15 +169,18 @@ interface Card {
   justificativa?: string;
 }
 
+function parseDateTime(data: string, hora: string): Date | null {
+  if (!data || !hora) return null;
+  const dateTime = new Date(`${data}T${hora}:00`);
+  return Number.isNaN(dateTime.getTime()) ? null : dateTime;
+}
+
 function calcularTotal(inicio: string, fim: string, dataInicio: string, dataFim: string): number {
-  if (!inicio || !fim) return 0;
-  const [hI, mI] = inicio.substring(0, 5).split(':').map(Number);
-  const [hF, mF] = fim.substring(0, 5).split(':').map(Number);
-  let totalMin = (hF * 60 + mF) - (hI * 60 + mI);
-  if (dataFim && dataInicio && dataFim > dataInicio) {
-    totalMin += 24 * 60;
-  }
-  return totalMin > 0 ? totalMin : 0;
+  const inicioDate = parseDateTime(dataInicio, inicio);
+  const fimDate = parseDateTime(dataFim || dataInicio, fim);
+  if (!inicioDate || !fimDate) return 0;
+  const diffMinutos = Math.round((fimDate.getTime() - inicioDate.getTime()) / 60000);
+  return diffMinutos > 0 ? diffMinutos : 0;
 }
 
 function formatarHoras(minutos: number): string {
@@ -600,7 +603,6 @@ export default function Page() {
                 style={inputStyle}
                 type="date"
                 min={form.dataLancamento}
-                max={hojeISO()}
                 value={form.dataFim}
                 onChange={e => setForm(prev => ({ ...prev, dataFim: e.target.value }))}
               />
