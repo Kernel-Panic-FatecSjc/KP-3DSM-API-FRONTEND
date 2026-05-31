@@ -129,7 +129,7 @@ export default function Page() {
         descricao: descricaoEdit,
         idProjeto: tarefaEditando.idProjeto,
         idResponsaveis: responsaveisEdit.map(r => Number(r.value)),
-        statusTarefa: tarefaEditando.status
+        statusTarefa: normalizeStatus(tarefaEditando.status)
       });
       setModalEditar(false);
       setTarefaEditando(null);
@@ -272,16 +272,12 @@ export default function Page() {
                   />
                 </td>
                 <td>
-                  {projeto && projeto.value !== "" && (
-                    <>
-                      <button className={styles.botaoAbrirEdicao} onClick={() => abrirModalEditar(t)}>
-                        <img src="/images/atualizar.svg" className={styles.imagemBotao} alt="Editar" />
-                      </button>
-                      <button className={styles.botaoExcluir} onClick={() => deletar(t.id)}>
-                        <img src="/images/deletar.svg" className={styles.imagemBotao} alt="Deletar" />
-                      </button>
-                    </>
-                  )}
+                  <button className={styles.botaoAbrirEdicao} onClick={() => abrirModalEditar(t)}>
+                    <img src="/images/atualizar.svg" className={styles.imagemBotao} alt="Editar" />
+                  </button>
+                  <button className={styles.botaoExcluir} onClick={() => deletar(t.id)}>
+                    <img src="/images/deletar.svg" className={styles.imagemBotao} alt="Deletar" />
+                  </button>
                 </td>
               </tr>
             ))}
