@@ -72,16 +72,9 @@ async function getJson<T>(url: string): Promise<T> {
 }
 
 async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {
-    const dadosFiltrados = normalizarLista<HorasExibirDTO>(
+    return normalizarLista<HorasExibirDTO>(
         await getJson<unknown>(`${BASE_URL}/horas/filtrar?estado=${estado}`)
     );
-
-    if (dadosFiltrados.length > 0) return dadosFiltrados;
-
-    const todos = normalizarLista<HorasExibirDTO>(
-        await getJson<unknown>(`${BASE_URL}/horas`)
-    );
-    return todos.filter(h => h.estado === estado);
 }
 
 async function aprovarHora(id: number): Promise<void> {
