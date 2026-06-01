@@ -71,7 +71,8 @@ async function getJson<T>(url: string): Promise<T> {
     return res.json();
 }
 
-async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {    if (estado === 'AGUARDANDO_APROVACAO') {
+async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {
+    if (estado === 'AGUARDANDO_APROVACAO') {
         const [pendentes, aguardando] = await Promise.all([
             getJson<unknown>(`${BASE_URL}/horas/filtrar?estado=PENDENTE`),
             getJson<unknown>(`${BASE_URL}/horas/filtrar?estado=AGUARDANDO_APROVACAO`),
@@ -152,8 +153,19 @@ export default function Page() {
         try {
             setCarregando(true);
             setErro(null);
-            const estado = estadoPorAba[aba];
-            const dados = await filtrarHoras(estado);
+
+            // ✅ CORREÇÃO: histórico busca aprovados + reprovados
+            let dados: HorasExibirDTO[];
+            if (aba === 'historico') {
+                const [aprovados, reprovados] = await Promise.all([
+                    filtrarHoras('APROVADO'),
+                    filtrarHoras('REJEITADO'),
+                ]);
+                dados = [...aprovados, ...reprovados];
+            } else {
+                const estado = estadoPorAba[aba];
+                dados = await filtrarHoras(estado);
+            }
 
             const [projetosRaw, usuariosRaw] = await Promise.all([
                 getJson<unknown>(`${PROJETO_URL}/projeto`).catch(() => []),
@@ -210,7 +222,7 @@ export default function Page() {
     useEffect(() => {
         const intervalo = setInterval(() => {
             carregarSessoes(abaAtiva);
-        }, 30000); // 30 segundos
+        }, 30000);
 
         return () => clearInterval(intervalo);
     }, [abaAtiva]);
@@ -434,6 +446,8 @@ export default function Page() {
                                     <th>Título da Sessão</th>
                                     <th>Data</th>
                                     <th>Total</th>
+                                    {/* ✅ Coluna de status visível no histórico */}
+                                    {abaAtiva === 'historico' && <th>Status</th>}
                                     {abaAtiva === 'aguardando' && <th>Ações</th>}
                                 </tr>
                             </thead>
@@ -457,6 +471,21 @@ export default function Page() {
                                         <td>{s.tituloSessao}</td>
                                         <td>{formatarData(s.dataLancamento)}</td>
                                         <td>{calcularHoras(s.inicio, s.fim)}</td>
+                                        {/* ✅ Badge de status no histórico */}
+                                        {abaAtiva === 'historico' && (
+                                            <td>
+                                                <span style={{
+                                                    padding: '2px 10px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '12px',
+                                                    fontWeight: 600,
+                                                    background: s.estado === 'APROVADO' ? '#d4edda' : '#f8d7da',
+                                                    color: s.estado === 'APROVADO' ? '#155724' : '#721c24',
+                                                }}>
+                                                    {s.estado === 'APROVADO' ? 'Aprovado' : 'Reprovado'}
+                                                </span>
+                                            </td>
+                                        )}
                                         {abaAtiva === 'aguardando' && (
                                             <td className={styles.acoes}>
                                                 <button className={styles.botaoAprovar} onClick={() => handleAprovar(s.id)}>
