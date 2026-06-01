@@ -183,7 +183,6 @@ export function DropdownProjeto({
         const urls = profissionalId
           ? [
               resolveApiBaseUrl(`/api/projeto/profissional/${profissionalId}`),
-              resolveApiBaseUrl(`/api/projetos/profissional/${profissionalId}`),
               resolveApiBaseUrl('/api/projeto'),
             ]
           : [resolveApiBaseUrl('/api/projeto')];
