@@ -53,6 +53,14 @@ function formatarData(data: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+function formatarDataHoje(data: Date): string {
+  const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const dia = data.getDate();
+  const mes = meses[data.getMonth()];
+  const ano = data.getFullYear();
+  return `${dia} ${mes} ${ano}`;
+}
+
 export default function Page() {
   const router = useRouter();
 
@@ -73,12 +81,15 @@ export default function Page() {
         const primeiroDia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
         const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
 
-        const [dados, projetos, tarefas, horasDoMes] = await Promise.all([
+        const [dadosPendentes, dadosAguardando, projetos, tarefas, horasDoMes] = await Promise.all([
+          filtrarHoras({ usuarioId: uid, estado: 'PENDENTE' }),
           filtrarHoras({ usuarioId: uid, estado: 'AGUARDANDO_APROVACAO' }),
           buscarProjetos(),
           buscarTarefasPorFuncionario(uid),
           filtrarHoras({ usuarioId: uid, dataInicio: primeiroDia, dataFim: ultimoDia })
         ]);
+
+        const dados = [...dadosPendentes, ...dadosAguardando];
 
         const totalMesMinutos = horasDoMes.reduce((acc, h) => {
           return acc + calcularTotal(h.inicio.substring(0, 5), h.fim.substring(0, 5));
@@ -140,7 +151,7 @@ export default function Page() {
       {/* HORAS semanal e mensal + filtros de projeto data */}
       <div className={styles.semanaHeader}>
         <div className={styles.semanaHeaderInfo}>
-          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <span className={styles.semanaData}>{formatarDataHoje(new Date())}</span>
           <div className={styles.semanaDivider} />
           <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
           <div className={styles.semanaDivider} />

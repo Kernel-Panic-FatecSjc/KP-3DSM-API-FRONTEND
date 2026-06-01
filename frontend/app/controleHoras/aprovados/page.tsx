@@ -123,6 +123,14 @@ function formatarData(data: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+function formatarDataHoje(data: Date): string {
+  const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const dia = data.getDate();
+  const mes = meses[data.getMonth()];
+  const ano = data.getFullYear();
+  return `${dia} ${mes} ${ano}`;
+}
+
 // TELA de celular (largura <= 480px)
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -144,6 +152,7 @@ export default function Page() {
   const [erro, setErro] = useState<string | null>(null);
   const [filtroProjeto, setFiltroProjeto] = useState('');
   const [filtroData, setFiltroData] = useState('');
+  const [totalMes, setTotalMes] = useState(0);
 
   useEffect(() => {
     const carregar = async () => {
@@ -151,7 +160,20 @@ export default function Page() {
         setCarregando(true);
         setErro(null);
         const uid = Number(localStorage.getItem('usuarioId') || '0');
-        const dados = await filtrarHoras({ usuarioId: uid, estado: 'APROVADO' });
+        
+        const hoje = new Date();
+        const primeiroDia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+        
+        const [dados, horasDoMes] = await Promise.all([
+          filtrarHoras({ usuarioId: uid, estado: 'APROVADO' }),
+          filtrarHoras({ usuarioId: uid, estado: 'APROVADO', dataInicio: primeiroDia, dataFim: ultimoDia })
+        ]);
+        
+        const totalMesMinutos = horasDoMes.reduce((acc, h) => {
+          return acc + calcularTotal(h.inicio.substring(0, 5), h.fim.substring(0, 5));
+        }, 0);
+        setTotalMes(totalMesMinutos);
 
         const comDados: Card[] = dados.map((h) => ({
           id: Number(h.id),
@@ -200,12 +222,11 @@ export default function Page() {
       {/* HORAS semanal e mensal */}
       <div className={styles.semanaHeader}>
         <div className={styles.semanaHeaderInfo}>
-          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <span className={styles.semanaData}>{formatarDataHoje(new Date())}</span>
           <div className={styles.semanaDivider} />
           <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
           <div className={styles.semanaDivider} />
-          {/* TODO: total mensal ainda é mockado */}
-          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+          <span className={styles.semanaStat}>Mês: <strong>{formatarHoras(totalMes)}</strong></span>
         </div>
         <div className={styles.semanaHeaderFiltros}>
           {/* FILTRO por projeto */}

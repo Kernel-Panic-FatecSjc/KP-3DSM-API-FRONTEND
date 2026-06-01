@@ -29,6 +29,12 @@ html, body {
   z-index: 1;
 }
 
+/* Ensure main content fills viewport below the navigation bar (desktop ~70px) */
+.main-wrapper {
+  min-height: calc(100vh - 70px);
+  background: #F7F9FC; /* match page background so empty areas don't show white */
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

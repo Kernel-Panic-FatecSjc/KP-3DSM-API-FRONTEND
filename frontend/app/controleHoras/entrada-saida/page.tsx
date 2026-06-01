@@ -159,6 +159,8 @@ interface Card {
   id: number;
   nomeProjeto: string;
   projetoId: number | null;
+  tarefaId: number | null;
+  tarefaNome?: string;
   tituloSessao: string;
   descricao: string;
   inicio: string;
@@ -197,7 +199,9 @@ function formatarData(data: string): string {
 }
 
 function hojeISO(): string {
-  return new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const local = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
+  return local.toISOString().split('T')[0];
 }
 
 function isRetroativo(data: string): boolean {
@@ -242,20 +246,33 @@ export default function Page() {
     try {
       setCarregando(true);
       setErro(null);
-      const dados = await filtrarHoras({ usuarioId: uid, estado: 'PENDENTE' });
-      const comDados: Card[] = dados.map((h) => ({
-        id: Number(h.id),
-        nomeProjeto: '',
-        projetoId: h.tarefaId,
-        tituloSessao: h.tituloSessao,
-        descricao: h.descricao || '',
-        inicio: h.inicio.substring(0, 5),
-        fim: h.fim.substring(0, 5),
-        tipoAtividade: h.tipoAtividade,
-        dataLancamento: h.dataLancamento,
-        dataFim: h.dataLancamento,
-        justificativa: h.justificativa || '',
-      }));
+      const [dados, tarefasDoUsuario, todosProjetos] = await Promise.all([
+        filtrarHoras({ usuarioId: uid, estado: 'PENDENTE' }),
+        buscarTarefasPorFuncionario(uid),
+        buscarProjetos(),
+      ]);
+      setTarefas(tarefasDoUsuario);
+      setProjetos(todosProjetos.filter(p => tarefasDoUsuario.some(t => t.idProjeto === p.id)));
+
+      const comDados: Card[] = dados.map((h) => {
+        const tarefa = h.tarefaId ? tarefasDoUsuario.find(t => t.id === h.tarefaId) : undefined;
+        const projeto = tarefa ? todosProjetos.find(p => p.id === tarefa.idProjeto) : undefined;
+        return {
+          id: Number(h.id),
+          nomeProjeto: projeto?.nome || '-',
+          projetoId: projeto?.id ?? null,
+          tarefaId: h.tarefaId,
+          tarefaNome: tarefa?.nome ?? undefined,
+          tituloSessao: h.tituloSessao,
+          descricao: h.descricao || '',
+          inicio: h.inicio.substring(0, 5),
+          fim: h.fim.substring(0, 5),
+          tipoAtividade: h.tipoAtividade,
+          dataLancamento: h.dataLancamento,
+          dataFim: h.dataLancamento,
+          justificativa: h.justificativa || '',
+        };
+      });
       setCards(comDados);
     } catch (e) {
       setErro('Não foi possível carregar os registros.');
@@ -268,15 +285,6 @@ export default function Page() {
     const uid = getUserIdFromToken();
     setUsuarioId(uid);
     carregarCards(uid);
-    if (uid) {
-      buscarTarefasPorFuncionario(uid).then(tarefasDoUsuario => {
-        setTarefas(tarefasDoUsuario);
-        const idsProjetos = [...new Set(tarefasDoUsuario.map(t => t.idProjeto))];
-        buscarProjetos().then(todos => {
-          setProjetos(todos.filter(p => idsProjetos.includes(p.id)));
-        }).catch(() => { });
-      }).catch(() => { });
-    }
   }, []);
 
   const enviar = async (id: number) => {
@@ -301,13 +309,15 @@ export default function Page() {
 
   const abrirModalEdicao = (card: Card) => {
     setCardEditando(card);
+    const tarefaAtual = card.tarefaId ? tarefas.find(t => t.id === card.tarefaId) : undefined;
+    const projetoAtual = card.projetoId ? projetos.find(p => p.id === card.projetoId) : tarefaAtual ? projetos.find(p => p.id === tarefaAtual.idProjeto) : undefined;
     setForm({
-      projetoId: card.projetoId ? String(card.projetoId) : '',
+      projetoId: projetoAtual?.id ? String(projetoAtual.id) : card.projetoId ? String(card.projetoId) : '',
       tituloSessao: card.tituloSessao,
       descricao: card.descricao,
       inicio: card.inicio,
       fim: card.fim,
-      tipoAtividade: card.tipoAtividade,
+      tipoAtividade: card.tarefaId ? String(card.tarefaId) : '',
       dataLancamento: card.dataLancamento,
       dataFim: card.dataFim || card.dataLancamento,
       justificativa: card.justificativa || '',
@@ -549,6 +559,9 @@ export default function Page() {
                 onChange={e => setForm(prev => ({ ...prev, tipoAtividade: e.target.value }))}
               >
                 <option value="">Selecione...</option>
+                {form.tipoAtividade && !tarefas.some(t => String(t.id) === form.tipoAtividade) && (
+                  <option value={form.tipoAtividade}>Selecionado: {tarefas.find(t => String(t.id) === form.tipoAtividade)?.nome || 'Tarefa atual'}</option>
+                )}
                 {tarefas
                   .filter(t => !form.projetoId || String(t.idProjeto) === form.projetoId)
                   .map(t => (
@@ -565,6 +578,9 @@ export default function Page() {
                 onChange={e => setForm(prev => ({ ...prev, tituloSessao: e.target.value }))}
               >
                 <option value="">Selecione...</option>
+                {form.tituloSessao && !OPCOES_TITULO.some(o => o.value === form.tituloSessao) && (
+                  <option value={form.tituloSessao}>Selecionado: {form.tituloSessao}</option>
+                )}
                 {OPCOES_TITULO.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
@@ -588,12 +604,15 @@ export default function Page() {
                 type="date"
                 max={hojeISO()}
                 value={form.dataLancamento}
-                onChange={e => setForm(prev => ({
-                  ...prev,
-                  dataLancamento: e.target.value,
-                  dataFim: e.target.value,
-                  justificativa: '',
-                }))}
+                onChange={e => {
+                  const novaDataInicio = e.target.value;
+                  setForm(prev => ({
+                    ...prev,
+                    dataLancamento: novaDataInicio,
+                    dataFim: prev.dataFim && prev.dataFim >= novaDataInicio ? prev.dataFim : novaDataInicio,
+                    justificativa: '',
+                  }));
+                }}
               />
             </div>
 

@@ -71,7 +71,16 @@ async function getJson<T>(url: string): Promise<T> {
     return res.json();
 }
 
-async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {
+async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {    if (estado === 'AGUARDANDO_APROVACAO') {
+        const [pendentes, aguardando] = await Promise.all([
+            getJson<unknown>(`${BASE_URL}/horas/filtrar?estado=PENDENTE`),
+            getJson<unknown>(`${BASE_URL}/horas/filtrar?estado=AGUARDANDO_APROVACAO`),
+        ]);
+        return [
+            ...normalizarLista<HorasExibirDTO>(pendentes),
+            ...normalizarLista<HorasExibirDTO>(aguardando),
+        ];
+    }
     return normalizarLista<HorasExibirDTO>(
         await getJson<unknown>(`${BASE_URL}/horas/filtrar?estado=${estado}`)
     );
@@ -83,10 +92,10 @@ async function aprovarHora(id: number): Promise<void> {
 }
 
 async function rejeitarHora(id: number, motivoRejeicao: string): Promise<void> {
-    const res = await fetch(`${BASE_URL}/horas/${id}/rejeitar`, {
+    const res = await fetch(`${BASE_URL}/horas/rejeitar`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motivoRejeicao }),
+        body: JSON.stringify({ id, motivoRejeicao }),
     });
     if (!res.ok) throw new Error('Erro ao rejeitar');
 }
@@ -195,6 +204,15 @@ export default function Page() {
         setPaginaAtual(1);
         setSelecionados([]);
         setModoLote(null);
+    }, [abaAtiva]);
+
+    // Polling automático para atualizar registros a cada 30 segundos
+    useEffect(() => {
+        const intervalo = setInterval(() => {
+            carregarSessoes(abaAtiva);
+        }, 30000); // 30 segundos
+
+        return () => clearInterval(intervalo);
     }, [abaAtiva]);
 
     const handleAprovar = async (id: number) => {
