@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 
 const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8084';
-const PROJETO_URL = 'http://localhost:8082';
-const TASK_URL = 'http://localhost:8085';
-const USUARIO_URL = 'http://localhost:8083';
+const PROJETO_URL = process.env.NEXT_PUBLIC_PROJETO_API_URL || 'http://localhost:8082';
+const TASK_URL = process.env.NEXT_PUBLIC_TASK_API_URL || 'http://localhost:8085';
+const USUARIO_URL = process.env.NEXT_PUBLIC_USUARIO_API_URL || 'http://localhost:8083';
 
 type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
 
@@ -40,10 +40,48 @@ interface Sessao {
     estado: EstadoHora;
 }
 
-async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {
-    const res = await fetch(`${BASE_URL}/horas/filtrar?estado=${estado}`);
-    if (!res.ok) throw new Error('Erro ao buscar horas');
+interface Projeto {
+    id: number;
+    nome?: string;
+}
+
+interface Usuario {
+    id: number;
+    nome?: string;
+}
+
+interface Tarefa {
+    id: number;
+    idProjeto?: number;
+    projetoId?: number;
+}
+
+function normalizarLista<T>(data: unknown): T[] {
+    if (Array.isArray(data)) return data as T[];
+    if (data && typeof data === 'object') {
+        const obj = data as { content?: T[]; data?: T[]; horas?: T[] };
+        return obj.content ?? obj.data ?? obj.horas ?? [];
+    }
+    return [];
+}
+
+async function getJson<T>(url: string): Promise<T> {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Erro ${res.status}`);
     return res.json();
+}
+
+async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {
+    const dadosFiltrados = normalizarLista<HorasExibirDTO>(
+        await getJson<unknown>(`${BASE_URL}/horas/filtrar?estado=${estado}`)
+    );
+
+    if (dadosFiltrados.length > 0) return dadosFiltrados;
+
+    const todos = normalizarLista<HorasExibirDTO>(
+        await getJson<unknown>(`${BASE_URL}/horas`)
+    );
+    return todos.filter(h => h.estado === estado);
 }
 
 async function aprovarHora(id: number): Promise<void> {
@@ -52,10 +90,10 @@ async function aprovarHora(id: number): Promise<void> {
 }
 
 async function rejeitarHora(id: number, motivoRejeicao: string): Promise<void> {
-    const res = await fetch(`${BASE_URL}/horas/rejeitar`, {
+    const res = await fetch(`${BASE_URL}/horas/${id}/rejeitar`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, motivoRejeicao }),
+        body: JSON.stringify({ motivoRejeicao }),
     });
     if (!res.ok) throw new Error('Erro ao rejeitar');
 }
@@ -115,24 +153,27 @@ export default function Page() {
             const estado = estadoPorAba[aba];
             const dados = await filtrarHoras(estado);
 
-            const [projetos, usuarios] = await Promise.all([
-                fetch(`${PROJETO_URL}/projeto`).then(r => r.json()).catch(() => []),
-                fetch(`${USUARIO_URL}/usuario/todos`).then(r => r.json()).catch(() => []),
+            const [projetosRaw, usuariosRaw] = await Promise.all([
+                getJson<unknown>(`${PROJETO_URL}/projeto`).catch(() => []),
+                getJson<unknown>(`${USUARIO_URL}/usuario/todos`).catch(() => []),
             ]);
+            const projetos = normalizarLista<Projeto>(projetosRaw);
+            const usuarios = normalizarLista<Usuario>(usuariosRaw);
 
             const tarefaIds = [...new Set(dados.filter(h => h.tarefaId).map(h => h.tarefaId as number))];
-            const tarefas: any[] = [];
+            const tarefas: Tarefa[] = [];
             for (const tid of tarefaIds) {
                 try {
-                    const t = await fetch(`${TASK_URL}/tarefas/${tid}`).then(r => r.json());
+                    const t = await getJson<Tarefa>(`${TASK_URL}/tarefas/${tid}`);
                     tarefas.push(t);
                 } catch { }
             }
 
             const mapeado: Sessao[] = dados.map(h => {
                 const tarefa = tarefas.find(t => t.id === h.tarefaId);
-                const projeto = tarefa ? projetos.find((p: any) => p.id === tarefa.idProjeto) : null;
-                const usuario = usuarios.find((u: any) => u.id === h.usuarioId);
+                const projetoId = tarefa?.idProjeto ?? tarefa?.projetoId;
+                const projeto = projetoId ? projetos.find(p => p.id === projetoId) : null;
+                const usuario = usuarios.find(u => u.id === h.usuarioId);
                 return {
                     id: h.id,
                     nomeProjeto: projeto?.nome ?? '-',
