@@ -65,6 +65,11 @@ function normalizarLista<T>(data: unknown): T[] {
     return [];
 }
 
+function getToken(): string {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('token') || '';
+}
+
 async function getJson<T>(url: string): Promise<T> {
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Erro ${res.status}`);
@@ -88,14 +93,19 @@ async function filtrarHoras(estado: EstadoHora): Promise<HorasExibirDTO[]> {
 }
 
 async function aprovarHora(id: number): Promise<void> {
-    const res = await fetch(`${BASE_URL}/horas/${id}/aprovar`, { method: 'PATCH' });
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/horas/${id}/aprovar`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+    });
     if (!res.ok) throw new Error('Erro ao aprovar');
 }
 
 async function rejeitarHora(id: number, motivoRejeicao: string): Promise<void> {
+    const token = getToken();
     const res = await fetch(`${BASE_URL}/horas/rejeitar`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id, motivoRejeicao }),
     });
     if (!res.ok) throw new Error('Erro ao rejeitar');
@@ -154,7 +164,6 @@ export default function Page() {
             setCarregando(true);
             setErro(null);
 
-            // ✅ CORREÇÃO: histórico busca aprovados + reprovados
             let dados: HorasExibirDTO[];
             if (aba === 'historico') {
                 const [aprovados, reprovados] = await Promise.all([
@@ -218,7 +227,6 @@ export default function Page() {
         setModoLote(null);
     }, [abaAtiva]);
 
-    // Polling automático para atualizar registros a cada 30 segundos
     useEffect(() => {
         const intervalo = setInterval(() => {
             carregarSessoes(abaAtiva);
@@ -446,7 +454,6 @@ export default function Page() {
                                     <th>Título da Sessão</th>
                                     <th>Data</th>
                                     <th>Total</th>
-                                    {/* ✅ Coluna de status visível no histórico */}
                                     {abaAtiva === 'historico' && <th>Status</th>}
                                     {abaAtiva === 'aguardando' && <th>Ações</th>}
                                 </tr>
@@ -471,7 +478,6 @@ export default function Page() {
                                         <td>{s.tituloSessao}</td>
                                         <td>{formatarData(s.dataLancamento)}</td>
                                         <td>{calcularHoras(s.inicio, s.fim)}</td>
-                                        {/* ✅ Badge de status no histórico */}
                                         {abaAtiva === 'historico' && (
                                             <td>
                                                 <span style={{

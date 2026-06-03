@@ -4,7 +4,7 @@ import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
 
 // --- INTEGRAÇÃO COM O BACKEND ---
-const AUDITORIA_URL = '/api/auditoria';
+const AUDITORIA_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL ? `${process.env.NEXT_PUBLIC_APONTAMENTO_API_URL}/auditoria` : 'http://localhost:8084/auditoria';
 
 export interface AuditoriaHoraDTO {
   id: number;
@@ -59,9 +59,7 @@ const MOCK_NOME_PROJETO = 'Aerocode';
 interface Card {
   id: number;
   projetoNome: string;
-  campo: string;
-  valorAnterior: string;
-  valorNovo: string;
+  status: string;
   dataAlteracao: string;
   alteradoPor: string;
 }
@@ -73,7 +71,6 @@ function formatarData(data: string): string {
   return parsed.toLocaleDateString('pt-BR');
 }
 
-// TELA de celular (largura <= 480px)
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -109,9 +106,7 @@ export default function Page() {
         const comDados: Card[] = apenasEstado.map((h) => ({
           id: Number(h.id),
           projetoNome: h.projetoNome || MOCK_NOME_PROJETO,
-          campo: h.campo,
-          valorAnterior: h.valorAnterior || '-',
-          valorNovo: h.valorNovo || '-',
+          status: h.valorNovo || '-',
           dataAlteracao: h.dataAlteracao.split('T')[0],
           alteradoPor: h.alteradoPorNome || h.usuarioNome || 'Desconhecido',
         }));
@@ -126,7 +121,6 @@ export default function Page() {
   }, []);
 
   const cards = cardsAPI;
-
   const projetos = Array.from(new Set(cards.map(c => c.projetoNome)));
 
   const cardsFiltrados = cards.filter(c => {
@@ -136,15 +130,19 @@ export default function Page() {
   });
 
   const totalGeral = cardsFiltrados.length;
-
   const mesAtual = new Date().toISOString().substring(0, 7);
   const totalMensal = cards.filter(c => c.dataAlteracao.startsWith(mesAtual)).length;
 
-  const gridColunas = isMobile ? '1fr' : '1fr 160px 160px 170px 170px 160px';
+  const gridColunas = isMobile ? "1fr" : "1fr 160px 170px";
+
+  function labelStatus(status: string) {
+    if (status === 'APROVADO') return { label: 'Aprovado', bg: '#e6f7ed', color: '#1a9c5f' };
+    if (status === 'REJEITADO') return { label: 'Reprovado', bg: '#FADADD', color: '#C0392B' };
+    return { label: status, bg: '#E8EFF9', color: '#0A4FA8' };
+  }
 
   return (
     <div className={styles.page}>
-      {/* OPÇÕES de filtro */}
       <div className={styles.filtros}>
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/entrada-saida')}>Entrada/Saída</button>
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/aguardando-aprovacao')}>Aguardando aprovação</button>
@@ -193,51 +191,43 @@ export default function Page() {
         {!isMobile && (
           <div style={{ display: 'grid', gridTemplateColumns: gridColunas, padding: '0 20px 8px', gap: '10px', fontSize: '11px', fontWeight: 700, color: '#0A4FA8', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1.5px solid #E8EFF9', marginBottom: '10px' }}>
             <span style={{ textAlign: 'left' }}>Projeto</span>
-            <span>Campo</span>
-            <span>Valor anterior</span>
-            <span>Valor novo</span>
+            <span>Status</span>
             <span>Data</span>
-            <span>Alterado por</span>
+
           </div>
         )}
 
-        {carregando && (
-          <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>
-        )}
+        {carregando && <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>}
+        {erro && <p style={{ color: '#C0392B', padding: '16px 0', fontSize: '13px' }}>{erro}</p>}
 
-        {erro && (
-          <p style={{ color: '#C0392B', padding: '16px 0', fontSize: '13px' }}>{erro}</p>
-        )}
-
-        {/* CARDS */}
-        {cardsFiltrados.map((card) => (
-          <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: gridColunas, alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
-            <div>
-              <div className={styles.cardBreadcrumb}>{card.projetoNome}</div>
-              <div className={styles.cardTitulo}>{card.campo}</div>
-              <div className={styles.cardTags}>
-                <span className={styles.cardTag}>Antes: {card.valorAnterior}</span>
-                <span className={styles.cardTag}>Depois: {card.valorNovo}</span>
+        {cardsFiltrados.map((card) => {
+          const { label, bg, color } = labelStatus(card.status);
+          return (
+            <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: gridColunas, alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
+              <div>
+                <div className={styles.cardBreadcrumb}>{card.projetoNome}</div>
+                {isMobile && (
+                  <div style={{ fontSize: '12px', color: '#0A4FA8', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ padding: '2px 10px', borderRadius: '12px', background: bg, color, fontWeight: 600, fontSize: '12px' }}>{label}</span>
+                    <span>·</span>
+                    <span>{formatarData(card.dataAlteracao)}</span>
+                    <span>·</span>
+                    <span>{card.alteradoPor}</span>
+                  </div>
+                )}
               </div>
-              {isMobile && (
-                <div style={{ fontSize: '12px', color: '#0A4FA8', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <span>{formatarData(card.dataAlteracao)}</span>
-                  <span>·</span>
-                  <span>{card.alteradoPor}</span>
-                </div>
+              {!isMobile && (
+                <>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ padding: '2px 10px', borderRadius: '12px', background: bg, color, fontWeight: 600, fontSize: '12px' }}>{label}</span>
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataAlteracao)}</div>
+
+                </>
               )}
             </div>
-
-            {!isMobile && (
-              <>
-                <div className={styles.cardHorario} style={{ textAlign: 'center' }}>{card.valorAnterior}</div>
-                <div className={styles.cardHorario} style={{ textAlign: 'center' }}>{card.valorNovo}</div>
-                <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataAlteracao)}</div>
-                <div style={{ textAlign: 'center', fontSize: '13px' }}>{card.alteradoPor}</div>
-              </>
-            )}
-          </div>
-        ))}
+          );
+        })}
 
         {!carregando && !erro && cardsFiltrados.length === 0 && (
           <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>

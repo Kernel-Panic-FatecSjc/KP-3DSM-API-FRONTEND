@@ -18,6 +18,7 @@ export interface HorasExibirDTO {
   tipoAtividade: string;
   descricao: string | null;
   dataLancamento: string;
+  dataFim: string | null;
   inicio: string;
   fim: string;
   justificativa: string | null;
@@ -33,6 +34,7 @@ export interface HorasCadastrarDTO {
   tipoAtividade: string;
   descricao?: string;
   dataLancamento: string;
+  dataFim?: string;
   inicio: string;
   fim: string;
   justificativa?: string;
@@ -45,6 +47,7 @@ export interface HorasAtualizarDTO {
   tipoAtividade: string;
   descricao?: string;
   dataLancamento: string;
+  dataFim?: string;
   inicio: string;
   fim: string;
   justificativa?: string;
@@ -269,7 +272,7 @@ export default function Page() {
           fim: h.fim.substring(0, 5),
           tipoAtividade: h.tipoAtividade,
           dataLancamento: h.dataLancamento,
-          dataFim: h.dataLancamento,
+          dataFim: h.dataFim || h.dataLancamento,
           justificativa: h.justificativa || '',
         };
       });
@@ -335,6 +338,12 @@ export default function Page() {
     if (!form.dataLancamento) { alert('Informe a data de início.'); return; }
     if (!form.dataFim) { alert('Informe a data de fim.'); return; }
     if (form.dataFim < form.dataLancamento) { alert('A data de fim não pode ser anterior à data de início.'); return; }
+    if (form.dataFim > hojeISO()) { alert('A data de fim não pode ser futura.'); return; }
+    if (form.dataFim === hojeISO() && form.fim) {
+      const agora = new Date();
+      const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+      if (form.fim > horaAtual) { alert('O horário de fim não pode ser futuro.'); return; }
+    }
     if (form.dataFim === form.dataLancamento && form.inicio && form.fim && form.fim <= form.inicio) {
       alert('O horário de fim deve ser posterior ao início quando as datas são iguais.');
       return;
@@ -353,6 +362,7 @@ export default function Page() {
           descricao: form.descricao,
           tipoAtividade: form.tituloSessao,
           dataLancamento: form.dataLancamento,
+          dataFim: form.dataFim,
           inicio: form.inicio,
           fim: form.fim,
           justificativa: form.justificativa,
@@ -365,6 +375,7 @@ export default function Page() {
           descricao: form.descricao,
           tipoAtividade: form.tituloSessao,
           dataLancamento: form.dataLancamento,
+          dataFim: form.dataFim,
           inicio: form.inicio,
           fim: form.fim,
           justificativa: form.justificativa,
@@ -622,6 +633,7 @@ export default function Page() {
                 style={inputStyle}
                 type="date"
                 min={form.dataLancamento}
+                max={hojeISO()}
                 value={form.dataFim}
                 onChange={e => setForm(prev => ({ ...prev, dataFim: e.target.value }))}
               />
@@ -763,5 +775,3 @@ const btnIcone: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
 };
-
-

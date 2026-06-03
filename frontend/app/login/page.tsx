@@ -54,7 +54,7 @@ export default function Page() {
         const cargo = localStorage.getItem('cargo');
         if (cargo === 'ROLE_PROFISSIONAL') router.push('/controleHoras/entrada-saida');
         else if (cargo === 'ROLE_GESTOR') router.push('/gestao-tarefas-gestor');
-        else if (cargo === 'ROLE_FINANCEIRO') router.push('/');
+        else if (cargo === 'ROLE_FINANCEIRO') router.push('/painel/auditoria');
       } else {
         setShowModal(true);
       }
