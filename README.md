@@ -1,7 +1,7 @@
 # KP-3DSM-API-FRONTEND
 
-Frontend da aplicação KernelPanic — Controle de Apontamento de Horas  
-Desenvolvido para o cliente GSW Soluções Integradas | FATEC São José dos Campos — DSM 3º Semestre
+Frontend da aplicaÃ§Ã£o KernelPanic de Controle de Apontamento de Horas  
+Desenvolvido para o cliente GSW SoluÃ§Ãµes Integradas | FATEC SÃ£o JosÃ© dos Campos - DSM 3 Semestre
 
 ## Tecnologias
 
@@ -11,30 +11,30 @@ Desenvolvido para o cliente GSW Soluções Integradas | FATEC São José dos Campos 
 
 ## Como rodar
 
-### Pré-requisitos
+### PrÃ©-requisitos
 
 - Node.js 18+
 - npm
 
-### Instalação
+### InstalaÃ§Ã£o
 
-`ash
+`bash
 cd frontend
 npm install
 `
 
 ### Executar em desenvolvimento
 
-`ash
+`bash
 cd frontend
 npm run dev
 `
 
-A aplicação estará disponível em http://localhost:3000
+A aplicaÃ§Ã£o estarr disponÃ­vel em http://localhost:3000
 
-## Variáveis de ambiente
+## VariÃ¡veis de ambiente
 
-Crie um arquivo .env.local dentro da pasta rontend com as seguintes variáveis:
+Crie um arquivo .env.local dentro da pasta frontend com as seguintes variÃ¡veis:
 
 `env
 NEXT_PUBLIC_APONTAMENTO_API_URL=http://localhost:8084
@@ -43,6 +43,6 @@ NEXT_PUBLIC_TASK_API_URL=http://localhost:8085
 NEXT_PUBLIC_USUARIO_API_URL=http://localhost:8083
 `
 
-## Observação
+## ObservaÃ§Ã£o
 
-O projeto possui uma pasta aninhada — todos os comandos devem ser executados dentro de rontend/.
+O projeto possui uma pasta aninhadac e todos os comandos devem ser executados dentro de frontend/.
