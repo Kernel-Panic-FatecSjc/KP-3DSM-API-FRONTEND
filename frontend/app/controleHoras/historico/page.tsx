@@ -2,104 +2,89 @@
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
-import {
-  filtrarHoras,
-  buscarUsuarioPorId,
-} from '../../services/controleHoras';
 
-// usuarioId fixo até o auth estar integrado
-const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
+// --- INTEGRAÇÃO COM O BACKEND ---
+const AUDITORIA_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL ? `${process.env.NEXT_PUBLIC_APONTAMENTO_API_URL}/auditoria` : 'http://localhost:8084/auditoria';
 
-// nomeProjeto mockado até tarefa-service + projeto-service estarem integrados
+export interface AuditoriaHoraDTO {
+  id: number;
+  horaId: number | null;
+  alteradoPorId: number | null;
+  alteradoPorNome: string | null;
+  usuarioId: number | null;
+  usuarioNome: string | null;
+  projetoId: number | null;
+  projetoNome: string | null;
+  campo: string;
+  valorAnterior: string | null;
+  valorNovo: string | null;
+  dataAlteracao: string;
+}
+
+export interface HistoricoFiltroParams {
+  usuarioId?: number;
+  projetoId?: number;
+  campo?: string;
+  dataInicio?: string;
+  dataFim?: string;
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const erro = await res.text();
+    throw new Error(erro || `Erro ${res.status}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+export async function filtrarHistorico(params: HistoricoFiltroParams): Promise<AuditoriaHoraDTO[]> {
+  const query = new URLSearchParams();
+  if (params.usuarioId !== undefined) query.append('usuarioId', String(params.usuarioId));
+  if (params.projetoId !== undefined) query.append('projetoId', String(params.projetoId));
+  if (params.campo) query.append('campo', params.campo);
+  if (params.dataInicio) query.append('dataInicio', params.dataInicio);
+  if (params.dataFim) query.append('dataFim', params.dataFim);
+  query.append('page', '0');
+  query.append('size', '1000');
+
+  const res = await fetch(`${AUDITORIA_URL}?${query.toString()}`);
+  const json = await handleResponse<any>(res);
+  if (Array.isArray(json)) return json;
+  return json.content ?? [];
+}
+
 const MOCK_NOME_PROJETO = 'Aerocode';
 
 interface Card {
   id: number;
-  nomeProjeto: string;
-  tituloSessao: string;
-  descricao: string;
-  responsavel: string;
-  inicio: string;
-  fim: string;
-  dataLancamento: string;
-}
-
-const cardsMockados: Card[] = [
-  {
-    id: -1,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Reunião de planejamento',
-    descricao: 'Frontend',
-    responsavel: 'José Ricardo',
-    inicio: '08:00',
-    fim: '10:00',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: -2,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Implementação de tela de login',
-    descricao: 'Frontend',
-    responsavel: 'Daniele',
-    inicio: '09:30',
-    fim: '12:00',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: -3,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Modelagem do banco de dados',
-    descricao: 'Backend',
-    responsavel: 'Frida',
-    inicio: '13:00',
-    fim: '15:30',
-    dataLancamento: '2025-02-10',
-  },
-  {
-    id: -4,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Revisão de pull requests',
-    descricao: 'Backend',
-    responsavel: 'Hanna',
-    inicio: '14:00',
-    fim: '16:00',
-    dataLancamento: '2025-02-10',
-  },
-  {
-    id: -5,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Testes de integração',
-    descricao: 'QA',
-    responsavel: 'José Ricardo',
-    inicio: '16:00',
-    fim: '17:30',
-    dataLancamento: '2025-02-03',
-  },
-];
-
-function calcularTotal(inicio: string, fim: string): number {
-  if (!inicio || !fim) return 0;
-  const [hI, mI] = inicio.split(':').map(Number);
-  const [hF, mF] = fim.split(':').map(Number);
-  const totalMin = (hF * 60 + mF) - (hI * 60 + mI);
-  return totalMin > 0 ? totalMin : 0;
-}
-
-function formatarHoras(minutos: number): string {
-  if (minutos <= 0) return '0h 0min';
-  const h = Math.floor(minutos / 60);
-  const m = minutos % 60;
-  return `${h}h ${m}min`;
+  projetoNome: string;
+  status: string;
+  dataAlteracao: string;
+  alteradoPor: string;
 }
 
 function formatarData(data: string): string {
   if (!data) return '';
-  const [ano, mes, dia] = data.split('-');
-  return `${dia}/${mes}/${ano}`;
+  const parsed = new Date(data);
+  if (Number.isNaN(parsed.getTime())) return data;
+  return parsed.toLocaleDateString('pt-BR');
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 480);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return isMobile;
 }
 
 export default function Page() {
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [cardsAPI, setCardsAPI] = useState<Card[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -112,31 +97,19 @@ export default function Page() {
       try {
         setCarregando(true);
         setErro(null);
-        // historico = todos os apontamentos do usuário sem filtro de estado
-        const dados = await filtrarHoras({ usuarioId: USUARIO_ID });
-        const comDados: Card[] = await Promise.all(
-          dados.map(async (h) => {
-            let responsavel = '';
-            try {
-              const usuario = await buscarUsuarioPorId(h.usuarioId);
-              responsavel = usuario.nome;
-            } catch {
-              // fallback: busca nome salvo no localStorage quando usuario-service não está disponível
-              const nomesSalvos = JSON.parse(localStorage.getItem('nomeResponsaveis') || '{}');
-              responsavel = nomesSalvos[String(h.usuarioId)] || String(h.usuarioId);
-            }
-            return {
-              id: Number(h.id),
-              nomeProjeto: MOCK_NOME_PROJETO, // substituir quando tarefa-service + projeto-service estiverem integrados
-              tituloSessao: h.tituloSessao,
-              descricao: h.descricao || '',
-              responsavel,
-              inicio: h.inicio.substring(0, 5),
-              fim: h.fim.substring(0, 5),
-              dataLancamento: h.dataLancamento,
-            };
-          })
-        );
+
+        const storedUserId = localStorage.getItem('usuarioId');
+        const usuarioId = storedUserId ? Number(storedUserId) : undefined;
+        const dados = await filtrarHistorico({ usuarioId, campo: 'estado' });
+        const apenasEstado = dados.filter((h) => h.campo === 'estado');
+
+        const comDados: Card[] = apenasEstado.map((h) => ({
+          id: Number(h.id),
+          projetoNome: h.projetoNome || MOCK_NOME_PROJETO,
+          status: h.valorNovo || '-',
+          dataAlteracao: h.dataAlteracao.split('T')[0],
+          alteradoPor: h.alteradoPorNome || h.usuarioNome || 'Desconhecido',
+        }));
         setCardsAPI(comDados);
       } catch {
         setErro('Não foi possível carregar os registros.');
@@ -147,20 +120,29 @@ export default function Page() {
     carregar();
   }, []);
 
-  const cards = [...cardsAPI, ...cardsMockados];
-  const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
+  const cards = cardsAPI;
+  const projetos = Array.from(new Set(cards.map(c => c.projetoNome)));
 
   const cardsFiltrados = cards.filter(c => {
-    const matchProjeto = filtroProjeto === '' || c.nomeProjeto === filtroProjeto;
-    const matchData = filtroData === '' || c.dataLancamento === filtroData;
+    const matchProjeto = filtroProjeto === '' || c.projetoNome === filtroProjeto;
+    const matchData = filtroData === '' || c.dataAlteracao === filtroData;
     return matchProjeto && matchData;
   });
 
-  const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+  const totalGeral = cardsFiltrados.length;
+  const mesAtual = new Date().toISOString().substring(0, 7);
+  const totalMensal = cards.filter(c => c.dataAlteracao.startsWith(mesAtual)).length;
+
+  const gridColunas = isMobile ? "1fr" : "1fr 160px 170px";
+
+  function labelStatus(status: string) {
+    if (status === 'APROVADO') return { label: 'Aprovado', bg: '#e6f7ed', color: '#1a9c5f' };
+    if (status === 'REJEITADO') return { label: 'Reprovado', bg: '#FADADD', color: '#C0392B' };
+    return { label: status, bg: '#E8EFF9', color: '#0A4FA8' };
+  }
 
   return (
     <div className={styles.page}>
-      {/* OPÇÕES de filtro */}
       <div className={styles.filtros}>
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/entrada-saida')}>Entrada/Saída</button>
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/aguardando-aprovacao')}>Aguardando aprovação</button>
@@ -169,14 +151,13 @@ export default function Page() {
         <button className={`${styles.filtroBtn} ${styles.filtroBtnAtivo}`}>Histórico</button>
       </div>
 
-      {/* HORAS semanal e mensal + filtros de projeto/data */}
       <div className={styles.semanaHeader}>
         <div className={styles.semanaHeaderInfo}>
-          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <span className={styles.semanaData}>{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           <div className={styles.semanaDivider} />
-          <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
+          <span className={styles.semanaStat}>Registros: <strong>{totalGeral}</strong></span>
           <div className={styles.semanaDivider} />
-          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+          <span className={styles.semanaStat}>Mês: <strong>{totalMensal}</strong></span>
         </div>
         <div className={styles.semanaHeaderFiltros}>
           <select
@@ -207,40 +188,52 @@ export default function Page() {
       </div>
 
       <div className={styles.cardWrapper}>
-        {/* ATIVIDADES - inicio, fim e total */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px', padding: '0 20px 8px', gap: '10px', fontSize: '11px', fontWeight: 700, color: '#0A4FA8', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1.5px solid #E8EFF9', marginBottom: '10px' }}>
-          <span style={{ textAlign: 'left' }}>Atividade</span>
-          <span>Início</span>
-          <span>Fim</span>
-          <span>Total</span>
-          <span>Lançamento</span>
-        </div>
+        {!isMobile && (
+          <div style={{ display: 'grid', gridTemplateColumns: gridColunas, padding: '0 20px 8px', gap: '10px', fontSize: '11px', fontWeight: 700, color: '#0A4FA8', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1.5px solid #E8EFF9', marginBottom: '10px' }}>
+            <span style={{ textAlign: 'left' }}>Projeto</span>
+            <span>Status</span>
+            <span>Data</span>
 
-        {carregando && (
-          <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>
-        )}
-
-        {erro && (
-          <p style={{ color: '#C0392B', padding: '16px 0', fontSize: '13px' }}>{erro}</p>
-        )}
-
-        {/* CARDS */}
-        {cardsFiltrados.map((card) => (
-          <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px', alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
-            <div>
-              <div className={styles.cardBreadcrumb}>{card.nomeProjeto}</div>
-              <div className={styles.cardTitulo}>{card.tituloSessao}</div>
-              <div className={styles.cardTags}>
-                <span className={styles.cardTag}>{card.descricao}</span>
-                <span className={styles.cardTag}>{card.responsavel}</span>
-              </div>
-            </div>
-            <div className={styles.cardHorario}>{card.inicio}</div>
-            <div className={styles.cardHorario}>{card.fim}</div>
-            <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
-            <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
           </div>
-        ))}
+        )}
+
+        {carregando && <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>}
+        {erro && <p style={{ color: '#C0392B', padding: '16px 0', fontSize: '13px' }}>{erro}</p>}
+
+        {cardsFiltrados.map((card) => {
+          const { label, bg, color } = labelStatus(card.status);
+          return (
+            <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: gridColunas, alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
+              <div>
+                <div className={styles.cardBreadcrumb}>{card.projetoNome}</div>
+                {isMobile && (
+                  <div style={{ fontSize: '12px', color: '#0A4FA8', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ padding: '2px 10px', borderRadius: '12px', background: bg, color, fontWeight: 600, fontSize: '12px' }}>{label}</span>
+                    <span>·</span>
+                    <span>{formatarData(card.dataAlteracao)}</span>
+                    <span>·</span>
+                    <span>{card.alteradoPor}</span>
+                  </div>
+                )}
+              </div>
+              {!isMobile && (
+                <>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ padding: '2px 10px', borderRadius: '12px', background: bg, color, fontWeight: 600, fontSize: '12px' }}>{label}</span>
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataAlteracao)}</div>
+
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {!carregando && !erro && cardsFiltrados.length === 0 && (
+          <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>
+            Nenhum histórico de mudanças de estado encontrado para o filtro atual.
+          </p>
+        )}
       </div>
     </div>
   );

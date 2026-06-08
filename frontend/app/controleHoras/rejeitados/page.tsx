@@ -2,36 +2,74 @@
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
-import {
-    filtrarHoras,
-    buscarUsuarioPorId,
-} from '../../services/controleHoras';
 
-// usuarioId fixo até o auth estar integrado
-const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
+// --- INTEGRAÇÃO COM O BACKEND ---
+const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8084';
 
-// nomeProjeto mockado até tarefa-service + projeto-service estarem integrados
+export type EstadoHora = 'PENDENTE' | 'AGUARDANDO_APROVACAO' | 'APROVADO' | 'REJEITADO';
+
+export interface HorasExibirDTO {
+    id: number;
+    tarefaId: number | null;
+    usuarioId: number;
+    tituloSessao: string;
+    tipoAtividade: string;
+    descricao: string | null;
+    dataLancamento: string;
+    inicio: string;
+    fim: string;
+    justificativa: string | null;
+    motivoRejeicao: string | null;
+    estado: EstadoHora;
+    dataCriacao: string;
+}
+
+export interface HorasFiltroParams {
+    usuarioId?: number;
+    estado?: EstadoHora;
+    dataInicio?: string;
+    dataFim?: string;
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+    if (!res.ok) {
+        const erro = await res.text();
+        throw new Error(erro || `Erro ${res.status}`);
+    }
+    if (res.status === 204) return undefined as T;
+    return res.json();
+}
+
+export async function filtrarHoras(params: HorasFiltroParams): Promise<HorasExibirDTO[]> {
+    const query = new URLSearchParams();
+    if (params.usuarioId !== undefined) query.append('usuarioId', String(params.usuarioId));
+    if (params.estado) query.append('estado', params.estado);
+    if (params.dataInicio) query.append('dataInicio', params.dataInicio);
+    if (params.dataFim) query.append('dataFim', params.dataFim);
+
+    const res = await fetch(`${BASE_URL}/horas/filtrar?${query.toString()}`);
+    return handleResponse<HorasExibirDTO[]>(res);
+}
+
 const MOCK_NOME_PROJETO = 'Aerocode';
-
 interface Card {
     id: number;
     nomeProjeto: string;
     tituloSessao: string;
     descricao: string;
-    responsavel: string;
     inicio: string;
     fim: string;
     dataLancamento: string;
     motivoReprovacao: string;
 }
 
+// CARDS mockados 
 const cardsMockados: Card[] = [
     {
         id: -1,
         nomeProjeto: 'Aerocode',
         tituloSessao: 'Reunião de planejamento',
         descricao: 'Frontend',
-        responsavel: 'José Ricardo',
         inicio: '08:00',
         fim: '10:00',
         dataLancamento: '2025-02-17',
@@ -42,7 +80,6 @@ const cardsMockados: Card[] = [
         nomeProjeto: 'Aerocode',
         tituloSessao: 'Implementação de tela de login',
         descricao: 'Frontend',
-        responsavel: 'Daniele',
         inicio: '09:30',
         fim: '12:00',
         dataLancamento: '2025-02-10',
@@ -71,43 +108,68 @@ function formatarData(data: string): string {
     return `${dia}/${mes}/${ano}`;
 }
 
+function formatarDataHoje(data: Date): string {
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const dia = data.getDate();
+    const mes = meses[data.getMonth()];
+    const ano = data.getFullYear();
+    return `${dia} ${mes} ${ano}`;
+}
+
+// TELA de celular (largura <= 480px)
+function useIsMobile() {
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth <= 480);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+    return isMobile;
+}
+
 export default function Page() {
     const router = useRouter();
+    const isMobile = useIsMobile();
 
     const [cardsAPI, setCardsAPI] = useState<Card[]>([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
     const [filtroProjeto, setFiltroProjeto] = useState('');
     const [filtroData, setFiltroData] = useState('');
+    const [totalMes, setTotalMes] = useState(0);
 
     useEffect(() => {
         const carregar = async () => {
             try {
                 setCarregando(true);
                 setErro(null);
-                const dados = await filtrarHoras({ usuarioId: USUARIO_ID, estado: 'REJEITADO' });
-                const comDados: Card[] = await Promise.all(
-                    dados.map(async (h) => {
-                        let responsavel = '';
-                        try {
-                            const usuario = await buscarUsuarioPorId(h.usuarioId);
-                            responsavel = usuario.nome;
-                        } catch {
-                            responsavel = String(h.usuarioId);
-                        }
-                        return {
-                            id: Number(h.id),
-                            nomeProjeto: MOCK_NOME_PROJETO, // substituir quando tarefa-service + projeto-service estiverem integrados
-                            tituloSessao: h.tituloSessao,
-                            descricao: h.descricao || '',
-                            responsavel,
-                            inicio: h.inicio.substring(0, 5),
-                            fim: h.fim.substring(0, 5),
-                            dataLancamento: h.dataLancamento,
-                            motivoReprovacao: h.motivoRejeicao || '',
-                        };
-                    })
-                );
+                const uid = Number(localStorage.getItem('usuarioId') || '0');
+                
+                const hoje = new Date();
+                const primeiroDia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+                const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+                
+                const [dados, horasDoMes] = await Promise.all([
+                    filtrarHoras({ usuarioId: uid, estado: 'REJEITADO' }),
+                    filtrarHoras({ usuarioId: uid, estado: 'REJEITADO', dataInicio: primeiroDia, dataFim: ultimoDia })
+                ]);
+                
+                const totalMesMinutos = horasDoMes.reduce((acc, h) => {
+                    return acc + calcularTotal(h.inicio.substring(0, 5), h.fim.substring(0, 5));
+                }, 0);
+                setTotalMes(totalMesMinutos);
+
+                const comDados: Card[] = dados.map((h) => ({
+                    id: Number(h.id),
+                    nomeProjeto: MOCK_NOME_PROJETO,
+                    tituloSessao: h.tituloSessao,
+                    descricao: h.descricao || '',
+                    inicio: h.inicio.substring(0, 5),
+                    fim: h.fim.substring(0, 5),
+                    dataLancamento: h.dataLancamento,
+                    motivoReprovacao: h.motivoRejeicao || '',
+                }));
                 setCardsAPI(comDados);
             } catch {
                 setErro('Não foi possível carregar os registros.');
@@ -118,7 +180,8 @@ export default function Page() {
         carregar();
     }, []);
 
-    const cards = [...cardsAPI, ...cardsMockados];
+    const cards = cardsAPI;
+
     const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
 
     const cardsFiltrados = cards.filter(c => {
@@ -128,6 +191,8 @@ export default function Page() {
     });
 
     const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
+
+    const gridColunas = isMobile ? '1fr' : '1fr 100px 100px 110px 120px';
 
     return (
         <div className={styles.page}>
@@ -140,16 +205,17 @@ export default function Page() {
                 <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/historico')}>Histórico</button>
             </div>
 
-            {/* HORAS semanal e mensal + filtros de projeto/data */}
+            {/* HORAS semanal e mensal */}
             <div className={styles.semanaHeader}>
                 <div className={styles.semanaHeaderInfo}>
-                    <span className={styles.semanaData}>17 Fevereiro 2025</span>
+                    <span className={styles.semanaData}>{formatarDataHoje(new Date())}</span>
                     <div className={styles.semanaDivider} />
                     <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
                     <div className={styles.semanaDivider} />
-                    <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+                    <span className={styles.semanaStat}>Mês: <strong>{formatarHoras(totalMes)}</strong></span>
                 </div>
                 <div className={styles.semanaHeaderFiltros}>
+                    {/* FILTRO por projeto */}
                     <select
                         className={styles.filtroSelect}
                         value={filtroProjeto}
@@ -160,6 +226,7 @@ export default function Page() {
                             <option key={p} value={p}>{p}</option>
                         ))}
                     </select>
+                    {/* FILTRO por data de lançamento */}
                     <input
                         className={styles.filtroData}
                         type="date"
@@ -178,14 +245,15 @@ export default function Page() {
             </div>
 
             <div className={styles.cardWrapper}>
-                {/* ATIVIDADES - inicio, fim e total */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px', padding: '0 20px 8px', gap: '10px', fontSize: '11px', fontWeight: 700, color: '#0A4FA8', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1.5px solid #E8EFF9', marginBottom: '10px' }}>
-                    <span style={{ textAlign: 'left' }}>Atividade</span>
-                    <span>Início</span>
-                    <span>Fim</span>
-                    <span>Total</span>
-                    <span>Lançamento</span>
-                </div>
+                {!isMobile && (
+                    <div style={{ display: 'grid', gridTemplateColumns: gridColunas, padding: '0 20px 8px', gap: '10px', fontSize: '11px', fontWeight: 700, color: '#0A4FA8', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1.5px solid #E8EFF9', marginBottom: '10px' }}>
+                        <span style={{ textAlign: 'left' }}>Atividade</span>
+                        <span>Início</span>
+                        <span>Fim</span>
+                        <span>Total</span>
+                        <span>Lançamento</span>
+                    </div>
+                )}
 
                 {carregando && (
                     <p style={{ color: '#0A4FA8', padding: '16px 0', fontSize: '13px' }}>Carregando...</p>
@@ -197,22 +265,37 @@ export default function Page() {
 
                 {/* CARDS */}
                 {cardsFiltrados.map((card) => (
-                    <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 100px 100px 110px 120px', alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
+                    <div key={card.id} style={{ background: '#FFFFFF', borderRadius: '12px', padding: '14px 20px', display: 'grid', gridTemplateColumns: gridColunas, alignItems: 'center', gap: '10px', marginBottom: '8px', border: '1.5px solid #E8EFF9', boxShadow: '0 1px 4px rgba(1,38,67,0.05)' }}>
                         <div>
                             <div className={styles.cardBreadcrumb}>{card.nomeProjeto}</div>
                             <div className={styles.cardTitulo}>{card.tituloSessao}</div>
                             <div className={styles.cardTags}>
                                 <span className={styles.cardTag}>{card.descricao}</span>
-                                <span className={styles.cardTag}>{card.responsavel}</span>
                             </div>
                             <div style={{ fontSize: '11px', color: '#C0392B', background: '#FADADD', marginTop: '6px', fontWeight: 500, padding: '3px 10px', borderRadius: '20px', display: 'inline-block' }}>
                                 {card.motivoReprovacao}
                             </div>
+                            {/* CELULAR */}
+                            {isMobile && (
+                                <div style={{ fontSize: '12px', color: '#0A4FA8', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    <span>{card.inicio} – {card.fim}</span>
+                                    <span>·</span>
+                                    <span>{formatarHoras(calcularTotal(card.inicio, card.fim))}</span>
+                                    <span>·</span>
+                                    <span>{formatarData(card.dataLancamento)}</span>
+                                </div>
+                            )}
                         </div>
-                        <div className={styles.cardHorario}>{card.inicio}</div>
-                        <div className={styles.cardHorario}>{card.fim}</div>
-                        <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
-                        <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
+
+                        {/* DESKTOP */}
+                        {!isMobile && (
+                            <>
+                                <div className={styles.cardHorario}>{card.inicio}</div>
+                                <div className={styles.cardHorario}>{card.fim}</div>
+                                <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
+                                <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
+                            </>
+                        )}
                     </div>
                 ))}
             </div>

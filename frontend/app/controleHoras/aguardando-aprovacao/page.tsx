@@ -1,16 +1,24 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
-import {
-  filtrarHoras,
-  buscarUsuarioPorId,
-} from '../../services/controleHoras';
+import { filtrarHoras, buscarProjetos, buscarTarefasPorFuncionario } from '../entrada-saida/page';
 
-// usuarioId fixo até o auth estar integrado
-const USUARIO_ID = typeof window !== 'undefined' ? Number(localStorage.getItem('usuarioId') || '1') : 1;
+// usuarioId extraído do JWT
+function getUserIdFromToken(): number {
+  if (typeof window === 'undefined') return 0;
+  const id = localStorage.getItem('usuarioId');
+  if (id) return Number(id);
+  const token = localStorage.getItem('token');
+  if (!token) return 0;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return Number(payload.id || payload.userId || payload.sub || 0);
+  } catch {
+    return 0;
+  }
+}
 
-// nomeProjeto mockado até tarefa-service + projeto-service estarem integrados
 const MOCK_NOME_PROJETO = 'Aerocode';
 
 interface Card {
@@ -23,39 +31,6 @@ interface Card {
   fim: string;
   dataLancamento: string;
 }
-
-const cardsMockados: Card[] = [
-  {
-    id: -1,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Ajustes de responsividade',
-    descricao: 'Frontend',
-    responsavel: 'Daniele',
-    inicio: '08:00',
-    fim: '10:00',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: -2,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Correção de bug no login',
-    descricao: 'Backend',
-    responsavel: 'Frida',
-    inicio: '09:00',
-    fim: '11:30',
-    dataLancamento: '2025-02-17',
-  },
-  {
-    id: -3,
-    nomeProjeto: 'Aerocode',
-    tituloSessao: 'Atualização de dependências',
-    descricao: 'DevOps',
-    responsavel: 'Hanna',
-    inicio: '13:00',
-    fim: '14:30',
-    dataLancamento: '2025-02-10',
-  },
-];
 
 function calcularTotal(inicio: string, fim: string): number {
   if (!inicio || !fim) return 0;
@@ -78,6 +53,14 @@ function formatarData(data: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+function formatarDataHoje(data: Date): string {
+  const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const dia = data.getDate();
+  const mes = meses[data.getMonth()];
+  const ano = data.getFullYear();
+  return `${dia} ${mes} ${ano}`;
+}
+
 export default function Page() {
   const router = useRouter();
 
@@ -86,36 +69,53 @@ export default function Page() {
   const [erro, setErro] = useState<string | null>(null);
   const [filtroProjeto, setFiltroProjeto] = useState('');
   const [filtroData, setFiltroData] = useState('');
+  const [totalMes, setTotalMes] = useState(0);
 
   useEffect(() => {
     const carregar = async () => {
       try {
         setCarregando(true);
-        setErro(null);
-        const dados = await filtrarHoras({ usuarioId: USUARIO_ID, estado: 'AGUARDANDO_APROVACAO' });
-        const comDados: Card[] = await Promise.all(
-          dados.map(async (h) => {
-            let responsavel = '';
-            try {
-              const usuario = await buscarUsuarioPorId(h.usuarioId);
-              responsavel = usuario.nome;
-            } catch {
-              // fallback: busca nome salvo no localStorage quando usuario-service não está disponível
-              const nomesSalvos = JSON.parse(localStorage.getItem('nomeResponsaveis') || '{}');
-              responsavel = nomesSalvos[String(h.usuarioId)] || String(h.usuarioId);
+        const uid = getUserIdFromToken();
+
+        const hoje = new Date();
+        const primeiroDia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+
+        const [dadosPendentes, dadosAguardando, projetos, tarefas, horasDoMes] = await Promise.all([
+          filtrarHoras({ usuarioId: uid, estado: 'PENDENTE' }),
+          filtrarHoras({ usuarioId: uid, estado: 'AGUARDANDO_APROVACAO' }),
+          buscarProjetos(),
+          buscarTarefasPorFuncionario(uid),
+          filtrarHoras({ usuarioId: uid, dataInicio: primeiroDia, dataFim: ultimoDia })
+        ]);
+
+        const dados = [...dadosPendentes, ...dadosAguardando];
+
+        const totalMesMinutos = horasDoMes.reduce((acc, h) => {
+          return acc + calcularTotal(h.inicio.substring(0, 5), h.fim.substring(0, 5));
+        }, 0);
+        setTotalMes(totalMesMinutos);
+
+        const comDados: Card[] = dados.map((h) => {
+          let nomeProjeto = '-';
+          if (h.tarefaId) {
+            const tarefa = tarefas.find(t => t.id === h.tarefaId);
+            if (tarefa) {
+              const projeto = projetos.find(p => p.id === tarefa.idProjeto);
+              nomeProjeto = projeto?.nome ?? '-';
             }
-            return {
-              id: Number(h.id),
-              nomeProjeto: MOCK_NOME_PROJETO, // substituir quando tarefa-service + projeto-service estiverem integrados
-              tituloSessao: h.tituloSessao,
-              descricao: h.descricao || '',
-              responsavel,
-              inicio: h.inicio.substring(0, 5),
-              fim: h.fim.substring(0, 5),
-              dataLancamento: h.dataLancamento,
-            };
-          })
-        );
+          }
+          return {
+            id: Number(h.id),
+            nomeProjeto,
+            tituloSessao: h.tituloSessao,
+            descricao: h.descricao || '',
+            responsavel: String(h.usuarioId),
+            inicio: h.inicio.substring(0, 5),
+            fim: h.fim.substring(0, 5),
+            dataLancamento: h.dataLancamento,
+          };
+        });
         setCardsAPI(comDados);
       } catch {
         setErro('Não foi possível carregar os registros.');
@@ -126,7 +126,7 @@ export default function Page() {
     carregar();
   }, []);
 
-  const cards = [...cardsAPI, ...cardsMockados];
+  const cards = cardsAPI;
   const projetos = Array.from(new Set(cards.map(c => c.nomeProjeto)));
 
   const cardsFiltrados = cards.filter(c => {
@@ -148,14 +148,16 @@ export default function Page() {
         <button className={styles.filtroBtn} onClick={() => router.push('/controleHoras/historico')}>Histórico</button>
       </div>
 
-      {/* HORAS semanal e mensal + filtros de projeto/data */}
+      {/* HORAS semanal e mensal + filtros de projeto data */}
       <div className={styles.semanaHeader}>
         <div className={styles.semanaHeaderInfo}>
-          <span className={styles.semanaData}>17 Fevereiro 2025</span>
+          <span className={styles.semanaData}>{formatarDataHoje(new Date())}</span>
           <div className={styles.semanaDivider} />
           <span className={styles.semanaStat}>Semana: <strong>{formatarHoras(totalGeral)}</strong></span>
           <div className={styles.semanaDivider} />
-          <span className={styles.semanaStat}>Mês: <strong>51h 30min</strong></span>
+          <span className={styles.semanaStat}>
+            Mês: <strong>{formatarHoras(totalMes)}</strong>
+          </span>
         </div>
         <div className={styles.semanaHeaderFiltros}>
           <select

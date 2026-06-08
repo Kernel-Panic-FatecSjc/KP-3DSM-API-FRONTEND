@@ -5,7 +5,7 @@
   height: 70px;
   padding: 0 20px;
   position: relative;
-  z-index: 999999;
+  z-index: 100;
   overflow: visible;
 }
 
@@ -53,7 +53,7 @@
   border-radius: 6px;
   min-width: 180px;
   padding: 8px 0;
-  z-index: 9999;
+  z-index: 200;
   box-shadow: 0 6px 15px rgba(0,0,0,0.2);
   visibility: visible !important; 
   opacity: 1 !important;
@@ -72,7 +72,8 @@
 }
 
 .activeDropdown {
-  background: #e0e0e0;
+  background: #FFF;
+  color: #012643;
 }
 
 .user {
@@ -80,4 +81,108 @@
   color: white;
   display: flex;
   align-items: center;
+}
+
+.hamburger {
+  display: none;
+  font-size: 26px;
+  color: white;
+  cursor: pointer;
+  margin-left: 20px;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  z-index: 1000;
+}
+
+.mobileMenu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform: translateX(-100%);
+  width: 70%;
+  height: 100vh;
+  background: #012643;
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: transform 0.3s ease;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.mobileMenu.active {
+  transform: translateX(0);
+}
+
+.mobileItem {
+  font-weight: 600;
+}
+
+.mobileSubmenu {
+  margin-left: 10px;
+  margin-top: 5px;
+}
+
+.mobileSubItem {
+  padding: 8px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mobileSubItem:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .hamburger {
+    order: -1;
+    margin-right: 15px;
+    margin-left: -5px;
+  }
+
+  .logo {
+    order: 0;
+  }
+
+  .menu {
+    display: none;
+  }
+
+  .hamburger {
+    display: block;
+  }
+
+  .container {
+    height: 60px;
+    padding: 0 15px;
+  }
+
+  .logo img {
+    height: 35px;
+    width: auto;
+  }
+
+  .user {
+    font-size: 14px;
+  }
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoutIcon {
+  cursor: pointer;
+  width: 25px;
 }

@@ -1,99 +1,313 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import styles from "./App.module.css";
+
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import styles from "./App.module.css";
 
 export default function Page() {
   const [projetos, setProjetos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchProjetos = async () => {
-    try {
-      const response = await axios.get("http://localhost:8080/projeto", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      setProjetos(response.data);
-    } catch (error) {
-      console.error("Erro ao buscar projetos:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [projetoEditando, setProjetoEditando] = useState<any>(null);
+  const [confirmandoDelete, setConfirmandoDelete] = useState(false);
+  const [filtroStatus, setFiltroStatus] = useState<string>("TODOS");
 
   useEffect(() => {
+    const fetchProjetos = async () => {
+      try {
+        const response = await axios.get("http://localhost:8082/projeto");
+        setProjetos(response.data);
+      } catch (error: any) {
+        console.log(error);
+      }
+    };
+
+    const fetchUsuarios = async () => {
+      try {
+        const response = await axios.get("http://localhost:8083/usuario/todos");
+        setUsuarios(response.data);
+      } catch (error: any) {
+        console.log(error);
+      }
+    };
+
     fetchProjetos();
+    fetchUsuarios();
   }, []);
+
+  const gestores = usuarios.filter((u) => u.cargo === "ROLE_GESTOR");
+  const profissionais = usuarios.filter((u) => u.cargo === "ROLE_PROFISSIONAL");
+
+  const projetosFiltrados = projetos.filter(
+    (p) => filtroStatus === "TODOS" || (p.status ?? "") === filtroStatus
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "fazer":
-        return "#9CA3AF";
-      case "fazendo":
-        return "#3B82F6";
-      case "feito":
-        return "#10B981";
-      default:
-        return "#9CA3AF";
+      case "EM_PLANEJAMENTO": return "#9CA3AF";
+      case "EM_ANDAMENTO": return "#3B82F6";
+      case "CONCLUIDO": return "#10B981";
+      default: return "#9CA3AF";
     }
   };
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    const updated = projetos.map((p) =>
-      p.id === id ? { ...p, status: newStatus } : p,
-    );
-    setProjetos(updated);
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "EM_PLANEJAMENTO": return "Em planejamento";
+      case "EM_ANDAMENTO": return "Em andamento";
+      case "CONCLUIDO": return "Concluído";
+      default: return status ?? "-";
+    }
   };
 
-  if (loading) {
-    return <div className={styles.container}>Carregando projetos...</div>;
-  }
+  const formatPrazo = (prazo: string) => {
+    const data = new Date(prazo);
+    const horas = data.getHours();
+    const minutos = data.getMinutes();
+    const dataFormatada = data.toLocaleDateString("pt-BR");
+    if (minutos === 0) return `${dataFormatada} às ${horas}hrs`;
+    return `${dataFormatada} às ${horas}hrs ${minutos}min`;
+  };
+
+  const getNomeUsuario = (id: number) => {
+    const usuario = usuarios.find((u) => Number(u.id) === Number(id));
+    return usuario ? usuario.nome : "-";
+  };
+
+  const handleStatusChange = (id: number, newStatus: string) => {
+    setProjetos(projetos.map((p) => p.id === id ? { ...p, status: newStatus } : p));
+  };
+
+  const openModal = (projeto: any) => {
+    setProjetoEditando({
+      ...projeto,
+      profissionaisIds: projeto.profissionaisIds || [],
+    });
+
+    setConfirmandoDelete(false);
+    setModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const prazoFormatado = projetoEditando.prazo
+        ? projetoEditando.prazo.replace(" ", "T").slice(0, 16)
+        : null;
+
+      await axios.put(`http://localhost:8082/projeto/${projetoEditando.id}/atualizacao`, {
+        id: projetoEditando.id,
+        nome: projetoEditando.nome,
+        status: projetoEditando.status,
+        descricao: projetoEditando.descricao,
+        prazo: prazoFormatado,
+        valorContratado: projetoEditando.valorContratado,
+        responsavelId: projetoEditando.responsavelId,
+        profissionaisIds: projetoEditando.profissionaisIds,
+      });
+
+      const response = await axios.get("http://localhost:8082/projeto");
+      setProjetos(response.data);
+
+      setModalOpen(false);
+      setProjetoEditando(null);
+      setConfirmandoDelete(false);
+    } catch (error: any) {
+      console.log(error);
+      alert("Erro ao salvar projeto!");
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:8082/projeto/${projetoEditando.id}`);
+      setProjetos(projetos.filter((p) => p.id !== projetoEditando.id));
+      setModalOpen(false);
+      setProjetoEditando(null);
+      setConfirmandoDelete(false);
+    } catch (error: any) {
+      console.log(error);
+      alert("Erro ao excluir projeto!");
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setProjetoEditando(null);
+    setConfirmandoDelete(false);
+  };
+
+  const toggleProfissional = (id: number) => {
+    const ids: number[] = (projetoEditando.profissionaisIds || []).map(Number);
+    const updated = ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id];
+    setProjetoEditando({ ...projetoEditando, profissionaisIds: updated });
+  };
 
   return (
     <div className={styles.container}>
       <h1>Projetos</h1>
 
+      <div className={styles.toolbar}>
+        <label htmlFor="filtroStatus">Filtrar por status:</label>
+        <select
+          id="filtroStatus"
+          className={styles.filterSelect}
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+        >
+          <option value="TODOS">Todos</option>
+          <option value="EM_PLANEJAMENTO">Em planejamento</option>
+          <option value="EM_ANDAMENTO">Em andamento</option>
+          <option value="CONCLUIDO">Concluído</option>
+        </select>
+        <span className={styles.filterCount}>
+          {projetosFiltrados.length} projeto{projetosFiltrados.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
       <div className={styles.grid}>
-        {projetos.map((projeto) => (
-          <div key={projeto.id} className={styles.card}>
-            <div
-              className={styles.statusBar}
-              style={{ backgroundColor: getStatusColor(projeto.status) }}
+        {projetosFiltrados.length === 0 ? (
+          <p>Nenhum projeto encontrado.</p>
+        ) : (
+          projetosFiltrados.map((projeto) => {
+            console.log("responsavelId:", projeto.responsavelId);
+            console.log("usuarios:", usuarios);
+            return (
+              <div key={projeto.id} className={styles.card}>
+                <div
+                  className={styles.statusBar}
+                  style={{ backgroundColor: getStatusColor(projeto.status ?? "") }}
+                />
+
+                <div className={styles.header}>
+                  <h2>{projeto.nome}</h2>
+                  <button className={styles.editBtn} onClick={() => openModal(projeto)}>
+                    Editar
+                  </button>
+                </div>
+
+                <p className={styles.descricao}>{projeto.descricao}</p>
+
+                <div className={styles.info}>
+                  <span><strong>Status:</strong> {getStatusLabel(projeto.status)}</span>
+                  <span><strong>Prazo:</strong> {projeto.prazo ? formatPrazo(projeto.prazo) : "-"}</span>
+                  <span><strong>Valor:</strong> {projeto.valorContratado ? projeto.valorContratado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</span>
+                  <span><strong>Responsável:</strong> {projeto.responsavelId ? getNomeUsuario(projeto.responsavelId) : "-"}</span>
+                  <span><strong>Criação:</strong> {projeto.dataCriacao ? formatPrazo(projeto.dataCriacao) : "-"}</span>
+                </div>
+
+                <select
+                  className={styles.select}
+                  value={projeto.status ?? "EM_PLANEJAMENTO"}
+                  onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
+                >
+                  <option value="EM_PLANEJAMENTO">Em planejamento</option>
+                  <option value="EM_ANDAMENTO">Em andamento</option>
+                  <option value="CONCLUIDO">Concluído</option>
+                </select>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {modalOpen && projetoEditando && (
+        <div className={styles.modalOverlay} onClick={handleCloseModal}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h2>Editar Projeto</h2>
+
+            <label>Nome</label>
+            <input
+              type="text"
+              value={projetoEditando.nome ?? ""}
+              onChange={(e) => setProjetoEditando({ ...projetoEditando, nome: e.target.value })}
+              placeholder="Ex: Site Institucional"
             />
 
-            <div className={styles.header}>
-              <h2>{projeto.nome}</h2>
+            <label>Descrição</label>
+            <textarea
+              value={projetoEditando.descricao ?? ""}
+              onChange={(e) => setProjetoEditando({ ...projetoEditando, descricao: e.target.value })}
+              placeholder="Descreva o objetivo do projeto..."
+            />
 
-              <button className={styles.editBtn}>✏️</button>
-            </div>
-
-            <p className={styles.descricao}>{projeto.descricao}</p>
-
+            <label>Status</label>
             <select
-              className={styles.select}
-              value={projeto.status}
-              onChange={(e) => handleStatusChange(projeto.id, e.target.value)}
+              value={projetoEditando.status ?? "EM_PLANEJAMENTO"}
+              onChange={(e) => setProjetoEditando({ ...projetoEditando, status: e.target.value })}
             >
-              <option value="fazer">A fazer</option>
-              <option value="fazendo">Em produção</option>
-              <option value="feito">Feito</option>
+              <option value="EM_PLANEJAMENTO">Em planejamento</option>
+              <option value="EM_ANDAMENTO">Em andamento</option>
+              <option value="CONCLUIDO">Concluído</option>
             </select>
 
-            <div className={styles.info}>
-              <span>
-                <strong>ID:</strong> {projeto.id}
-              </span>
-              <span>
-                <strong>Prazo:</strong> {projeto.prazo}
-              </span>
-              <span>
-                <strong>Criação:</strong> {projeto.dataCriacao}
-              </span>
+            <label>Prazo</label>
+            <input
+              type="datetime-local"
+              value={projetoEditando.prazo?.replace(" ", "T").slice(0, 16) || ""}
+              onChange={(e) => setProjetoEditando({ ...projetoEditando, prazo: e.target.value })}
+            />
+
+            <label>Valor contratado (R$)</label>
+            <input
+              type="number"
+              value={projetoEditando.valorContratado ?? ""}
+              onChange={(e) => setProjetoEditando({ ...projetoEditando, valorContratado: Number(e.target.value) })}
+              placeholder="Ex: 15000"
+            />
+
+            <label>Responsável (Gestor)</label>
+            <select
+              value={projetoEditando.responsavelId ?? ""}
+              onChange={(e) => setProjetoEditando({ ...projetoEditando, responsavelId: Number(e.target.value) })}
+            >
+              <option value="">Selecione um gestor</option>
+              {gestores.map((g) => (
+                <option key={g.id} value={g.id}>{g.nome}</option>
+              ))}
+            </select>
+
+            <label>Profissionais</label>
+            <div className={styles.checkboxGroup}>
+              {profissionais.map((p) => (
+                <label key={p.id} className={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    checked={(projetoEditando.profissionaisIds || [])
+                    .map(Number)
+                    .includes(Number(p.id))}
+                    onChange={() => toggleProfissional(p.id)}
+                  />
+                  {p.nome}
+                </label>
+              ))}
+            </div>
+
+            <label>Data de criação</label>
+            <input
+              type="text"
+              value={projetoEditando.dataCriacao ? formatPrazo(projetoEditando.dataCriacao) : ""}
+              disabled
+            />
+
+            {confirmandoDelete && (
+              <div className={styles.deleteConfirm}>
+                <p>Tem certeza que deseja excluir <strong>{projetoEditando.nome}</strong>?</p>
+                <div className={styles.deleteConfirmActions}>
+                  <button className={styles.cancelDeleteBtn} onClick={() => setConfirmandoDelete(false)}>Cancelar</button>
+                  <button className={styles.confirmDeleteBtn} onClick={handleDelete}>Sim, excluir</button>
+                </div>
+              </div>
+            )}
+
+            <div className={styles.modalActions}>
+              <button className={styles.deleteBtn} onClick={() => setConfirmandoDelete(true)}>Excluir</button>
+              <div className={styles.modalActionsRight}>
+                <button onClick={handleCloseModal}>Cancelar</button>
+                <button onClick={handleSave}>Salvar</button>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
