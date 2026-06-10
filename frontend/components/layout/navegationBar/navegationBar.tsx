@@ -111,6 +111,11 @@ export default function NavigationBar() {
           route: "/cadastro_usuario"
         },
         {
+          id: "clientes",
+          title: "Clientes",
+          route: "/cadastro_clientes"
+        },
+        {
           id: "projetos",
           title: "Projetos",
           route: "/projetos"
@@ -153,6 +158,11 @@ export default function NavigationBar() {
           id: "auditoriaLancamentos",
           title: "Auditoria de lançamentos",
           route: "/painel-auditoria"
+        },
+        {
+          id: "painelFinanceiro",
+          title: "Painel Financeiro",
+          route: "/painel-financeiro"
         }
       ]
     },

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./App.module.css";
 
 type Cliente = {
@@ -9,86 +9,35 @@ type Cliente = {
   cnpj: string;
   email: string;
   telefone: string;
-  projetos: string[];
+  observacao: string;
+  ativo: boolean;
+  projetoIds: number[];
+};
+
+type Projeto = {
+  id: number;
+  nome: string;
+  descricao: string;
+  status: string;
 };
 
 export default function Page() {
-  const [clientes] = useState<Cliente[]>([
-    {
-      id: 1,
-      nome: "Empresa Alpha",
-      cnpj: "12.345.678/0001-99",
-      email: "contato@alpha.com",
-      telefone: "(11) 99999-9999",
-      projetos: [
-        "Sistema Financeiro",
-        "Portal do Cliente",
-        "Dashboard BI",
-      ],
-    },
-    {
-      id: 2,
-      nome: "Tech Solutions",
-      cnpj: "98.765.432/0001-55",
-      email: "comercial@tech.com",
-      telefone: "(12) 98888-8888",
-      projetos: ["Aplicativo Mobile", "ERP Corporativo"],
-    },
-    {
-      id: 3,
-      nome: "Inova Digital",
-      cnpj: "11.222.333/0001-44",
-      email: "contato@inovadigital.com",
-      telefone: "(12) 97777-7777",
-      projetos: ["Website Institucional"],
-    },
-    {
-      id: 4,
-      nome: "Inova Digital",
-      cnpj: "11.222.333/0001-44",
-      email: "contato@inovadigital.com",
-      telefone: "(12) 97777-7777",
-      projetos: ["Website Institucional"],
-    },
-    {
-      id: 5,
-      nome: "Inova Digital",
-      cnpj: "11.222.333/0001-44",
-      email: "contato@inovadigital.com",
-      telefone: "(12) 97777-7777",
-      projetos: ["Website Institucional"],
-    },
-    {
-      id: 6,
-      nome: "Inova Digital",
-      cnpj: "11.222.333/0001-44",
-      email: "contato@inovadigital.com",
-      telefone: "(12) 97777-7777",
-      projetos: ["Website Institucional"],
-    },
-    {
-      id: 7,
-      nome: "Inova Digital",
-      cnpj: "11.222.333/0001-44",
-      email: "contato@inovadigital.com",
-      telefone: "(12) 97777-7777",
-      projetos: ["Website Institucional"],
-    },
-    {
-      id: 8,
-      nome: "Inova Digital",
-      cnpj: "11.222.333/0001-44",
-      email: "contato@inovadigital.com",
-      telefone: "(12) 97777-7777",
-      projetos: ["Website Institucional"],
-    },
-  ]);
+  const [token, setToken] = useState<string | null>(null);
+  useEffect(() => {
+    const storedToken =
+      localStorage.getItem("token");
 
-  const [paginaAtual, setPaginaAtual] = useState(1);
+    setToken(storedToken);
+  }, []);
 
-  const itensPorPagina = 6;
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [projetos, setProjetos] = useState<Projeto[]>([]);
 
-  const [filtroNome, setFiltroNome] = useState("");
+  const [nome, setNome] = useState('');
+  const [cnpj, setCnpj] = useState('');
+  const [email, setEmail] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [observacao, setObservacao] = useState('');
 
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalAtualizar, setModalAtualizar] = useState(false);
@@ -97,10 +46,226 @@ export default function Page() {
   const [clienteSelecionado, setClienteSelecionado] =
     useState<Cliente | null>(null);
 
-  const [nome, setNome] = useState("");
-  const [cnpj, setCnpj] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
+  const [projetoSelecionado, setProjetoSelecionado] = useState('');
+
+  const fetchClientes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(
+        'http://localhost:8083/clientes',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      const data = await response.json();
+      setClientes(data);
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const atualizarClienteSelecionado = async (clienteId: number) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:8083/clientes",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      const data = await response.json();
+
+      setClientes(data);
+
+      const clienteAtualizado = data.find(
+        (c: Cliente) => c.id === clienteId
+      );
+
+      if (clienteAtualizado) {
+        setClienteSelecionado(clienteAtualizado);
+      }
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchProjetos = async () => {
+    try {
+      const response = await fetch(
+        'http://localhost:8082/projeto'
+      );
+
+      const data = await response.json();
+      setProjetos(data);
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchClientes();
+    fetchProjetos();
+  }, []);
+
+  const cadastrarCliente = async () => {
+    try {
+      const token = localStorage.getItem('token');
+
+      await fetch(
+        'http://localhost:8083/clientes',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            nome,
+            cnpj,
+            email,
+            telefone,
+            observacao,
+            projetoIds: []
+          })
+        }
+      );
+
+      setModalCadastro(false);
+      fetchClientes();
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const atualizarCliente = async () => {
+    if (!clienteSelecionado) return;
+
+    try {
+      const token = localStorage.getItem('token');
+
+      await fetch(
+        `http://localhost:8083/clientes/${clienteSelecionado.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            nome: nomeEdit,
+            cnpj: cnpjEdit,
+            email: emailEdit,
+            telefone: telefoneEdit,
+            observacao: clienteSelecionado.observacao,
+            ativo: clienteSelecionado.ativo
+          })
+        }
+      );
+
+      setModalAtualizar(false);
+      fetchClientes();
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+ const desativarCliente = async (id: number) => {
+  try {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      `http://localhost:8083/clientes/${id}/desativar`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    console.log("Status:", response.status);
+    console.log("OK:", response.ok);
+
+    fetchClientes();
+
+  } catch (error) {
+    console.error("ERRO:", error);
+  }
+};
+
+  const vincularProjeto = async () => {
+    if (!clienteSelecionado) return;
+
+    try {
+      const token = localStorage.getItem('token');
+
+      await fetch(
+      `http://localhost:8083/clientes/${clienteSelecionado.id}/projetos`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          projetoIds: [Number(projetoSelecionado)]
+        })
+      }
+    );
+
+    await atualizarClienteSelecionado(
+      clienteSelecionado.id
+    );
+
+    setProjetoSelecionado('');
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const desvincularProjeto = async (
+    clienteId: number,
+    projetoId: number
+  ) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      await fetch(
+        `http://localhost:8083/clientes/${clienteId}/projetos/${projetoId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      await atualizarClienteSelecionado(clienteId);
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const [paginaAtual, setPaginaAtual] = useState(1);
+
+  const itensPorPagina = 6;
+
+  const [filtroNome, setFiltroNome] = useState("");
 
   const [nomeEdit, setNomeEdit] = useState("");
   const [cnpjEdit, setCnpjEdit] = useState("");
@@ -148,41 +313,46 @@ export default function Page() {
               <th>CNPJ</th>
               <th>Email</th>
               <th>Telefone</th>
+              <th>Status</th>
               <th>Ações</th>
             </tr>
           </thead>
-
           <tbody>
-            {clientesPaginaAtual.map((cliente) => (
+            {clientesPaginaAtual.map(cliente => (
               <tr key={cliente.id}>
                 <td>{cliente.nome}</td>
                 <td>{cliente.cnpj}</td>
                 <td>{cliente.email}</td>
                 <td>{cliente.telefone}</td>
 
+                <td>
+                  <span
+                    className={
+                      cliente.ativo
+                        ? styles.ativo
+                        : styles.inativo
+                    }
+                  >
+                    {cliente.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </td>
+
                 <td className={styles.acoes}>
                   <button
                     className={styles.botaoAbrirEdicao}
                     onClick={() => {
                       setClienteSelecionado(cliente);
+
                       setNomeEdit(cliente.nome);
                       setCnpjEdit(cliente.cnpj);
                       setEmailEdit(cliente.email);
                       setTelefoneEdit(cliente.telefone);
+
                       setModalAtualizar(true);
                     }}
                   >
                     <img
                       src="/images/atualizar.svg"
-                      alt="Editar"
-                      className={styles.imagemBotao}
-                    />
-                  </button>
-
-                  <button className={styles.botaoExcluir}>
-                    <img
-                      src="/images/deletar.svg"
-                      alt="Excluir"
                       className={styles.imagemBotao}
                     />
                   </button>
@@ -195,8 +365,17 @@ export default function Page() {
                     }}
                   >
                     <img
-                      src="/images/detalhes.svg"
-                      alt="Detalhes"
+                      src="/images/Expand.svg"
+                      className={styles.imagemBotao}
+                    />
+                  </button>
+
+                  <button
+                    className={styles.botaoExcluir}
+                    onClick={() => desativarCliente(cliente.id)}
+                  >
+                    <img
+                      src="/images/deletar.svg"
                       className={styles.imagemBotao}
                     />
                   </button>
@@ -304,7 +483,12 @@ export default function Page() {
                 Cancelar
               </button>
 
-              <button className={styles.confirmar}>Salvar</button>
+              <button
+                className={styles.confirmar}
+                onClick={cadastrarCliente}
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>
@@ -368,13 +552,16 @@ export default function Page() {
                 Cancelar
               </button>
 
-              <button className={styles.confirmar}>Salvar</button>
+              <button
+                className={styles.confirmar}
+                onClick={atualizarCliente}
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Modal Projetos */}
 
       {modalDetalhes && clienteSelecionado && (
         <div className={styles.modalOverlay}>
@@ -403,18 +590,33 @@ export default function Page() {
             <div className={styles.inputWrapper}>
               <label>Adicionar Projeto</label>
 
-              <select className={styles.selectStyle}>
-                <option>Sistema Financeiro</option>
-                <option>ERP Corporativo</option>
-                <option>Dashboard BI</option>
-                <option>Portal do Cliente</option>
-                <option>Aplicativo Mobile</option>
+              <select
+                className={styles.selectStyle}
+                value={projetoSelecionado}
+                onChange={(e) =>
+                  setProjetoSelecionado(e.target.value)
+                }
+              >
+                <option value="">
+                  Selecione um projeto
+                </option>
+
+                {projetos.map((projeto) => (
+                  <option
+                    key={projeto.id}
+                    value={projeto.id}
+                  >
+                    {projeto.nome}
+                  </option>
+                ))}
               </select>
             </div>
 
             <button
               className={styles.confirmar}
               style={{ marginBottom: "20px" }}
+              onClick={vincularProjeto}
+              
             >
               Vincular Projeto
             </button>
@@ -422,30 +624,42 @@ export default function Page() {
             <div>
               <h3>Projetos já vinculados</h3>
 
-              {clienteSelecionado.projetos.map(
-                (projeto, index) => (
+              {clienteSelecionado.projetoIds.map((projetoId) => {
+                const projeto = projetos.find(
+                  p => p.id === projetoId
+                );
+
+                return (
                   <div
-                    key={index}
+                    key={projetoId}
                     style={{
                       padding: "10px",
                       marginTop: "8px",
                       border: "1px solid #ddd",
                       borderRadius: "8px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
                     }}
                   >
-                    {projeto}
-                  </div>
-                )
-              )}
-            </div>
+                    <span>
+                      {projeto?.nome || `Projeto ${projetoId}`}
+                    </span>
 
-            <div className={styles.botoes}>
-              <button
-                className={styles.cancelar}
-                onClick={() => setModalDetalhes(false)}
-              >
-                Fechar
-              </button>
+                    <button
+                      className={styles.botaoRemover}
+                      onClick={() =>
+                        desvincularProjeto(
+                          clienteSelecionado.id,
+                          projetoId
+                        )
+                      }
+                    >
+                      Remover
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -4,9 +4,18 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import styles from "./App.module.css";
 
+type Cliente = {
+  id: number;
+  nome: string;
+  cnpj: string;
+  ativo: boolean;
+  projetoIds: number[];
+};
+
 export default function Page() {
   const [projetos, setProjetos] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [projetoEditando, setProjetoEditando] = useState<any>(null);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
@@ -31,9 +40,30 @@ export default function Page() {
       }
     };
 
+    const fetchClientes = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:8083/clientes/todos", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setClientes(response.data);
+      } catch (error: any) {
+        console.log(error);
+      }
+    };
+
     fetchProjetos();
     fetchUsuarios();
+    fetchClientes();
   }, []);
+
+  // Retorna o nome do cliente vinculado ao projeto, ou null se não houver
+  const getClienteDoProjeto = (projetoId: number): string | null => {
+    const cliente = clientes.find((c) =>
+      c.projetoIds.includes(projetoId)
+    );
+    return cliente ? cliente.nome : null;
+  };
 
   const gestores = usuarios.filter((u) => u.cargo === "ROLE_GESTOR");
   const profissionais = usuarios.filter((u) => u.cargo === "ROLE_PROFISSIONAL");
@@ -83,7 +113,6 @@ export default function Page() {
       ...projeto,
       profissionaisIds: projeto.profissionaisIds || [],
     });
-
     setConfirmandoDelete(false);
     setModalOpen(true);
   };
@@ -116,6 +145,7 @@ export default function Page() {
       alert("Erro ao salvar projeto!");
     }
   };
+
   const handleDelete = async () => {
     try {
       await axios.delete(`http://localhost:8082/projeto/${projetoEditando.id}`);
@@ -168,8 +198,7 @@ export default function Page() {
           <p>Nenhum projeto encontrado.</p>
         ) : (
           projetosFiltrados.map((projeto) => {
-            console.log("responsavelId:", projeto.responsavelId);
-            console.log("usuarios:", usuarios);
+            const clienteVinculado = getClienteDoProjeto(projeto.id);
             return (
               <div key={projeto.id} className={styles.card}>
                 <div
@@ -192,6 +221,19 @@ export default function Page() {
                   <span><strong>Valor:</strong> {projeto.valorContratado ? projeto.valorContratado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</span>
                   <span><strong>Responsável:</strong> {projeto.responsavelId ? getNomeUsuario(projeto.responsavelId) : "-"}</span>
                   <span><strong>Criação:</strong> {projeto.dataCriacao ? formatPrazo(projeto.dataCriacao) : "-"}</span>
+                  {/* Cliente vinculado */}
+                  <span>
+                    <strong>Cliente:</strong>{" "}
+                    {clienteVinculado ? (
+                      <span style={{ color: "#3B82F6", fontWeight: 500 }}>
+                        {clienteVinculado}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#9CA3AF", fontStyle: "italic" }}>
+                        Sem cliente
+                      </span>
+                    )}
+                  </span>
                 </div>
 
                 <select
@@ -272,14 +314,21 @@ export default function Page() {
                   <input
                     type="checkbox"
                     checked={(projetoEditando.profissionaisIds || [])
-                    .map(Number)
-                    .includes(Number(p.id))}
+                      .map(Number)
+                      .includes(Number(p.id))}
                     onChange={() => toggleProfissional(p.id)}
                   />
                   {p.nome}
                 </label>
               ))}
             </div>
+
+            <label>Cliente vinculado</label>
+            <input
+              type="text"
+              value={getClienteDoProjeto(projetoEditando.id) ?? "Sem cliente"}
+              disabled
+            />
 
             <label>Data de criação</label>
             <input

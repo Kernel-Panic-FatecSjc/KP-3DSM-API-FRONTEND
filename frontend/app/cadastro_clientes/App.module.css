@@ -67,6 +67,21 @@
   align-items: center;
 }
 
+.botaoAbrirEdicao,
+.botaoDetalhes,
+.botaoExcluir {
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.botaoDetalhes .imagemBotao {
+  filter: brightness(0);
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -301,4 +316,25 @@
 .pagAtivo {
   background-color: #012643;
   color: white;
+}
+
+.botaoDetalhes {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.botaoRemover {
+  width: auto;
+  min-width: 90px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #ef4444;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
 }
