@@ -118,7 +118,31 @@ export default function Page() {
     fetchProjetos();
   }, []);
 
+  const [cnpjExiste, setCnpjExiste] = useState(false);
+  const [shakeCnpj, setShakeCnpj] = useState(false);
+
+  const verificarCnpj = (valor: string) => {
+    setCnpj(valor);
+
+    const existe = clientes.some(
+      cliente =>
+        cliente.cnpj.replace(/\D/g, '') ===
+        valor.replace(/\D/g, '')
+    );
+
+    setCnpjExiste(existe);
+  };
+
   const cadastrarCliente = async () => {
+    if (cnpjExiste) {
+      setShakeCnpj(true);
+
+      setTimeout(() => {
+        setShakeCnpj(false);
+      }, 500);
+
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
 
@@ -451,10 +475,19 @@ export default function Page() {
             <div className={styles.inputWrapper}>
               <label>CNPJ</label>
               <input
-                className={styles.inputStyle}
+                className={`
+                  ${styles.inputStyle}
+                  ${cnpjExiste ? styles.inputErro : ""}
+                  ${shakeCnpj ? styles.shake : ""}
+                `}
                 value={cnpj}
-                onChange={(e) => setCnpj(e.target.value)}
+                onChange={(e) => verificarCnpj(e.target.value)}
               />
+              {cnpjExiste && (
+                <span className={styles.erroTexto}>
+                  Este CNPJ já está cadastrado.
+                </span>
+              )}
             </div>
 
             <div className={styles.inputWrapper}>
@@ -520,10 +553,17 @@ export default function Page() {
             <div className={styles.inputWrapper}>
               <label>CNPJ</label>
               <input
-                className={styles.inputStyle}
-                value={cnpjEdit}
-                onChange={(e) => setCnpjEdit(e.target.value)}
+                className={`${styles.inputStyle} ${
+                  cnpjExiste ? styles.inputErro : ""
+                }`}
+                value={cnpj}
+                onChange={(e) => verificarCnpj(e.target.value)}
               />
+              {cnpjExiste && (
+                <p className={styles.mensagemErro}>
+                  Este CNPJ já está cadastrado.
+                </p>
+              )}
             </div>
 
             <div className={styles.inputWrapper}>
