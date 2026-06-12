@@ -143,19 +143,24 @@ export default function NavigationBar() {
       ]
     },
     {
-      id: "financeiro",
-      title: "Financeiro",
-      iconInactive: "/images/iconFinanceiro.svg",
-      iconActive: "/images/iconFinanceiroAzul.svg",
-      cargos: PERMISSOES.financeiro,
-      submenus: [
-        {
-          id: "auditoriaLancamentos",
-          title: "Auditoria de lançamentos",
-          route: "/painel-auditoria"
-        }
-      ]
+  id: "financeiro",
+  title: "Financeiro",
+  iconInactive: "/images/iconFinanceiro.svg",
+  iconActive: "/images/iconFinanceiroAzul.svg",
+  cargos: PERMISSOES.financeiro,
+  submenus: [
+    {
+      id: "auditoriaLancamentos",
+      title: "Auditoria de lançamentos",
+      route: "/painel-auditoria"
     },
+    {
+      id: "painelFinanceiro",
+      title: "Painel Financeiro",
+      route: "/dashboard-Financeiro-Cliente"
+    }
+  ]
+},
     {
       id: "dashboard",
       title: "Dashboard",
