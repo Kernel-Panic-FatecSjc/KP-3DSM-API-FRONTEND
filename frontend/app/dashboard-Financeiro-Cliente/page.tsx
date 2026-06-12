@@ -13,298 +13,395 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 
-interface Projeto {
-  id: number;
+interface ProjetoFinanceiro {
+  projetoId: number;
   nome: string;
-  cliente: string;
-  receita: number;
-  custo: number;
-  status: string;
+  valorContratado: number;
+  custoRealAcumulado: number;
+  faturamentoPrevisto: number;
+  percentualConsumido: number;
+  statusFinanceiro: string;
 }
 
+const API_URL =
+  "http://localhost:8082/projeto/indicadores-financeiros";
+
+const PIE_COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#facc15",
+  "#e11d48",
+  "#7c3aed",
+];
+
 export default function DashboardFinanceiro() {
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [projetos, setProjetos] = useState<ProjetoFinanceiro[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     carregarDados();
   }, []);
 
   async function carregarDados() {
+    setCarregando(true);
+    setErro(null);
+
     try {
-      const response = await axios.get(
-        "http://localhost:8080/api/financeiro"
+      const token = localStorage.getItem("token") ?? "";
+
+      const response = await axios.get<ProjetoFinanceiro[]>(
+        API_URL,
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : {},
+        }
       );
 
-      setProjetos(response.data.projetos);
-    } catch {
-      setProjetos(mockProjetos);
+      setProjetos(response.data);
+    } catch (error) {
+      console.error(error);
+      setErro("Não foi possível carregar os dados financeiros.");
+    } finally {
+      setCarregando(false);
     }
   }
 
   const receitaTotal = projetos.reduce(
-    (acc, p) => acc + p.receita,
+    (acc, projeto) =>
+      acc + (projeto.valorContratado || 0),
     0
   );
 
   const custoTotal = projetos.reduce(
-    (acc, p) => acc + p.custo,
+    (acc, projeto) =>
+      acc + (projeto.custoRealAcumulado || 0),
+    0
+  );
+
+  const faturamentoTotal = projetos.reduce(
+    (acc, projeto) =>
+      acc + (projeto.faturamentoPrevisto || 0),
     0
   );
 
   const lucroTotal = receitaTotal - custoTotal;
 
-  const margem =
-    receitaTotal > 0
-      ? ((lucroTotal / receitaTotal) * 100).toFixed(
-          1
-        )
-      : "0";
+  const dadosGrafico = projetos.map((projeto) => ({
+    nome: projeto.nome,
+    receita: projeto.valorContratado,
+    custo: projeto.custoRealAcumulado,
+  }));
 
-  const clientesAgrupados = Object.values(
-    projetos.reduce((acc: any, projeto) => {
-      if (!acc[projeto.cliente]) {
-        acc[projeto.cliente] = {
-          cliente: projeto.cliente,
-          projetos: 0,
-          receita: 0,
-          custo: 0,
-        };
-      }
+  const dadosPizza = [
+    {
+      name: "Receita",
+      value: receitaTotal,
+    },
+    {
+      name: "Custos",
+      value: custoTotal,
+    },
+    {
+      name: "Lucro",
+      value: lucroTotal,
+    },
+  ].filter((item) => item.value > 0);
 
-      acc[projeto.cliente].projetos++;
-      acc[projeto.cliente].receita +=
-        projeto.receita;
-      acc[projeto.cliente].custo +=
-        projeto.custo;
-
-      return acc;
-    }, {})
-  );
+  if (carregando) {
+    return (
+      <div className="container loading-state">
+        <div className="loading-spinner" />
+        <p>Carregando dados financeiros...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
-
+      {erro && (
+        <div className="aviso-erro">
+          {erro}
+        </div>
+      )}
 
       <div className="cards">
         <div className="card">
+          <span>Projetos</span>
+          <h2>{projetos.length}</h2>
+        </div>
+
+        <div className="card">
           <span>Receita Total</span>
-          <h2>
+          <h2 className="verde">
             R${" "}
-            {receitaTotal.toLocaleString("pt-BR")}
+            {receitaTotal.toLocaleString(
+              "pt-BR"
+            )}
           </h2>
         </div>
 
         <div className="card">
           <span>Custo Total</span>
-          <h2>
-            R${" "}
-            {custoTotal.toLocaleString("pt-BR")}
+          <h2 className="vermelho">
+            R$ {custoTotal.toLocaleString("pt-BR")}
           </h2>
         </div>
 
         <div className="card">
-          <span>Lucro Total</span>
-          <h2 className="verde">
-            R${" "}
-            {lucroTotal.toLocaleString("pt-BR")}
+          <span>Lucro Estimado</span>
+          <h2 className="azul">
+            R$ {lucroTotal.toLocaleString("pt-BR")}
           </h2>
-        </div>
-
-        <div className="card">
-          <span>Margem Média</span>
-          <h2>{margem}%</h2>
         </div>
       </div>
 
-      <div className="box">
-        <h2>
-          Receita x Custo por Projeto
-        </h2>
+      <div className="graficos-row">
+        <div className="box grafico-meio">
+          <h2>
+            Receita x Custos por Projeto
+          </h2>
 
-        <ResponsiveContainer
-          width="100%"
-          height={400}
-        >
-          <BarChart data={projetos}>
-            <CartesianGrid strokeDasharray="3 3" />
+          <ResponsiveContainer
+            width="100%"
+            height={300}
+          >
+            <BarChart data={dadosGrafico}>
+              <CartesianGrid strokeDasharray="3 3" />
 
-            <XAxis dataKey="nome" />
+              <XAxis dataKey="nome" />
 
-            <YAxis />
+              <YAxis />
 
-            <Tooltip />
+              <Tooltip />
 
-            <Legend />
+              <Legend />
 
-            <Bar
-              dataKey="receita"
-              fill="#2563eb"
-              name="Receita"
-            />
+              <Bar
+                dataKey="receita"
+                fill="#16a34a"
+                name="Receita"
+              />
 
-            <Bar
-              dataKey="custo"
-              fill="#16a34a"
-              name="Custo"
-            />
-          </BarChart>
-        </ResponsiveContainer>
+              <Bar
+                dataKey="custo"
+                fill="#dc2626"
+                name="Custo"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="box grafico-meio">
+          <h2>
+            Distribuição Financeira
+          </h2>
+
+          <ResponsiveContainer
+            width="100%"
+            height={300}
+          >
+            <PieChart>
+              <Pie
+                data={dadosPizza}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label
+              >
+                {dadosPizza.map(
+                  (_, index) => (
+                    <Cell
+                      key={index}
+                      fill={
+                        PIE_COLORS[
+                          index %
+                            PIE_COLORS.length
+                        ]
+                      }
+                    />
+                  )
+                )}
+              </Pie>
+
+              <Tooltip />
+
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="box">
         <h2>Visão Geral dos Projetos</h2>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Projeto</th>
-              <th>Cliente</th>
-              <th>Receita</th>
-              <th>Custo</th>
-              <th>Lucro</th>
-              <th>Status</th>
-            </tr>
-          </thead>
+        {projetos.length === 0 ? (
+          <p className="sem-dados">
+            Nenhum projeto encontrado.
+          </p>
+        ) : (
+          <div className="tabela-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Projeto</th>
+                  <th>Valor Contratado</th>
+                  <th>Custo Acumulado</th>
+                  <th>Faturamento Previsto</th>
+                  <th>% Consumido</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
 
-          <tbody>
-            {projetos.map((projeto) => (
-              <tr key={projeto.id}>
-                <td>{projeto.nome}</td>
+              <tbody>
+                {projetos.map(
+                  (projeto) => (
+                    <tr
+                      key={
+                        projeto.projetoId
+                      }
+                    >
+                      <td>
+                        {
+                          projeto.projetoId
+                        }
+                      </td>
 
-                <td>{projeto.cliente}</td>
+                      <td className="nome-col">
+                        {projeto.nome}
+                      </td>
 
-                <td>
-                  R$
-                  {projeto.receita.toLocaleString(
-                    "pt-BR"
-                  )}
-                </td>
+                      <td>
+                        R${" "}
+                        {projeto.valorContratado.toLocaleString(
+                          "pt-BR"
+                        )}
+                      </td>
 
-                <td>
-                  R$
-                  {projeto.custo.toLocaleString(
-                    "pt-BR"
-                  )}
-                </td>
+                      <td>
+                        R${" "}
+                        {projeto.custoRealAcumulado.toLocaleString(
+                          "pt-BR"
+                        )}
+                      </td>
 
-                <td>
-                  R$
-                  {(
-                    projeto.receita -
-                    projeto.custo
-                  ).toLocaleString("pt-BR")}
-                </td>
+                      <td>
+                        R${" "}
+                        {projeto.faturamentoPrevisto.toLocaleString(
+                          "pt-BR"
+                        )}
+                      </td>
 
-                <td>{projeto.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      <td>
+                        {
+                          projeto.percentualConsumido
+                        }
+                        %
+                      </td>
+
+                      <td>
+                        <span
+                          className="badge-status"
+                          style={{
+                            backgroundColor:
+                              projeto.statusFinanceiro ===
+                              "OK"
+                                ? "#16a34a"
+                                : "#dc2626",
+                          }}
+                        >
+                          {
+                            projeto.statusFinanceiro
+                          }
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="box">
-        <h2>Visão por Cliente</h2>
+        <h2>
+          Resumo Financeiro
+        </h2>
 
         <div className="clientes">
-          {clientesAgrupados.map(
-            (cliente: any) => {
-              const lucro =
-                cliente.receita -
-                cliente.custo;
+          <div className="clienteCard">
+            <h3>
+              Receita Contratada
+            </h3>
 
-              return (
-                <div
-                  className="clienteCard"
-                  key={cliente.cliente}
-                >
-                  <h3>
-                    {cliente.cliente}
-                  </h3>
+            <p>
+              <strong>
+                R${" "}
+                {receitaTotal.toLocaleString(
+                  "pt-BR"
+                )}
+              </strong>
+            </p>
+          </div>
 
-                  <p>
-                    Projetos:{" "}
-                    {cliente.projetos}
-                  </p>
+          <div className="clienteCard">
+            <h3>
+              Custos Acumulados
+            </h3>
 
-                  <p>
-                    Receita: R$
-                    {cliente.receita.toLocaleString(
-                      "pt-BR"
-                    )}
-                  </p>
+            <p>
+              <strong>
+                R${" "}
+                {custoTotal.toLocaleString(
+                  "pt-BR"
+                )}
+              </strong>
+            </p>
+          </div>
 
-                  <p>
-                    Custos: R$
-                    {cliente.custo.toLocaleString(
-                      "pt-BR"
-                    )}
-                  </p>
+          <div className="clienteCard">
+            <h3>
+              Faturamento Previsto
+            </h3>
 
-                  <p className="verde">
-                    Lucro: R$
-                    {lucro.toLocaleString(
-                      "pt-BR"
-                    )}
-                  </p>
-                </div>
-              );
-            }
-          )}
+            <p>
+              <strong>
+                R${" "}
+                {faturamentoTotal.toLocaleString(
+                  "pt-BR"
+                )}
+              </strong>
+            </p>
+          </div>
+
+          <div className="clienteCard">
+            <h3>
+              Lucro Estimado
+            </h3>
+
+            <p>
+              <strong>
+                R${" "}
+                {lucroTotal.toLocaleString(
+                  "pt-BR"
+                )}
+              </strong>
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-const mockProjetos: Projeto[] = [
-  {
-    id: 1,
-    nome: "Sistema de Apontamento",
-    cliente: "GSW Soluções",
-    receita: 50000,
-    custo: 35000,
-    status: "Em andamento",
-  },
-  {
-    id: 2,
-    nome: "Portal RH",
-    cliente: "GSW Soluções",
-    receita: 30000,
-    custo: 23000,
-    status: "Em andamento",
-  },
-  {
-    id: 3,
-    nome: "Integração ERP",
-    cliente: "GSW Soluções",
-    receita: 20000,
-    custo: 12000,
-    status: "Concluído",
-  },
-  {
-    id: 4,
-    nome: "App Mobile",
-    cliente: "TechKorp",
-    receita: 40000,
-    custo: 28000,
-    status: "Em andamento",
-  },
-  {
-    id: 5,
-    nome: "Dashboard BI",
-    cliente: "TechKorp",
-    receita: 20000,
-    custo: 14000,
-    status: "Planejado",
-  },
-  {
-    id: 6,
-    nome: "E-commerce",
-    cliente: "Nova Ventures",
-    receita: 30000,
-    custo: 18000,
-    status: "Concluído",
-  },
-];
