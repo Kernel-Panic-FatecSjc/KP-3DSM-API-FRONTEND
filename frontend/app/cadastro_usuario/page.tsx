@@ -248,7 +248,6 @@ export default function Page() {
             <tr>
               <th>Nome</th>
               <th>Email</th>
-              <th>Valor/Hora</th>
               <th>Cargo</th>
               <th>Tipo de Contrato</th>
               <th>Ações</th>
@@ -259,7 +258,6 @@ export default function Page() {
               <tr key={usuario.id}>
                 <td>{usuario.nome}</td>
                 <td>{usuario.email}</td>
-                <td>{usuario.salario}</td>
                 <td>{getCargoLabel(usuario.cargo)}</td>
                 <td>{getContratoLabel(usuario.tipoContratacao)}</td>
                 <td className={styles.acoes}>

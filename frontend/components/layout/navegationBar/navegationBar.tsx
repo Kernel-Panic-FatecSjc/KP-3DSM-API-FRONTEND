@@ -167,6 +167,13 @@ export default function NavigationBar() {
       ]
     },
     {
+      id: "painelFinanceiro",
+      title: "Painel Financeiro",
+      route: "/dashboard-Financeiro-Cliente"
+    }
+  ]
+},
+    {
       id: "dashboard",
       title: "Dashboard",
       iconInactive: "/images/iconDashboard.svg",
