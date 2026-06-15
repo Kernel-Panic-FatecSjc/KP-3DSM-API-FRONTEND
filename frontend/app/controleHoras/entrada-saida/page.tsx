@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import { useRouter } from 'next/navigation';
 
-// --- INTEGRAÇÃO COM O BACKEND ---
 const BASE_URL = process.env.NEXT_PUBLIC_APONTAMENTO_API_URL || 'http://localhost:8084';
 const PROJETO_URL = process.env.NEXT_PUBLIC_PROJETO_API_URL || 'http://localhost:8082';
 const TASK_URL = process.env.NEXT_PUBLIC_TASK_API_URL || 'http://localhost:8085';
@@ -134,7 +133,7 @@ export async function buscarTarefasPorFuncionario(usuarioId: number): Promise<Ta
   return handleResponse<TarefaExibirDTO[]>(res);
 }
 
-// --- LÓGICA DA PÁGINA ---
+
 
 function getUserIdFromToken(): number {
   if (typeof window === 'undefined') return 0;
@@ -223,6 +222,61 @@ const cardInicial = {
   justificativa: '',
 };
 
+function ontemISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().split('T')[0];
+}
+
+const cardsMock: Card[] = [
+  {
+    id: -1,
+    nomeProjeto: 'Automanager',
+    projetoId: null,
+    tarefaId: null,
+    tarefaNome: undefined,
+    tituloSessao: 'DESENVOLVIMENTO',
+    descricao: 'Implementação do módulo de vendas',
+    inicio: '08:00',
+    fim: '12:00',
+    tipoAtividade: 'DESENVOLVIMENTO',
+    dataLancamento: hojeISO(),
+    dataFim: hojeISO(),
+    justificativa: '',
+  },
+  {
+    id: -2,
+    nomeProjeto: 'Automanager',
+    projetoId: null,
+    tarefaId: null,
+    tarefaNome: undefined,
+    tituloSessao: 'CORRECAO_BUG',
+    descricao: 'Ajuste no obterVendasPorPeriodo',
+    inicio: '13:00',
+    fim: '15:30',
+    tipoAtividade: 'CORRECAO_BUG',
+    dataLancamento: hojeISO(),
+    dataFim: hojeISO(),
+    justificativa: '',
+  },
+  {
+    id: -3,
+    nomeProjeto: 'Automanager',
+    projetoId: null,
+    tarefaId: null,
+    tarefaNome: undefined,
+    tituloSessao: 'TESTES',
+    descricao: 'Testes de integração dos microsserviços',
+    inicio: '09:00',
+    fim: '11:00',
+    tipoAtividade: 'TESTES',
+    dataLancamento: ontemISO(),
+    dataFim: ontemISO(),
+    justificativa: '',
+  },
+];
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -241,7 +295,7 @@ export default function Page() {
   const [usuarioId, setUsuarioId] = useState<number>(0);
   const [projetos, setProjetos] = useState<ProjetoExibirDTO[]>([]);
   const [tarefas, setTarefas] = useState<TarefaExibirDTO[]>([]);
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<Card[]>(cardsMock);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -276,7 +330,7 @@ export default function Page() {
           justificativa: h.justificativa || '',
         };
       });
-      setCards(comDados);
+      setCards([...cardsMock, ...comDados]);
     } catch (e) {
       setErro('Não foi possível carregar os registros.');
     } finally {
@@ -703,6 +757,10 @@ export default function Page() {
     </div>
   );
 }
+
+
+
+
 
 const overlay: React.CSSProperties = {
   position: 'fixed', inset: 0,
