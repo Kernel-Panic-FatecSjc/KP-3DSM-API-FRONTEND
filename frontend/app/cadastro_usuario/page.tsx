@@ -165,6 +165,14 @@ export default function Page() {
         throw new Error('Erro ao atualizar');
       }
 
+      const usuarioLogadoId = localStorage.getItem('usuarioId');
+
+      if (usuarioLogadoId === String(usuarioSelecionado.id)) {
+        localStorage.setItem('nome', nomeEdit);
+        localStorage.setItem('cargo', cargoEdit);
+        window.dispatchEvent(new Event('usuarioAtualizado'));
+      }
+
       setModalAtualizar(false);
       fetchUsuarios();
 

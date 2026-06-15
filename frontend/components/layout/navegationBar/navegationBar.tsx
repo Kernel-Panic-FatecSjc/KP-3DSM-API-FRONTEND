@@ -22,12 +22,24 @@ type Menu = {
   submenus?: Submenu[];
 };
 
+type UsuarioLogado = {
+  nome?: string;
+  name?: string;
+  cargo?: string;
+  role?: string;
+};
+
 const PERMISSOES: Record<string, string[]> = {
   profissional: ["profissional"],
   gestor: ["gestor"],
   financeiro: ["financeiro", "gestor"],
   dashboard: ["profissional", "financeiro", "gestor"],
 };
+
+const formatarCargo = (cargo: string) =>
+  cargo
+    .toLowerCase()
+    .replace('role_', '');
 
 export default function NavigationBar() {
 
@@ -49,23 +61,66 @@ export default function NavigationBar() {
   }, [pathname]);
 
   useEffect(() => {
+    const atualizarUsuarioDaNavbar = async () => {
+      const nome = localStorage.getItem('nome');
+      const cargoStorage = localStorage.getItem('cargo');
+      const usuarioId = localStorage.getItem('usuarioId');
+      const token = localStorage.getItem('token');
 
-    const nome = localStorage.getItem('nome');
-    const cargoStorage = localStorage.getItem('cargo');
+      if (nome && cargoStorage) {
+        const cargoFormatado = formatarCargo(cargoStorage);
 
-    if (nome && cargoStorage) {
+        setUser({
+          name: nome,
+          role: cargoFormatado
+        });
 
-      const cargoFormatado = cargoStorage
-        .toLowerCase()
-        .replace('role_', '');
+        setCargo(cargoFormatado);
+      } else {
+        setUser(null);
+        setCargo('');
+      }
 
-      setUser({
-        name: nome,
-        role: cargoFormatado
-      });
+      if (!usuarioId) return;
 
-      setCargo(cargoFormatado);
-    }
+      try {
+        const response = await fetch(`/api/usuario/${usuarioId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        });
+
+        if (!response.ok) return;
+
+        const usuarioAtualizado: UsuarioLogado = await response.json();
+        const nomeAtualizado = usuarioAtualizado.nome ?? usuarioAtualizado.name ?? nome;
+        const cargoAtualizado = usuarioAtualizado.cargo ?? usuarioAtualizado.role ?? cargoStorage;
+
+        if (!nomeAtualizado || !cargoAtualizado) return;
+
+        const cargoFormatado = formatarCargo(cargoAtualizado);
+
+        localStorage.setItem('nome', nomeAtualizado);
+        localStorage.setItem('cargo', cargoAtualizado);
+
+        setUser({
+          name: nomeAtualizado,
+          role: cargoFormatado
+        });
+
+        setCargo(cargoFormatado);
+      } catch (error) {
+        console.error('Erro ao atualizar dados do usuário na navbar:', error);
+      }
+    };
+
+    atualizarUsuarioDaNavbar();
+
+    window.addEventListener('storage', atualizarUsuarioDaNavbar);
+    window.addEventListener('usuarioAtualizado', atualizarUsuarioDaNavbar);
+
+    return () => {
+      window.removeEventListener('storage', atualizarUsuarioDaNavbar);
+      window.removeEventListener('usuarioAtualizado', atualizarUsuarioDaNavbar);
+    };
 
   }, []);
 
@@ -166,13 +221,6 @@ export default function NavigationBar() {
         }
       ]
     },
-    {
-      id: "painelFinanceiro",
-      title: "Painel Financeiro",
-      route: "/dashboard-Financeiro-Cliente"
-    }
-  ]
-},
     {
       id: "dashboard",
       title: "Dashboard",
