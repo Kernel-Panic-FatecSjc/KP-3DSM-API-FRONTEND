@@ -7,6 +7,7 @@ const REGRAS_DE_ACESSO: Record<string, string[]> = {
   '/dashboardProfissional': ['profissional', 'gestor'],
   '/dashboardFinanceiro': ['financeiro', 'gestor'],
   '/cadastro_usuario': ['gestor'],
+  '/cadastro_clientes' : ['gestor'],
   '/projetos': ['gestor'],
   '/registro-projeto': ['gestor'],
   '/gestao-tarefas-gestor': ['gestor'],
@@ -15,6 +16,7 @@ const REGRAS_DE_ACESSO: Record<string, string[]> = {
   '/historico_bloqueio': ['gestor'],
   '/dashboard-gestor': ['gestor'],
   '/painel-auditoria': ['financeiro', 'gestor'],
+  '/painel-financeiro': ['financeiro', 'gestor'],
   '/controleHoras': ['profissional', 'gestor'],
   '/bloqueioTarefas': ['profissional', 'gestor'],
 };
