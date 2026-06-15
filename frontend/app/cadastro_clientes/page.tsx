@@ -133,6 +133,15 @@ export default function Page() {
     setCnpjExiste(existe);
   };
 
+  const limparFormularioCadastro = () => {
+    setNome('');
+    setCnpj('');
+    setEmail('');
+    setTelefone('');
+    setObservacao('');
+    setCnpjExiste(false);
+  };
+
   const cadastrarCliente = async () => {
     if (cnpjExiste) {
       setShakeCnpj(true);
@@ -166,6 +175,7 @@ export default function Page() {
       );
 
       setModalCadastro(false);
+      limparFormularioCadastro();
       fetchClientes();
 
     } catch (error) {
@@ -173,8 +183,27 @@ export default function Page() {
     }
   };
 
+  const [cnpjExisteEdit, setCnpjExisteEdit] = useState(false);
+
+  const verificarCnpjEdit = (valor: string) => {
+    setCnpjEdit(valor);
+
+    const existe = clientes.some(
+      cliente =>
+        cliente.cnpj.replace(/\D/g, '') === valor.replace(/\D/g, '') &&
+        cliente.id !== clienteSelecionado?.id
+    );
+
+    setCnpjExisteEdit(existe);
+  };
+
   const atualizarCliente = async () => {
     if (!clienteSelecionado) return;
+
+    if (cnpjExisteEdit) {
+      alert('Este CNPJ já está cadastrado.');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -198,8 +227,8 @@ export default function Page() {
         }
       );
 
+      await fetchClientes();
       setModalAtualizar(false);
-      fetchClientes();
 
     } catch (error) {
       console.error(error);
@@ -232,6 +261,11 @@ export default function Page() {
 
   const vincularProjeto = async () => {
     if (!clienteSelecionado) return;
+
+    if (!projetoSelecionado) {
+      alert('Selecione um projeto antes de vincular.');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -371,6 +405,7 @@ export default function Page() {
                       setCnpjEdit(cliente.cnpj);
                       setEmailEdit(cliente.email);
                       setTelefoneEdit(cliente.telefone);
+                      setCnpjExisteEdit(false);
 
                       setModalAtualizar(true);
                     }}
@@ -449,14 +484,15 @@ export default function Page() {
         +
       </button>
 
-      {/* Modal Cadastro */}
-
       {modalCadastro && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalConteudo}>
             <button
               className={styles.botaoFecharModal}
-              onClick={() => setModalCadastro(false)}
+              onClick={() => {
+                setModalCadastro(false);
+                limparFormularioCadastro();
+              }}
             >
               ×
             </button>
@@ -511,7 +547,10 @@ export default function Page() {
             <div className={styles.botoes}>
               <button
                 className={styles.cancelar}
-                onClick={() => setModalCadastro(false)}
+                onClick={() => {
+                  setModalCadastro(false);
+                  limparFormularioCadastro();
+                }}
               >
                 Cancelar
               </button>
@@ -526,8 +565,6 @@ export default function Page() {
           </div>
         </div>
       )}
-
-      {/* Modal Atualização */}
 
       {modalAtualizar && (
         <div className={styles.modalOverlay}>
@@ -554,12 +591,12 @@ export default function Page() {
               <label>CNPJ</label>
               <input
                 className={`${styles.inputStyle} ${
-                  cnpjExiste ? styles.inputErro : ""
+                  cnpjExisteEdit ? styles.inputErro : ""
                 }`}
-                value={cnpj}
-                onChange={(e) => verificarCnpj(e.target.value)}
+                value={cnpjEdit}
+                onChange={(e) => verificarCnpjEdit(e.target.value)}
               />
-              {cnpjExiste && (
+              {cnpjExisteEdit && (
                 <p className={styles.mensagemErro}>
                   Este CNPJ já está cadastrado.
                 </p>
@@ -656,7 +693,7 @@ export default function Page() {
               className={styles.confirmar}
               style={{ marginBottom: "20px" }}
               onClick={vincularProjeto}
-              
+              disabled={!projetoSelecionado}
             >
               Vincular Projeto
             </button>

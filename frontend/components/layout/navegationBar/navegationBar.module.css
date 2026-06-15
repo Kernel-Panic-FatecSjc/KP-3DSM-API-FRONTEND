@@ -115,7 +115,7 @@
   flex-direction: column;
   gap: 15px;
   transition: transform 0.3s ease;
-  z-index: 100;
+  z-index: 1001;
   overflow-y: auto;
 }
 

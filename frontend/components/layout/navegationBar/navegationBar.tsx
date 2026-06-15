@@ -162,7 +162,7 @@ export default function NavigationBar() {
         {
           id: "painelFinanceiro",
           title: "Painel Financeiro",
-          route: "/painel-financeiro"
+          route: "/dashboard-Financeiro-Cliente"
         }
       ]
     },
