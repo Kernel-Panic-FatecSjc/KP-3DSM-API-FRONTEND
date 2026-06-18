@@ -14,6 +14,39 @@ type Cliente = {
   projetoIds: number[];
 };
 
+const formatarCnpj = (valor: string) => {
+  const digitos = valor.replace(/\D/g, '').slice(0, 14);
+  return digitos
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+};
+
+const cnpjValido = (valor: string) => {
+  const cnpj = valor.replace(/\D/g, '');
+
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) {
+    return false;
+  }
+
+  const calcularDigito = (tamanho: number, pesoInicial: number) => {
+    let soma = 0;
+    let peso = pesoInicial;
+
+    for (let i = 0; i < tamanho; i++) {
+      soma += Number(cnpj[i]) * peso--;
+      if (peso < 2) peso = 9;
+    }
+
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+
+  return calcularDigito(12, 5) === Number(cnpj[12]) &&
+    calcularDigito(13, 6) === Number(cnpj[13]);
+};
+
 type Projeto = {
   id: number;
   nome: string;
@@ -48,6 +81,19 @@ export default function Page() {
 
   const [projetoSelecionado, setProjetoSelecionado] = useState('');
 
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; visible: boolean }>({ 
+    message: '', 
+    type: 'success', 
+    visible: false 
+  });
+
+  const mostrarToast = (message: string, type: 'success' | 'error' = 'success', duracao: number = 4000) => {
+    setToast({ message, type, visible: true });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, duracao);
+  };
+
   const fetchClientes = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -66,6 +112,7 @@ export default function Page() {
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao buscar clientes', 'error');
     }
   };
 
@@ -96,6 +143,7 @@ export default function Page() {
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao atualizar cliente selecionado', 'error');
     }
   };
 
@@ -110,6 +158,7 @@ export default function Page() {
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao buscar projetos', 'error');
     }
   };
 
@@ -119,18 +168,21 @@ export default function Page() {
   }, []);
 
   const [cnpjExiste, setCnpjExiste] = useState(false);
+  const [cnpjInvalido, setCnpjInvalido] = useState(false);
   const [shakeCnpj, setShakeCnpj] = useState(false);
 
   const verificarCnpj = (valor: string) => {
-    setCnpj(valor);
+    const cnpjFormatado = formatarCnpj(valor);
+    setCnpj(cnpjFormatado);
 
     const existe = clientes.some(
       cliente =>
         cliente.cnpj.replace(/\D/g, '') ===
-        valor.replace(/\D/g, '')
+        cnpjFormatado.replace(/\D/g, '')
     );
 
     setCnpjExiste(existe);
+    setCnpjInvalido(cnpjFormatado.length > 0 && !cnpjValido(cnpjFormatado));
   };
 
   const limparFormularioCadastro = () => {
@@ -140,22 +192,24 @@ export default function Page() {
     setTelefone('');
     setObservacao('');
     setCnpjExiste(false);
+    setCnpjInvalido(false);
   };
 
   const cadastrarCliente = async () => {
-    if (cnpjExiste) {
+    if (cnpjExiste || cnpjInvalido) {
       setShakeCnpj(true);
 
       setTimeout(() => {
         setShakeCnpj(false);
       }, 500);
 
+      mostrarToast(cnpjExiste ? 'Este CNPJ já está cadastrado' : 'CNPJ inválido', 'error');
       return;
     }
     try {
       const token = localStorage.getItem('token');
 
-      await fetch(
+      const response = await fetch(
         'http://localhost:8083/clientes',
         {
           method: 'POST',
@@ -165,7 +219,7 @@ export default function Page() {
           },
           body: JSON.stringify({
             nome,
-            cnpj,
+            cnpj: cnpj.replace(/\D/g, ''),
             email,
             telefone,
             observacao,
@@ -174,41 +228,51 @@ export default function Page() {
         }
       );
 
+      if (!response.ok) {
+        const erro = await response.json();
+        throw new Error(erro.message || 'Erro ao cadastrar cliente');
+      }
+
+      mostrarToast('Cliente cadastrado com sucesso!', 'success');
       setModalCadastro(false);
       limparFormularioCadastro();
       fetchClientes();
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao cadastrar cliente', 'error');
     }
   };
 
   const [cnpjExisteEdit, setCnpjExisteEdit] = useState(false);
+  const [cnpjInvalidoEdit, setCnpjInvalidoEdit] = useState(false);
 
   const verificarCnpjEdit = (valor: string) => {
-    setCnpjEdit(valor);
+    const cnpjFormatado = formatarCnpj(valor);
+    setCnpjEdit(cnpjFormatado);
 
     const existe = clientes.some(
       cliente =>
-        cliente.cnpj.replace(/\D/g, '') === valor.replace(/\D/g, '') &&
+        cliente.cnpj.replace(/\D/g, '') === cnpjFormatado.replace(/\D/g, '') &&
         cliente.id !== clienteSelecionado?.id
     );
 
     setCnpjExisteEdit(existe);
+    setCnpjInvalidoEdit(cnpjFormatado.length > 0 && !cnpjValido(cnpjFormatado));
   };
 
   const atualizarCliente = async () => {
     if (!clienteSelecionado) return;
 
-    if (cnpjExisteEdit) {
-      alert('Este CNPJ já está cadastrado.');
+    if (cnpjExisteEdit || cnpjInvalidoEdit) {
+      mostrarToast(cnpjExisteEdit ? 'Este CNPJ já está cadastrado' : 'CNPJ inválido', 'error');
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
 
-      await fetch(
+      const response = await fetch(
         `http://localhost:8083/clientes/${clienteSelecionado.id}`,
         {
           method: 'PUT',
@@ -218,7 +282,7 @@ export default function Page() {
           },
           body: JSON.stringify({
             nome: nomeEdit,
-            cnpj: cnpjEdit,
+            cnpj: cnpjEdit.replace(/\D/g, ''),
             email: emailEdit,
             telefone: telefoneEdit,
             observacao: clienteSelecionado.observacao,
@@ -227,71 +291,85 @@ export default function Page() {
         }
       );
 
+      if (!response.ok) {
+        const erro = await response.json();
+        throw new Error(erro.message || 'Erro ao atualizar cliente');
+      }
+
+      mostrarToast('Cliente atualizado com sucesso!', 'success');
       await fetchClientes();
       setModalAtualizar(false);
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao atualizar cliente', 'error');
     }
   };
 
- const desativarCliente = async (id: number) => {
-  try {
-    const token = localStorage.getItem('token');
+  const desativarCliente = async (id: number) => {
+    try {
+      const token = localStorage.getItem('token');
 
-    const response = await fetch(
-      `http://localhost:8083/clientes/${id}/desativar`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`
+      const response = await fetch(
+        `http://localhost:8083/clientes/${id}/desativar`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao desativar cliente');
       }
-    );
 
-    console.log("Status:", response.status);
-    console.log("OK:", response.ok);
+      mostrarToast('Cliente desativado com sucesso!', 'success');
+      fetchClientes();
 
-    fetchClientes();
-
-  } catch (error) {
-    console.error("ERRO:", error);
-  }
-};
+    } catch (error) {
+      console.error("ERRO:", error);
+      mostrarToast('Erro ao desativar cliente', 'error');
+    }
+  };
 
   const vincularProjeto = async () => {
     if (!clienteSelecionado) return;
 
     if (!projetoSelecionado) {
-      alert('Selecione um projeto antes de vincular.');
+      mostrarToast('Selecione um projeto antes de vincular', 'error');
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
 
-      await fetch(
-      `http://localhost:8083/clientes/${clienteSelecionado.id}/projetos`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          projetoIds: [Number(projetoSelecionado)]
-        })
+      const response = await fetch(
+        `http://localhost:8083/clientes/${clienteSelecionado.id}/projetos`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            projetoIds: [Number(projetoSelecionado)]
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const erro = await response.json();
+        throw new Error(erro.message || 'Erro ao vincular projeto');
       }
-    );
 
-    await atualizarClienteSelecionado(
-      clienteSelecionado.id
-    );
-
-    setProjetoSelecionado('');
+      mostrarToast('Projeto vinculado com sucesso!', 'success');
+      await atualizarClienteSelecionado(clienteSelecionado.id);
+      setProjetoSelecionado('');
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao vincular projeto', 'error');
     }
   };
 
@@ -302,7 +380,7 @@ export default function Page() {
     try {
       const token = localStorage.getItem('token');
 
-      await fetch(
+      const response = await fetch(
         `http://localhost:8083/clientes/${clienteId}/projetos/${projetoId}`,
         {
           method: 'DELETE',
@@ -312,19 +390,22 @@ export default function Page() {
         }
       );
 
+      if (!response.ok) {
+        throw new Error('Erro ao desvincular projeto');
+      }
+
+      mostrarToast('Projeto desvinculado com sucesso!', 'success');
       await atualizarClienteSelecionado(clienteId);
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao desvincular projeto', 'error');
     }
   };
 
   const [paginaAtual, setPaginaAtual] = useState(1);
-
   const itensPorPagina = 6;
-
   const [filtroNome, setFiltroNome] = useState("");
-
   const [nomeEdit, setNomeEdit] = useState("");
   const [cnpjEdit, setCnpjEdit] = useState("");
   const [emailEdit, setEmailEdit] = useState("");
@@ -406,6 +487,7 @@ export default function Page() {
                       setEmailEdit(cliente.email);
                       setTelefoneEdit(cliente.telefone);
                       setCnpjExisteEdit(false);
+                      setCnpjInvalidoEdit(!cnpjValido(cliente.cnpj));
 
                       setModalAtualizar(true);
                     }}
@@ -513,7 +595,7 @@ export default function Page() {
               <input
                 className={`
                   ${styles.inputStyle}
-                  ${cnpjExiste ? styles.inputErro : ""}
+                  ${cnpjExiste || cnpjInvalido ? styles.inputErro : ""}
                   ${shakeCnpj ? styles.shake : ""}
                 `}
                 value={cnpj}
@@ -591,7 +673,7 @@ export default function Page() {
               <label>CNPJ</label>
               <input
                 className={`${styles.inputStyle} ${
-                  cnpjExisteEdit ? styles.inputErro : ""
+                  cnpjExisteEdit || cnpjInvalidoEdit ? styles.inputErro : ""
                 }`}
                 value={cnpjEdit}
                 onChange={(e) => verificarCnpjEdit(e.target.value)}
@@ -741,6 +823,40 @@ export default function Page() {
           </div>
         </div>
       )}
+
+      {toast.visible && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          padding: '16px 24px',
+          borderRadius: '10px',
+          backgroundColor: toast.type === 'success' ? '#10b981' : '#ef4444',
+          color: '#fff',
+          fontWeight: 600,
+          fontSize: '14px',
+          boxShadow: '0 10px 30px rgba(1, 38, 67, 0.15)',
+          animation: 'slideIn 0.3s ease',
+          zIndex: 10000,
+          maxWidth: '400px',
+          wordWrap: 'break-word'
+        }}>
+          {toast.message}
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
