@@ -123,6 +123,11 @@ export async function buscarProjetos(): Promise<ProjetoExibirDTO[]> {
   return handleResponse<ProjetoExibirDTO[]>(res);
 }
 
+export async function buscarProjetosPorProfissional(usuarioId: number): Promise<ProjetoExibirDTO[]> {
+  const res = await fetch(`${PROJETO_URL}/projeto/profissional/${usuarioId}`);
+  return handleResponse<ProjetoExibirDTO[]>(res);
+}
+
 export async function buscarTarefa(tarefaId: number): Promise<TarefaExibirDTO> {
   const res = await fetch(`${TASK_URL}/tarefas/${tarefaId}`);
   return handleResponse<TarefaExibirDTO>(res);
@@ -303,17 +308,17 @@ export default function Page() {
     try {
       setCarregando(true);
       setErro(null);
-      const [dados, tarefasDoUsuario, todosProjetos] = await Promise.all([
+      const [dados, tarefasDoUsuario, projetosDoUsuario] = await Promise.all([
         filtrarHoras({ usuarioId: uid, estado: 'PENDENTE' }),
         buscarTarefasPorFuncionario(uid),
-        buscarProjetos(),
+        buscarProjetosPorProfissional(uid),
       ]);
       setTarefas(tarefasDoUsuario);
-      setProjetos(todosProjetos.filter(p => tarefasDoUsuario.some(t => t.idProjeto === p.id)));
+      setProjetos(projetosDoUsuario);
 
       const comDados: Card[] = dados.map((h) => {
         const tarefa = h.tarefaId ? tarefasDoUsuario.find(t => t.id === h.tarefaId) : undefined;
-        const projeto = tarefa ? todosProjetos.find(p => p.id === tarefa.idProjeto) : undefined;
+        const projeto = tarefa ? projetosDoUsuario.find(p => p.id === tarefa.idProjeto) : undefined;
         return {
           id: Number(h.id),
           nomeProjeto: projeto?.nome || '-',

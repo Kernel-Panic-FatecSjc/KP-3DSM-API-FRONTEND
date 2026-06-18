@@ -19,6 +19,12 @@ type Tarefa = {
   bloqueada?: boolean;
 };
 
+type Projeto = {
+  id: number;
+  nome: string;
+  profissionaisIds?: number[];
+};
+
 const statusOptions: Option[] = [
   { value: "", label: "Todos os Status" },
   { value: "TO_DO", label: "To Do" },
@@ -35,6 +41,7 @@ const statusEfetivo = (t: Tarefa): string =>
 
 export default function Page() {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
+  const [projetosData, setProjetosData] = useState<Projeto[]>([]);
   const [projetoOptions, setProjetoOptions] = useState<Option[]>([]);
   const [responsavelOptions, setResponsavelOptions] = useState<Option[]>([]);
   const [projeto, setProjeto] = useState<Option | null>(null);
@@ -56,6 +63,7 @@ export default function Page() {
   const fetchProjetos = async () => {
     try {
       const res = await axios.get("http://localhost:8082/projeto");
+      setProjetosData(res.data);
       const options = res.data.map((p: any) => ({
         value: p.id.toString(),
         label: p.nome
@@ -70,7 +78,7 @@ export default function Page() {
     try {
       const res = await axios.get("http://localhost:8083/usuario/todos");
       const options = res.data
-        .filter((u: any) => u.cargo === 'ROLE_GESTOR')
+        .filter((u: any) => u.cargo === 'ROLE_PROFISSIONAL')
         .map((u: any) => ({
           value: u.id.toString(),
           label: u.nome
@@ -99,6 +107,14 @@ export default function Page() {
   useEffect(() => {
     fetchTarefas();
   }, [projeto]);
+
+  // Retorna apenas os responsáveis (profissionais) alocados no projeto informado
+  const responsaveisDoProjeto = (idProjeto: number | null): Option[] => {
+    if (idProjeto == null) return [];
+    const proj = projetosData.find(p => Number(p.id) === Number(idProjeto));
+    const ids = (proj?.profissionaisIds ?? []).map(Number);
+    return responsavelOptions.filter(o => o.value !== "" && ids.includes(Number(o.value)));
+  };
 
   const salvarTarefa = async () => {
     if (!projetoModal || projetoModal.value === "") {
@@ -150,7 +166,7 @@ export default function Page() {
     setNomeEdit(t.nome);
     setDescricaoEdit(t.descricao);
     setResponsaveisEdit(
-      responsavelOptions.filter(r => t.idResponsaveis.includes(Number(r.value)))
+      responsaveisDoProjeto(t.idProjeto).filter(r => t.idResponsaveis.includes(Number(r.value)))
     );
     setModalEditar(true);
   };
@@ -293,6 +309,7 @@ export default function Page() {
         className={styles.btnAdicionarMais}
         onClick={() => {
           setProjetoModal(projeto && projeto.value !== "" ? projeto : null);
+          setResponsaveisModal([]);
           setModalProjeto(true);
         }}
       >
@@ -309,17 +326,22 @@ export default function Page() {
               instanceId="select-projeto-modal"
               options={projetoOptions.filter(o => o.value)}
               value={projetoModal}
-              onChange={(s) => setProjetoModal(s)}
+              onChange={(s) => {
+                setProjetoModal(s);
+                setResponsaveisModal([]);
+              }}
               styles={modalSelectStyles}
               placeholder="Selecione o projeto"
             />
             <Select
               instanceId="select-responsaveis-modal"
               isMulti
-              options={responsavelOptions.filter(o => o.value)}
+              options={responsaveisDoProjeto(projetoModal ? Number(projetoModal.value) : null)}
               value={responsaveisModal}
               onChange={(s) => setResponsaveisModal(s as Option[])}
               styles={modalSelectStyles}
+              placeholder={projetoModal ? "Selecione os responsáveis" : "Selecione um projeto primeiro"}
+              noOptionsMessage={() => projetoModal ? "Nenhum profissional alocado neste projeto" : "Selecione um projeto primeiro"}
             />
             <div className={styles.modalButtons}>
               <button onClick={() => setModalProjeto(false)} className={styles.modalButton}>Fechar</button>
@@ -338,10 +360,11 @@ export default function Page() {
             <Select
               instanceId="select-responsaveis-edit"
               isMulti
-              options={responsavelOptions.filter(o => o.value)}
+              options={responsaveisDoProjeto(tarefaEditando.idProjeto)}
               value={responsaveisEdit}
               onChange={(s) => setResponsaveisEdit(s as Option[])}
               styles={modalSelectStyles}
+              noOptionsMessage={() => "Nenhum profissional alocado neste projeto"}
             />
             <div className={styles.modalButtons}>
               <button onClick={() => setModalEditar(false)} className={styles.modalButton}>Fechar</button>
