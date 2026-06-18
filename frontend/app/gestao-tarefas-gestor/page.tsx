@@ -16,9 +16,6 @@ type Tarefa = {
   idProjeto: number;
   idResponsaveis: number[];
   status: string;
-  // GET /tarefas (TarefaResponseDTO) reporta BLOCKED como status "Doing" e só
-  // sinaliza o bloqueio neste boolean. GET /tarefas/projeto/{id} não envia o
-  // campo (status já vem "BLOCKED"). Ver statusEfetivo.
   bloqueada?: boolean;
 };
 
@@ -30,15 +27,9 @@ const statusOptions: Option[] = [
   { value: "BLOCKED", label: "Bloqueada" }
 ];
 
-// O task-service devolve o status em formatos diferentes conforme o endpoint:
-//  - GET /tarefas              -> "To Do" / "Doing" / "Done"  (label amigável)
-//  - GET /tarefas/projeto/{id} -> "TO_DO" / "DOING" / ...      (nome do enum)
-// Normaliza ambos para o valor canônico do enum para comparar e exibir.
 const normalizeStatus = (s: string | null | undefined): string =>
   (s ?? "").trim().toUpperCase().replace(/\s+/g, "_");
 
-// Status canônico de uma tarefa, lidando com a perda de BLOCKED no GET /tarefas:
-// se o backend marcou `bloqueada`, vale BLOCKED; senão usa o status normalizado.
 const statusEfetivo = (t: Tarefa): string =>
   t.bloqueada ? "BLOCKED" : normalizeStatus(t.status);
 
@@ -78,10 +69,12 @@ export default function Page() {
   const fetchUsuarios = async () => {
     try {
       const res = await axios.get("http://localhost:8083/usuario/todos");
-      const options = res.data.map((u: any) => ({
-        value: u.id.toString(),
-        label: u.nome
-      }));
+      const options = res.data
+        .filter((u: any) => u.cargo === 'ROLE_GESTOR')
+        .map((u: any) => ({
+          value: u.id.toString(),
+          label: u.nome
+        }));
       setResponsavelOptions([{ value: "", label: "Todos os Responsáveis" }, ...options]);
     } catch (e) {
       console.error(e);
