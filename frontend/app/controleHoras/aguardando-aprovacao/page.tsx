@@ -30,10 +30,17 @@ interface Card {
   inicio: string;
   fim: string;
   dataLancamento: string;
+  dataFim: string;
 }
 
-function calcularTotal(inicio: string, fim: string): number {
+function calcularTotal(inicio: string, fim: string, dataInicio?: string, dataFim?: string): number {
   if (!inicio || !fim) return 0;
+  if (dataInicio && dataFim) {
+    const ini = new Date(`${dataInicio}T${inicio}:00`);
+    const f = new Date(`${dataFim}T${fim}:00`);
+    const diff = Math.round((f.getTime() - ini.getTime()) / 60000);
+    return diff > 0 ? diff : 0;
+  }
   const [hI, mI] = inicio.split(':').map(Number);
   const [hF, mF] = fim.split(':').map(Number);
   const totalMin = (hF * 60 + mF) - (hI * 60 + mI);
@@ -92,7 +99,7 @@ export default function Page() {
         const dados = [...dadosPendentes, ...dadosAguardando];
 
         const totalMesMinutos = horasDoMes.reduce((acc, h) => {
-          return acc + calcularTotal(h.inicio.substring(0, 5), h.fim.substring(0, 5));
+          return acc + calcularTotal(h.inicio.substring(0, 5), h.fim.substring(0, 5), h.dataLancamento, h.dataFim || h.dataLancamento);
         }, 0);
         setTotalMes(totalMesMinutos);
 
@@ -114,6 +121,7 @@ export default function Page() {
             inicio: h.inicio.substring(0, 5),
             fim: h.fim.substring(0, 5),
             dataLancamento: h.dataLancamento,
+            dataFim: h.dataFim || h.dataLancamento,
           };
         });
         setCardsAPI(comDados);
@@ -135,8 +143,7 @@ export default function Page() {
     return matchProjeto && matchData;
   });
 
-  const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim), 0);
-
+  const totalGeral = cardsFiltrados.reduce((acc, c) => acc + calcularTotal(c.inicio, c.fim, c.dataLancamento, c.dataFim), 0);
   return (
     <div className={styles.page}>
       {/* OPÇÕES de filtro */}
@@ -218,8 +225,7 @@ export default function Page() {
             </div>
             <div className={styles.cardHorario}>{card.inicio}</div>
             <div className={styles.cardHorario}>{card.fim}</div>
-            <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim))}</div>
-            <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
+            <div className={styles.cardTotal}>{formatarHoras(calcularTotal(card.inicio, card.fim, card.dataLancamento, card.dataFim))}</div>            <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#0A4FA8' }}>{formatarData(card.dataLancamento)}</div>
           </div>
         ))}
       </div>

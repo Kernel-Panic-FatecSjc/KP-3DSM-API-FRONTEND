@@ -19,6 +19,7 @@ interface HorasExibirDTO {
     tipoAtividade: string;
     descricao: string | null;
     dataLancamento: string;
+    dataFim: string | null;
     inicio: string;
     fim: string;
     justificativa: string | null;
@@ -38,6 +39,7 @@ interface Sessao {
     inicio: string;
     fim: string;
     dataLancamento: string;
+    dataFim: string;
     justificativa: string | null;
     estado: EstadoHora;
 }
@@ -115,11 +117,18 @@ async function rejeitarHora(id: number, motivoRejeicao: string): Promise<void> {
     if (!res.ok) throw new Error('Erro ao rejeitar');
 }
 
-function calcularHoras(inicio: string, fim: string): string {
+function calcularHoras(inicio: string, fim: string, dataInicio?: string, dataFim?: string): string {
     if (!inicio || !fim) return '0h';
-    const [hI, mI] = inicio.substring(0, 5).split(':').map(Number);
-    const [hF, mF] = fim.substring(0, 5).split(':').map(Number);
-    const diff = (hF * 60 + mF) - (hI * 60 + mI);
+    let diff: number;
+    if (dataInicio && dataFim) {
+        const ini = new Date(`${dataInicio}T${inicio.substring(0, 5)}:00`);
+        const f = new Date(`${dataFim}T${fim.substring(0, 5)}:00`);
+        diff = Math.round((f.getTime() - ini.getTime()) / 60000);
+    } else {
+        const [hI, mI] = inicio.substring(0, 5).split(':').map(Number);
+        const [hF, mF] = fim.substring(0, 5).split(':').map(Number);
+        diff = (hF * 60 + mF) - (hI * 60 + mI);
+    }
     if (diff <= 0) return '0h';
     const h = Math.floor(diff / 60);
     const m = diff % 60;
@@ -219,6 +228,7 @@ export default function Page() {
                     inicio: h.inicio.substring(0, 5),
                     fim: h.fim.substring(0, 5),
                     dataLancamento: h.dataLancamento,
+                    dataFim: h.dataFim || h.dataLancamento,
                     justificativa: h.justificativa,
                     estado: h.estado,
                 };
@@ -538,7 +548,7 @@ export default function Page() {
                                         <td>{s.nomeProjeto}</td>
                                         <td>{s.tituloSessao}</td>
                                         <td>{formatarData(s.dataLancamento)}</td>
-                                        <td>{calcularHoras(s.inicio, s.fim)}</td>
+                                        <td>{calcularHoras(s.inicio, s.fim, s.dataLancamento, s.dataFim)}</td>
                                         {abaAtiva === 'historico' && (
                                             <td>
                                                 <span style={{
@@ -594,9 +604,7 @@ export default function Page() {
                         )}
                         <div className={styles.horas}>
                             <div className={styles.conteudoHoras}><h3>Início</h3><div className={styles.caixaHora}>{usuarioSelecionado.inicio}</div></div>
-                            <div className={styles.conteudoHoras}><h3>Fim</h3><div className={styles.caixaHora}>{usuarioSelecionado.fim}</div></div>
-                            <div className={styles.conteudoHoras}><h3>Total de Horas</h3><div className={styles.caixaHora}>{calcularHoras(usuarioSelecionado.inicio, usuarioSelecionado.fim)}</div></div>
-                        </div>
+                            <div className={styles.conteudoHoras}><h3>Fim</h3><div className={styles.caixaHora}>{usuarioSelecionado.fim}</div></div>                        </div>
                         {abaAtiva === 'aguardando' && (
                             <div className={styles.botoes}>
                                 <button className={styles.recusar} onClick={() => { setModalInformacao(false); setModalJustificativa(true); }}>Reprovar</button>
