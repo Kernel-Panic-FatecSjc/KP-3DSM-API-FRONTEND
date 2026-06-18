@@ -21,6 +21,8 @@ export default function Page() {
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<string>("TODOS");
 
+  const [expandedProject, setExpandedProject] = useState<number | null>(null);
+
   useEffect(() => {
     const fetchProjetos = async () => {
       try {
@@ -56,6 +58,22 @@ export default function Page() {
     fetchUsuarios();
     fetchClientes();
   }, []);
+
+  // Fecha dropdown de profissionais ao clicar fora
+  useEffect(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      if (expandedProject == null) return;
+      const target = e.target as Node | null;
+      const expandedEl = document.querySelector(`[data-project-id="${expandedProject}"]`);
+      if (expandedEl && target && expandedEl.contains(target)) {
+        // click inside expanded card -> don't close
+        return;
+      }
+      setExpandedProject(null);
+    };
+    document.addEventListener("click", handleDocClick);
+    return () => document.removeEventListener("click", handleDocClick);
+  }, [expandedProject]);
 
   // Retorna o nome do cliente vinculado ao projeto, ou null se não houver
   const getClienteDoProjeto = (projetoId: number): string | null => {
@@ -199,8 +217,15 @@ export default function Page() {
         ) : (
           projetosFiltrados.map((projeto) => {
             const clienteVinculado = getClienteDoProjeto(projeto.id);
+            const profDoProjeto = (projeto.profissionaisIds || [])
+              .map((id: any) => profissionais.find((p) => Number(p.id) === Number(id)))
+              .filter(Boolean);
             return (
-              <div key={projeto.id} className={styles.card}>
+              <div
+                key={projeto.id}
+                className={expandedProject === projeto.id ? `${styles.card} ${styles.cardExpanded}` : styles.card}
+                data-project-id={projeto.id}
+              >
                 <div
                   className={styles.statusBar}
                   style={{ backgroundColor: getStatusColor(projeto.status ?? "") }}
@@ -221,7 +246,6 @@ export default function Page() {
                   <span><strong>Valor:</strong> {projeto.valorContratado ? projeto.valorContratado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-"}</span>
                   <span><strong>Responsável:</strong> {projeto.responsavelId ? getNomeUsuario(projeto.responsavelId) : "-"}</span>
                   <span><strong>Criação:</strong> {projeto.dataCriacao ? formatPrazo(projeto.dataCriacao) : "-"}</span>
-                  {/* Cliente vinculado */}
                   <span>
                     <strong>Cliente:</strong>{" "}
                     {clienteVinculado ? (
@@ -245,6 +269,56 @@ export default function Page() {
                   <option value="EM_ANDAMENTO">Em andamento</option>
                   <option value="CONCLUIDO">Concluído</option>
                 </select>
+                
+                <div className={styles.profLabel}>Profissionais</div>
+
+                <div className={styles.avatarGroup}>
+                  {profDoProjeto.slice(0, 3).map((p: any) => {
+                    const nome = p?.nome || "-";
+                    const initials = nome
+                      .split(" ")
+                      .map((s: string) => s[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase();
+                    return (
+                      <div key={p.id} className={styles.avatar} title={nome}>
+                        {initials}
+                      </div>
+                    );
+                  })}
+
+                  {profDoProjeto.length > 3 && (
+                    <button
+                      className={styles.moreBadge}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedProject(expandedProject === projeto.id ? null : projeto.id);
+                      }}
+                      aria-expanded={expandedProject === projeto.id}
+                    >
+                      +{profDoProjeto.length - 3}
+                    </button>
+                  )}
+                </div>
+
+                {expandedProject === projeto.id && (
+                  <div className={styles.expandedList} onClick={(e) => e.stopPropagation()}>
+                    {profDoProjeto.map((p: any) => (
+                      <div key={p.id} className={styles.moreItem}>
+                        <div className={styles.avatarSmall}>
+                          {p.nome
+                            .split(" ")
+                            .map((s: string) => s[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()}
+                        </div>
+                        <div className={styles.moreName}>{p.nome}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })
