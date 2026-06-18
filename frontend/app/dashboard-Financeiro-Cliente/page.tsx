@@ -28,8 +28,19 @@ interface ProjetoFinanceiro {
   statusFinanceiro: string;
 }
 
+interface ClienteFinanceiro {
+  clienteId: number;
+  nome: string;
+  valorContratado: number;
+  custoReal: number;
+  lucro: number;
+}
+
 const API_URL =
   "http://localhost:8082/projeto/indicadores-financeiros";
+
+const CLIENTE_API =
+  "http://localhost:8083/clientes/financeiro";
 
 const PIE_COLORS = [
   "#2563eb",
@@ -41,6 +52,9 @@ const PIE_COLORS = [
 
 export default function DashboardFinanceiro() {
   const [projetos, setProjetos] = useState<ProjetoFinanceiro[]>([]);
+  const [clientes, setClientes] = useState<ClienteFinanceiro[]>([]);
+  const [modo, setModo] = useState<"projeto" | "cliente">("projeto");
+
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -55,21 +69,31 @@ export default function DashboardFinanceiro() {
     try {
       const token = localStorage.getItem("token") ?? "";
 
-      const response = await axios.get<ProjetoFinanceiro[]>(
-        API_URL,
-        {
-          headers: token
-            ? {
-                Authorization: `Bearer ${token}`,
-              }
-            : {},
-        }
-      );
+      const headers = token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {};
 
-      setProjetos(response.data);
+      const [projetosResponse, clientesResponse] =
+        await Promise.all([
+          axios.get<ProjetoFinanceiro[]>(
+            API_URL,
+            { headers }
+          ),
+          axios.get<ClienteFinanceiro[]>(
+            CLIENTE_API,
+            { headers }
+          ),
+        ]);
+
+      setProjetos(projetosResponse.data);
+      setClientes(clientesResponse.data);
     } catch (error) {
       console.error(error);
-      setErro("Não foi possível carregar os dados financeiros.");
+      setErro(
+        "Não foi possível carregar os dados financeiros."
+      );
     } finally {
       setCarregando(false);
     }
@@ -93,28 +117,71 @@ export default function DashboardFinanceiro() {
     0
   );
 
-  const lucroTotal = receitaTotal - custoTotal;
+  const lucroTotal =
+    receitaTotal - custoTotal;
 
-  const dadosGrafico = projetos.map((projeto) => ({
-    nome: projeto.nome,
-    receita: projeto.valorContratado,
-    custo: projeto.custoRealAcumulado,
-  }));
+  const receitaClientes = clientes.reduce(
+    (acc, cliente) =>
+      acc + (cliente.valorContratado || 0),
+    0
+  );
 
-  const dadosPizza = [
-    {
-      name: "Receita",
-      value: receitaTotal,
-    },
-    {
-      name: "Custos",
-      value: custoTotal,
-    },
-    {
-      name: "Lucro",
-      value: lucroTotal,
-    },
-  ].filter((item) => item.value > 0);
+  const custoClientes = clientes.reduce(
+    (acc, cliente) =>
+      acc + (cliente.custoReal || 0),
+    0
+  );
+
+  const lucroClientes = clientes.reduce(
+    (acc, cliente) =>
+      acc + (cliente.lucro || 0),
+    0
+  );
+
+  const dadosGrafico =
+    modo === "projeto"
+      ? projetos.map((projeto) => ({
+          nome: projeto.nome,
+          receita: projeto.valorContratado,
+          custo: projeto.custoRealAcumulado,
+        }))
+      : clientes.map((cliente) => ({
+          nome: cliente.nome,
+          receita: cliente.valorContratado,
+          custo: cliente.custoReal,
+          lucro: cliente.lucro,
+        }));
+
+  const dadosPizza =
+    modo === "projeto"
+      ? [
+          {
+            name: "Receita",
+            value: receitaTotal,
+          },
+          {
+            name: "Custos",
+            value: custoTotal,
+          },
+          {
+            name: "Lucro",
+            value: lucroTotal,
+          },
+        ]
+      : [
+          {
+            name: "Receita",
+            value: receitaClientes,
+          },
+          {
+            name: "Custos",
+            value: custoClientes,
+          },
+          {
+            name: "Lucro",
+            value: lucroClientes,
+          },
+        ];
 
   if (carregando) {
     return (
@@ -133,41 +200,118 @@ export default function DashboardFinanceiro() {
         </div>
       )}
 
+      <div className="toggle-view">
+        <button
+          className={
+            modo === "projeto"
+              ? "toggle-active"
+              : ""
+          }
+          onClick={() =>
+            setModo("projeto")
+          }
+        >
+          Projetos
+        </button>
+
+        <button
+          className={
+            modo === "cliente"
+              ? "toggle-active"
+              : ""
+          }
+          onClick={() =>
+            setModo("cliente")
+          }
+        >
+          Clientes
+        </button>
+      </div>
+
       <div className="cards">
-        <div className="card">
-          <span>Projetos</span>
-          <h2>{projetos.length}</h2>
-        </div>
+        {modo === "projeto" ? (
+          <>
+            <div className="card">
+              <span>Projetos</span>
+              <h2>{projetos.length}</h2>
+            </div>
 
-        <div className="card">
-          <span>Receita Total</span>
-          <h2 className="verde">
-            R${" "}
-            {receitaTotal.toLocaleString(
-              "pt-BR"
-            )}
-          </h2>
-        </div>
+            <div className="card">
+              <span>Receita Total</span>
+              <h2 className="verde">
+                R${" "}
+                {receitaTotal.toLocaleString(
+                  "pt-BR"
+                )}
+              </h2>
+            </div>
 
-        <div className="card">
-          <span>Custo Total</span>
-          <h2 className="vermelho">
-            R$ {custoTotal.toLocaleString("pt-BR")}
-          </h2>
-        </div>
+            <div className="card">
+              <span>Custo Total</span>
+              <h2 className="vermelho">
+                R${" "}
+                {custoTotal.toLocaleString(
+                  "pt-BR"
+                )}
+              </h2>
+            </div>
 
-        <div className="card">
-          <span>Lucro Estimado</span>
-          <h2 className="azul">
-            R$ {lucroTotal.toLocaleString("pt-BR")}
-          </h2>
-        </div>
+            <div className="card">
+              <span>Lucro Estimado</span>
+              <h2 className="azul">
+                R${" "}
+                {lucroTotal.toLocaleString(
+                  "pt-BR"
+                )}
+              </h2>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="card">
+              <span>Clientes</span>
+              <h2>{clientes.length}</h2>
+            </div>
+
+            <div className="card">
+              <span>Receita Total</span>
+              <h2 className="verde">
+                R${" "}
+                {receitaClientes.toLocaleString(
+                  "pt-BR"
+                )}
+              </h2>
+            </div>
+
+            <div className="card">
+              <span>Custo Total</span>
+              <h2 className="vermelho">
+                R${" "}
+                {custoClientes.toLocaleString(
+                  "pt-BR"
+                )}
+              </h2>
+            </div>
+
+            <div className="card">
+              <span>Lucro Total</span>
+              <h2 className="azul">
+                R${" "}
+                {lucroClientes.toLocaleString(
+                  "pt-BR"
+                )}
+              </h2>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="graficos-row">
         <div className="box grafico-meio">
           <h2>
-            Receita x Custos por Projeto
+            {modo === "projeto"
+              ? "Receita x Custos por Projeto"
+              : "Receita x Custos por Cliente"}
           </h2>
 
           <ResponsiveContainer
@@ -196,6 +340,14 @@ export default function DashboardFinanceiro() {
                 fill="#dc2626"
                 name="Custo"
               />
+
+              {modo === "cliente" && (
+                <Bar
+                  dataKey="lucro"
+                  fill="#2563eb"
+                  name="Lucro"
+                />
+              )}
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -243,22 +395,22 @@ export default function DashboardFinanceiro() {
       </div>
 
       <div className="box">
-        <h2>Visão Geral dos Projetos</h2>
+        <h2>
+          {modo === "projeto"
+            ? "Visão Geral dos Projetos"
+            : "Visão Geral dos Clientes"}
+        </h2>
 
-        {projetos.length === 0 ? (
-          <p className="sem-dados">
-            Nenhum projeto encontrado.
-          </p>
-        ) : (
-          <div className="tabela-wrapper">
+        <div className="tabela-wrapper">
+          {modo === "projeto" ? (
             <table>
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>Projeto</th>
                   <th>Valor Contratado</th>
-                  <th>Custo Acumulado</th>
-                  <th>Faturamento Previsto</th>
+                  <th>Custo</th>
+                  <th>Faturamento</th>
                   <th>% Consumido</th>
                   <th>Status</th>
                 </tr>
@@ -277,62 +429,98 @@ export default function DashboardFinanceiro() {
                           projeto.projetoId
                         }
                       </td>
-
-                      <td className="nome-col">
-                        {projeto.nome}
-                      </td>
-
+                      <td>{projeto.nome}</td>
                       <td>
                         R${" "}
                         {projeto.valorContratado.toLocaleString(
                           "pt-BR"
                         )}
                       </td>
-
                       <td>
                         R${" "}
                         {projeto.custoRealAcumulado.toLocaleString(
                           "pt-BR"
                         )}
                       </td>
-
                       <td>
                         R${" "}
                         {projeto.faturamentoPrevisto.toLocaleString(
                           "pt-BR"
                         )}
                       </td>
-
                       <td>
                         {
                           projeto.percentualConsumido
                         }
                         %
                       </td>
-
                       <td>
-                        <span
-                          className="badge-status"
-                          style={{
-                            backgroundColor:
-                              projeto.statusFinanceiro ===
-                              "OK"
-                                ? "#16a34a"
-                                : "#dc2626",
-                          }}
-                        >
-                          {
-                            projeto.statusFinanceiro
-                          }
-                        </span>
+                        {
+                          projeto.statusFinanceiro
+                        }
                       </td>
                     </tr>
                   )
                 )}
               </tbody>
             </table>
-          </div>
-        )}
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Valor Contratado</th>
+                  <th>Custo</th>
+                  <th>Lucro</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {clientes.map(
+                  (cliente) => (
+                    <tr
+                      key={
+                        cliente.clienteId
+                      }
+                    >
+                      <td>
+                        {
+                          cliente.clienteId
+                        }
+                      </td>
+
+                      <td>
+                        {cliente.nome}
+                      </td>
+
+                      <td>
+                        R${" "}
+                        {cliente.valorContratado.toLocaleString(
+                          "pt-BR"
+                        )}
+                      </td>
+
+                      <td>
+                        R${" "}
+                        {cliente.custoReal.toLocaleString(
+                          "pt-BR"
+                        )}
+                      </td>
+
+                      <td>
+                        R${" "}
+                        {cliente.lucro.toLocaleString(
+                          "pt-BR"
+                        )}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       <div className="box">
@@ -343,60 +531,62 @@ export default function DashboardFinanceiro() {
         <div className="clientes">
           <div className="clienteCard">
             <h3>
-              Receita Contratada
+              Receita
             </h3>
 
             <p>
               <strong>
                 R${" "}
-                {receitaTotal.toLocaleString(
-                  "pt-BR"
-                )}
+                {(modo === "projeto"
+                  ? receitaTotal
+                  : receitaClientes
+                ).toLocaleString("pt-BR")}
               </strong>
             </p>
           </div>
 
           <div className="clienteCard">
             <h3>
-              Custos Acumulados
+              Custos
             </h3>
 
             <p>
               <strong>
                 R${" "}
-                {custoTotal.toLocaleString(
-                  "pt-BR"
-                )}
+                {(modo === "projeto"
+                  ? custoTotal
+                  : custoClientes
+                ).toLocaleString("pt-BR")}
               </strong>
             </p>
           </div>
 
           <div className="clienteCard">
             <h3>
-              Faturamento Previsto
+              Lucro
             </h3>
 
             <p>
               <strong>
                 R${" "}
-                {faturamentoTotal.toLocaleString(
-                  "pt-BR"
-                )}
+                {(modo === "projeto"
+                  ? lucroTotal
+                  : lucroClientes
+                ).toLocaleString("pt-BR")}
               </strong>
             </p>
           </div>
 
           <div className="clienteCard">
             <h3>
-              Lucro Estimado
+              Registros
             </h3>
 
             <p>
               <strong>
-                R${" "}
-                {lucroTotal.toLocaleString(
-                  "pt-BR"
-                )}
+                {modo === "projeto"
+                  ? projetos.length
+                  : clientes.length}
               </strong>
             </p>
           </div>

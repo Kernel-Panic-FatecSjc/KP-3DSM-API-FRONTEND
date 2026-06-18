@@ -68,6 +68,15 @@ interface CostEntry {
   contractedValue: number;
 }
 
+interface ClientCost {
+  clienteId: number;
+  clientName: string;
+  realCost: number;
+  contractedValue: number;
+  profit: number;
+  margin: number;
+}
+
 // Custo de um profissional em um projeto (GET /projeto/custo-profissional)
 interface CustoProfissionalDTO {
   usuarioId: number;
@@ -94,6 +103,7 @@ interface AuditoriaFinanceiraDTO {
 // ================================================================
 
 const API_BASE_URL = "http://localhost:8082";
+const USUARIO_API_BASE_URL = "http://localhost:8083";
 
 async function fetchIndicadoresFinanceiros(
   periodicidade: PeriodicidadeFinanceira,
@@ -138,6 +148,30 @@ async function fetchHistoricoFinanceiro(projetoId?: string): Promise<AuditoriaFi
   const res = await fetch(url.toString(), { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error(`Erro ${res.status}`);
   return res.json();
+}
+
+async function fetchClientesFinanceiro(): Promise<ClientCost[]> {
+  const res = await fetch(`${USUARIO_API_BASE_URL}/clientes/financeiro`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`Erro ${res.status}`);
+
+  const data = await res.json();
+  return data.map((cliente: any) => {
+    const contractedValue = Number(cliente.valorContratado ?? 0);
+    const realCost = Number(cliente.custoReal ?? 0);
+    const profit = Number(cliente.lucro ?? contractedValue - realCost);
+    const margin = contractedValue > 0 ? (profit / contractedValue) * 100 : 0;
+
+    return {
+      clienteId: Number(cliente.clienteId ?? cliente.id),
+      clientName: cliente.nome ?? `Cliente ${cliente.clienteId ?? cliente.id}`,
+      realCost,
+      contractedValue,
+      profit,
+      margin,
+    };
+  });
 }
 
 // ================================================================
@@ -223,6 +257,7 @@ function AlertaBanner({ alertas }: { alertas: AlertaComProjeto[] }) {
 // ================================================================
 
 export default function FinanceiroDashboard() {
+  const [viewMode, setViewMode] = useState<"projeto" | "cliente">("projeto");
   const [periodoUI, setPeriodoUI] = useState<"semanal" | "mensal">("semanal");
   const periodicidade: PeriodicidadeFinanceira = periodoUI === "semanal" ? "SEMANAL" : "MENSAL";
 
@@ -235,6 +270,8 @@ export default function FinanceiroDashboard() {
 
   const [custoProfissional, setCustoProfissional] = useState<CustoProfissionalDTO[]>([]);
   const [historico, setHistorico] = useState<AuditoriaFinanceiraDTO[]>([]);
+  const [clientCosts, setClientCosts] = useState<ClientCost[]>([]);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   // ── Fetch ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -269,6 +306,22 @@ export default function FinanceiroDashboard() {
       .catch(() => { if (!cancelled) setHistorico([]); });
     return () => { cancelled = true; };
   }, [selectedProject]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setClientError(null);
+
+    fetchClientesFinanceiro()
+      .then((data) => { if (!cancelled) setClientCosts(data); })
+      .catch((err: Error) => {
+        if (!cancelled) {
+          setClientCosts([]);
+          setClientError(err.message);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Filtragem ──────────────────────────────────────────────────
   const indicadoresFiltrados = useMemo(() => {
@@ -362,6 +415,10 @@ export default function FinanceiroDashboard() {
   );
 
   const selectedLabel = projectOptions.find((u) => u.id === selectedProject)?.name ?? "Todos os projetos";
+  const totalClientRealCost = useMemo(() => clientCosts.reduce((s, c) => s + c.realCost, 0), [clientCosts]);
+  const totalClientContracted = useMemo(() => clientCosts.reduce((s, c) => s + c.contractedValue, 0), [clientCosts]);
+  const totalClientProfit = useMemo(() => clientCosts.reduce((s, c) => s + c.profit, 0), [clientCosts]);
+  const averageClientMargin = totalClientContracted > 0 ? (totalClientProfit / totalClientContracted) * 100 : 0;
 
   // ── Render ─────────────────────────────────────────────────────
   return (
@@ -369,24 +426,30 @@ export default function FinanceiroDashboard() {
 
       {/* Filtros */}
       <div className={styles.filtersRow}>
-        <div className={styles.dropdownWrapper}>
-          <div className={styles.projectDropdown} onClick={() => setOpenDropdown(!openDropdown)}>
-            {selectedLabel}
-            {openDropdown && (
-              <div className={styles.dropdownMenu}>
-                {projectOptions.map((u) => (
-                  <div
-                    key={u.id}
-                    className={`${styles.dropdownItem} ${selectedProject === u.id ? styles.dropdownItemActive : ""}`}
-                    onClick={(e) => { e.stopPropagation(); setSelectedProject(u.id); setOpenDropdown(false); }}
-                  >
-                    {u.name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className={styles.toggle}>
+          <button className={viewMode === "projeto" ? styles.activeToggle : styles.toggleButton} onClick={() => setViewMode("projeto")}>Por projeto</button>
+          <button className={viewMode === "cliente" ? styles.activeToggle : styles.toggleButton} onClick={() => setViewMode("cliente")}>Por cliente</button>
         </div>
+        {viewMode === "projeto" && (
+          <div className={styles.dropdownWrapper}>
+            <div className={styles.projectDropdown} onClick={() => setOpenDropdown(!openDropdown)}>
+              {selectedLabel}
+              {openDropdown && (
+                <div className={styles.dropdownMenu}>
+                  {projectOptions.map((u) => (
+                    <div
+                      key={u.id}
+                      className={`${styles.dropdownItem} ${selectedProject === u.id ? styles.dropdownItemActive : ""}`}
+                      onClick={(e) => { e.stopPropagation(); setSelectedProject(u.id); setOpenDropdown(false); }}
+                    >
+                      {u.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         <div className={styles.toggle}>
           <button className={periodoUI === "semanal" ? styles.activeToggle : styles.toggleButton} onClick={() => setPeriodoUI("semanal")}>Semanal</button>
           <button className={periodoUI === "mensal"  ? styles.activeToggle : styles.toggleButton} onClick={() => setPeriodoUI("mensal")}>Mensal</button>
@@ -401,11 +464,18 @@ export default function FinanceiroDashboard() {
         </div>
       )}
 
+      {viewMode === "cliente" && clientError && (
+        <div className={styles.overBudgetAlert} style={{ borderColor: "#EF4444" }}>
+          <strong>Erro ao carregar clientes:</strong> {clientError}
+        </div>
+      )}
+
       {!loading && !error && (
         <>
-          <AlertaBanner alertas={alertasComProjeto} />
+          {viewMode === "projeto" && <AlertaBanner alertas={alertasComProjeto} />}
 
           {/* Métricas */}
+          {viewMode === "projeto" ? (
           <div className={styles.metricsGrid}>
             <MetricCard
               label="Custo total acumulado"
@@ -435,7 +505,16 @@ export default function FinanceiroDashboard() {
             />
           </div>
 
-          {/* Gráficos */}
+          ) : (
+          <div className={styles.metricsGrid}>
+            <MetricCard label="Custo real por clientes" value={formatBRLk(totalClientRealCost)} sub={`${clientCosts.length} cliente(s)`} />
+            <MetricCard label="Valor contratado por clientes" value={formatBRLk(totalClientContracted)} sub="Projetos vinculados" />
+            <MetricCard label="Lucro total" value={formatBRLk(totalClientProfit)} sub={`${averageClientMargin.toFixed(1)}% de margem`} alert={totalClientProfit < 0} />
+            <MetricCard label="Clientes com prejuÃ­zo" value={String(clientCosts.filter((c) => c.profit < 0).length)} sub="Lucro abaixo de zero" alert={clientCosts.some((c) => c.profit < 0)} />
+          </div>
+          )}
+
+          {viewMode === "projeto" ? (
           <div className={styles.chartsGrid}>
 
             <ChartCard title="Evolução — Custo real acumulado vs Valor contratado">
@@ -531,6 +610,67 @@ export default function FinanceiroDashboard() {
             </ChartCard>
 
           </div>
+          ) : (
+          <div className={styles.chartsGrid}>
+            <ChartCard title="Valor contratado, custo real e lucro por cliente">
+              <div className={styles.legendList} style={{ flexDirection: "row", gap: 16, marginBottom: 12 }}>
+                {[
+                  { label: "Valor contratado", color: LIGHT_BLUE },
+                  { label: "Custo real", color: PRIMARY_BLUE },
+                  { label: "Lucro", color: "#16A34A" },
+                ].map((l) => (
+                  <div key={l.label} className={styles.legendItem}>
+                    <div className={styles.legendLeft}>
+                      <span className={styles.legendDot} style={{ background: l.color }} />
+                      <span>{l.label}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={clientCosts}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#dbe2ea" />
+                  <XAxis dataKey="clientName" stroke="#64748B" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={formatBRLk} />
+                  <Tooltip formatter={(v: any) => formatBRLk(v)} />
+                  <Bar dataKey="contractedValue" name="Valor contratado" fill={LIGHT_BLUE} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="realCost" name="Custo real" fill={PRIMARY_BLUE} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="profit" name="Lucro" fill="#16A34A" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard title="Resumo financeiro por cliente">
+              <div className={styles.tableWrapper}>
+                {clientCosts.length === 0 ? (
+                  <div style={{ color: "#94A3B8", fontSize: 13, paddingTop: 12 }}>
+                    Nenhum cliente com projeto vinculado.
+                  </div>
+                ) : (
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Cliente</th><th>Valor contratado</th><th>Custo real</th>
+                        <th className={styles.right}>Lucro</th><th className={styles.right}>Margem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clientCosts.map((cliente) => (
+                        <tr key={cliente.clienteId}>
+                          <td>{cliente.clientName}</td>
+                          <td>{formatBRL(cliente.contractedValue)}</td>
+                          <td>{formatBRL(cliente.realCost)}</td>
+                          <td className={styles.right}><ImpactBadge value={cliente.profit} /></td>
+                          <td className={styles.right}>{cliente.margin.toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </ChartCard>
+          </div>
+          )}
         </>
       )}
     </div>
