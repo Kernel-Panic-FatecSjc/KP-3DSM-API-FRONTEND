@@ -288,7 +288,7 @@ export default function Page() {
                     );
                   })}
 
-                  {profDoProjeto.length > 3 && (
+                  {profDoProjeto.length > 0 && (
                     <button
                       className={styles.moreBadge}
                       onClick={(e) => {
@@ -296,8 +296,12 @@ export default function Page() {
                         setExpandedProject(expandedProject === projeto.id ? null : projeto.id);
                       }}
                       aria-expanded={expandedProject === projeto.id}
+                      title="Ver profissionais"
                     >
-                      +{profDoProjeto.length - 3}
+                      <span className={styles.expandIcon}>▾</span>
+                      {profDoProjeto.length > 3 && (
+                        <span className={styles.moreCount}>+{profDoProjeto.length - 3}</span>
+                      )}
                     </button>
                   )}
                 </div>
