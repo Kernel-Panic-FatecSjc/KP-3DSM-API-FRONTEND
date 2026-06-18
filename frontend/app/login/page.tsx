@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './App.module.css';
 
@@ -13,12 +13,36 @@ export default function Page() {
   const [showModal, setShowModal] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [declined, setDeclined] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   const router = useRouter();
 
+  useEffect(() => {
+    const verificarAutenticacao = () => {
+      const token = localStorage.getItem('token');
+      const lgpdAceito = localStorage.getItem('lgpdAceito');
+      const cargo = localStorage.getItem('cargo');
+
+      if (token && lgpdAceito && cargo) {
+        if (cargo === 'ROLE_PROFISSIONAL') {
+          router.push('/controleHoras/entrada-saida');
+        } else if (cargo === 'ROLE_GESTOR') {
+          router.push('/gestao-tarefas-gestor');
+        } else if (cargo === 'ROLE_FINANCEIRO') {
+          router.push('/dashboardFinanceiro');
+        }
+      }
+      
+      setIsChecking(false);
+    };
+
+    verificarAutenticacao();
+  }, [router]);
+
   const handleClick = async () => {
     if (!email || !senha) {
-      return alert('Preencha todos os campos');
+      alert('Preencha todos os campos');
+      return;
     }
 
     setLoading(true);
@@ -51,10 +75,10 @@ export default function Page() {
 
       const lgpdAceito = localStorage.getItem('lgpdAceito');
       if (lgpdAceito) {
-        const cargo = localStorage.getItem('cargo');
+        const cargo = data.cargo;
         if (cargo === 'ROLE_PROFISSIONAL') router.push('/controleHoras/entrada-saida');
         else if (cargo === 'ROLE_GESTOR') router.push('/gestao-tarefas-gestor');
-        else if (cargo === 'ROLE_FINANCEIRO') router.push('/painel/auditoria');
+        else if (cargo === 'ROLE_FINANCEIRO') router.push('/dashboardFinanceiro');
       } else {
         setShowModal(true);
       }
@@ -76,8 +100,12 @@ export default function Page() {
     } else if (cargo === 'ROLE_GESTOR') {
       router.push('/gestao-tarefas-gestor');
     } else if (cargo === 'ROLE_FINANCEIRO') {
-      router.push('/');
+      router.push('/dashboardFinanceiro');
     }
+  };
+
+  if (isChecking) {
+    return null;
   }
 
   return (

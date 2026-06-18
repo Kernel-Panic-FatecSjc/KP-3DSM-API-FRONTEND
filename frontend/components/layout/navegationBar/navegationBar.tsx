@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './navegationBar.module.css';
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
@@ -51,29 +51,48 @@ export default function NavigationBar() {
   useEffect(() => {
 
     const nome = localStorage.getItem('nome');
-    const cargoStorage = localStorage.getItem('cargo');
+    const token = localStorage.getItem('token');
+    const usuarioId = localStorage.getItem('usuarioId');
 
-    if (nome && cargoStorage) {
-
-      const cargoFormatado = cargoStorage
-        .toLowerCase()
-        .replace('role_', '');
-
-      setUser({
-        name: nome,
-        role: cargoFormatado
-      });
-
-      setCargo(cargoFormatado);
+    if (nome && token && usuarioId) {
+      fetchCargoFromBackend(usuarioId);
     }
 
   }, []);
+
+  const fetchCargoFromBackend = async (usuarioId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8083/usuario/${usuarioId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const cargoFormatado = data.cargo
+          .toLowerCase()
+          .replace('role_', '');
+
+        setUser({
+          name: data.nome,
+          role: cargoFormatado
+        });
+
+        setCargo(cargoFormatado);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar cargo:', error);
+    }
+  };
 
   const logout = () => {
 
     localStorage.removeItem('token');
     localStorage.removeItem('nome');
-    localStorage.removeItem('cargo');
+    localStorage.removeItem('email');
+    localStorage.removeItem('usuarioId');
 
     router.push('/login');
   };
@@ -166,13 +185,6 @@ export default function NavigationBar() {
         }
       ]
     },
-    {
-      id: "painelFinanceiro",
-      title: "Painel Financeiro",
-      route: "/dashboard-Financeiro-Cliente"
-    }
-  ]
-},
     {
       id: "dashboard",
       title: "Dashboard",

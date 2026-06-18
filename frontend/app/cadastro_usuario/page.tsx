@@ -6,12 +6,49 @@ import styles from './App.module.css';
 type Usuario = {
   id: number;
   nome: string;
+  cpf: string;
   email: string;
   cargo: string;
   tipoContratacao: string;
   salario: string;
   ativo: boolean;
   senha: string;
+};
+
+type Toast = {
+  message: string;
+  type: 'success' | 'error';
+  visible: boolean;
+};
+
+const formatarCpf = (valor: string) => {
+  const digitos = valor.replace(/\D/g, '').slice(0, 11);
+  return digitos
+    .replace(/^(\d{3})(\d)/, '$1.$2')
+    .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1-$2');
+};
+
+const cpfValido = (valor: string) => {
+  const cpf = valor.replace(/\D/g, '');
+
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  const calcularDigito = (tamanho: number) => {
+    let soma = 0;
+
+    for (let i = 0; i < tamanho; i++) {
+      soma += Number(cpf[i]) * (tamanho + 1 - i);
+    }
+
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+
+  return calcularDigito(9) === Number(cpf[9]) &&
+    calcularDigito(10) === Number(cpf[10]);
 };
 
 export default function Page() {
@@ -26,6 +63,7 @@ export default function Page() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
 
   const [nome, setNome] = useState('');
+  const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [cargo, setCargo] = useState('ROLE_PROFISSIONAL');
@@ -37,6 +75,7 @@ export default function Page() {
   const itensPorPagina = 6;
 
   const [nomeEdit, setNomeEdit] = useState('');
+  const [cpfEdit, setCpfEdit] = useState('');
   const [emailEdit, setEmailEdit] = useState('');
   const [senhaEdit, setSenhaEdit] = useState('');
   const [cargoEdit, setCargoEdit] = useState('');
@@ -46,12 +85,116 @@ export default function Page() {
 
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalAtualizar, setModalAtualizar] = useState(false);
+  const [toast, setToast] = useState<Toast>({
+    message: '',
+    type: 'success',
+    visible: false
+  });
 
   const [filtroNome, setFiltroNome] = useState('');
   const [cargoSelecionado, setCargoSelecionado] = useState('');
   const [contratoSelecionado, setContratoSelecionado] = useState('');
+  const [cpfExiste, setCpfExiste] = useState(false);
+  const [cpfInvalido, setCpfInvalido] = useState(false);
+  const [cpfExisteEdit, setCpfExisteEdit] = useState(false);
+  const [cpfInvalidoEdit, setCpfInvalidoEdit] = useState(false);
 
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
+
+  const mostrarToast = (message: string, type: 'success' | 'error' = 'success', duracao: number = 4000) => {
+    setToast({ message, type, visible: true });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, duracao);
+  };
+
+  const apenasNumeros = (valor: string) => valor.replace(/\D/g, '');
+
+  const formatarMensagemErro = (mensagem: string) => {
+    const texto = mensagem.toLowerCase();
+
+    if (texto.includes('cpf') && (texto.includes('invalid') || texto.includes('inval'))) {
+      return 'Cpf invalido';
+    }
+
+    if (texto.includes('cpf') && (texto.includes('cadastrado') || texto.includes('existe') || texto.includes('duplic'))) {
+      return 'Cpf ja cadastrado';
+    }
+
+    if (texto.includes('senha') && (texto.includes('6') || texto.includes('seis') || texto.includes('caracter'))) {
+      return 'A senha deve ter pelo menos 6 caracteres';
+    }
+
+    return mensagem;
+  };
+
+  const mensagemErroApi = (texto: string, fallback: string) => {
+    const textoLimpo = texto.trim();
+
+    if (!textoLimpo) {
+      return fallback;
+    }
+
+    try {
+      const erro = JSON.parse(textoLimpo);
+      return formatarMensagemErro(erro.message ?? erro.mensagem ?? erro.error ?? textoLimpo);
+    } catch {
+      return formatarMensagemErro(textoLimpo);
+    }
+  };
+
+  const verificarCpf = (valor: string) => {
+    const cpfFormatado = formatarCpf(valor);
+    setCpf(cpfFormatado);
+
+    const existe = cpfFormatado.length > 0 && usuarios.some(
+      usuario => apenasNumeros(usuario.cpf ?? '') === apenasNumeros(cpfFormatado)
+    );
+
+    setCpfExiste(existe);
+    setCpfInvalido(cpfFormatado.length > 0 && !cpfValido(cpfFormatado));
+  };
+
+  const verificarCpfEdit = (valor: string) => {
+    const cpfFormatado = formatarCpf(valor);
+    setCpfEdit(cpfFormatado);
+
+    const existe = cpfFormatado.length > 0 && usuarios.some(
+      usuario =>
+        apenasNumeros(usuario.cpf ?? '') === apenasNumeros(cpfFormatado) &&
+        usuario.id !== usuarioSelecionado?.id
+    );
+
+    setCpfExisteEdit(existe);
+    setCpfInvalidoEdit(cpfFormatado.length > 0 && !cpfValido(cpfFormatado));
+  };
+
+  const limparFormularioCadastro = () => {
+    setNome('');
+    setCpf('');
+    setEmail('');
+    setSenha('');
+    setCargo('ROLE_PROFISSIONAL');
+    setTipoContratacao('CLT');
+    setValorHora('');
+    setAtivo('true');
+    setCpfExiste(false);
+    setCpfInvalido(false);
+  };
+
+  const limparFormularioEdicao = () => {
+    setUsuarioSelecionado(null);
+    setNomeEdit('');
+    setCpfEdit('');
+    setEmailEdit('');
+    setSenhaEdit('');
+    setCargoEdit('');
+    setTipoContratacaoEdit('');
+    setSalarioEdit('');
+    setAtivoEdit('');
+    setCpfExisteEdit(false);
+    setCpfInvalidoEdit(false);
+  };
 
   const getCargoLabel = (cargo: string) => {
     switch (cargo) {
@@ -72,9 +215,16 @@ export default function Page() {
   };
 
   const handleClick = async () => {
+    if (cpfExiste || cpfInvalido || !cpfValido(cpf)) {
+      mostrarToast(cpfExiste ? 'Cpf ja cadastrado' : 'Cpf invalido', 'error');
+      setCpfInvalido(!cpfExiste);
+      return;
+    }
+
     try {
       const body = {
         nome,
+        cpf: apenasNumeros(cpf),
         email,
         senha,
         cargo,
@@ -95,14 +245,17 @@ export default function Page() {
       const texto = await response.text();
 
       if (!response.ok) {
-        throw new Error(texto);
+        throw new Error(mensagemErroApi(texto, 'Erro ao cadastrar usuario.'));
       }
 
       setModalCadastro(false);
+      mostrarToast('Usuario cadastrado com sucesso!', 'success');
+      limparFormularioCadastro();
       fetchUsuarios();
 
     } catch (error) {
       console.error('ERRO:', error);
+      mostrarToast(error instanceof Error ? error.message : 'Erro ao cadastrar usuario.', 'error');
     }
   };
 
@@ -137,6 +290,17 @@ export default function Page() {
   const atualizarUsuario = async () => {
     if (!usuarioSelecionado) return;
 
+    if (senhaEdit && senhaEdit.length < 6) {
+      mostrarToast('A senha deve ter pelo menos 6 caracteres', 'error');
+      return;
+    }
+
+    if (cpfExisteEdit || cpfInvalidoEdit || !cpfValido(cpfEdit)) {
+      mostrarToast(cpfExisteEdit ? 'Cpf ja cadastrado' : 'Cpf invalido', 'error');
+      setCpfInvalidoEdit(!cpfExisteEdit);
+      return;
+    }
+
     try {
       const currentToken = localStorage.getItem('token');
 
@@ -151,6 +315,7 @@ export default function Page() {
           body: JSON.stringify({
             id: usuarioSelecionado.id,
             nome: nomeEdit,
+            cpf: apenasNumeros(cpfEdit),
             email: emailEdit,
             senha: senhaEdit,
             cargo: cargoEdit,
@@ -161,15 +326,28 @@ export default function Page() {
         }
       );
 
+      const texto = await response.text();
+
       if (!response.ok) {
-        throw new Error('Erro ao atualizar');
+        throw new Error(mensagemErroApi(texto, 'Erro ao atualizar usuario.'));
+      }
+
+      const usuarioLogadoId = localStorage.getItem('usuarioId');
+
+      if (usuarioLogadoId === String(usuarioSelecionado.id)) {
+        localStorage.setItem('nome', nomeEdit);
+        localStorage.setItem('cargo', cargoEdit);
+        window.dispatchEvent(new Event('usuarioAtualizado'));
       }
 
       setModalAtualizar(false);
+      mostrarToast('Usuario atualizado com sucesso!', 'success');
+      limparFormularioEdicao();
       fetchUsuarios();
 
     } catch (error) {
       console.error(error);
+      mostrarToast(error instanceof Error ? error.message : 'Erro ao atualizar usuario.', 'error');
     }
   };
 
@@ -186,18 +364,21 @@ export default function Page() {
         throw new Error('Erro ao deletar usuário');
       }
 
+      mostrarToast('Usuario deletado com sucesso!', 'success');
       fetchUsuarios();
 
     } catch (error) {
       console.error(error);
+      mostrarToast('Erro ao deletar usuario.', 'error');
     }
   };
 
   const usuariosFiltrados = usuarios.filter((usuario) => {
     const nomeOk = usuario.nome.toLowerCase().includes(filtroNome.toLowerCase());
+    const cpfOk = usuario.cpf?.includes(filtroNome) || apenasNumeros(usuario.cpf ?? '').includes(apenasNumeros(filtroNome));
     const cargoOk = cargoSelecionado === '' || usuario.cargo === cargoSelecionado;
     const contratoOk = contratoSelecionado === '' || usuario.tipoContratacao === contratoSelecionado;
-    return nomeOk && cargoOk && contratoOk;
+    return (nomeOk || cpfOk) && cargoOk && contratoOk;
   });
 
   const indiceUltimoItem = paginaAtual * itensPorPagina;
@@ -207,13 +388,12 @@ export default function Page() {
 
   return (
     <div className={styles.container}>
-
       <h1 className={styles.titulo}>Página de Usuários</h1>
 
       <div className={styles.filtros}>
         <input
           type="text"
-          placeholder="Buscar por nome..."
+          placeholder="Buscar por nome ou CPF..."
           value={filtroNome}
           onChange={(e) => setFiltroNome(e.target.value)}
           className={styles.inputFiltro}
@@ -247,6 +427,7 @@ export default function Page() {
           <thead>
             <tr>
               <th>Nome</th>
+              <th>CPF</th>
               <th>Email</th>
               <th>Cargo</th>
               <th>Tipo de Contrato</th>
@@ -257,6 +438,7 @@ export default function Page() {
             {usuariosPaginaAtual.map((usuario) => (
               <tr key={usuario.id}>
                 <td>{usuario.nome}</td>
+                <td>{usuario.cpf ? formatarCpf(usuario.cpf) : '-'}</td>
                 <td>{usuario.email}</td>
                 <td>{getCargoLabel(usuario.cargo)}</td>
                 <td>{getContratoLabel(usuario.tipoContratacao)}</td>
@@ -266,11 +448,14 @@ export default function Page() {
                     onClick={() => {
                       setUsuarioSelecionado(usuario);
                       setNomeEdit(usuario.nome);
+                      setCpfEdit(formatarCpf(usuario.cpf ?? ''));
                       setEmailEdit(usuario.email);
                       setCargoEdit(usuario.cargo);
                       setTipoContratacaoEdit(usuario.tipoContratacao);
                       setSalarioEdit(usuario.salario);
                       setAtivoEdit(usuario.ativo ? 'true' : 'false');
+                      setCpfExisteEdit(false);
+                      setCpfInvalidoEdit(!cpfValido(usuario.cpf ?? ''));
                       setModalAtualizar(true);
                     }}
                   >
@@ -310,12 +495,29 @@ export default function Page() {
       {modalCadastro && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalConteudo}>
-            <button className={styles.botaoFecharModal} onClick={() => setModalCadastro(false)}>×</button>
+            <button className={styles.botaoFecharModal} onClick={() => {
+              setModalCadastro(false);
+              limparFormularioCadastro();
+            }}>×</button>
             <h2 className={styles.tituloModal}>Cadastro de Usuários</h2>
 
             <div className={styles.inputWrapper}>
               <label>Nome</label>
               <input className={styles.inputStyle} type="text" value={nome} placeholder="Nome" onChange={(e) => setNome(e.target.value)} />
+            </div>
+
+            <div className={styles.inputWrapper}>
+              <label>CPF</label>
+              <input
+                className={`${styles.inputStyle} ${cpfExiste || cpfInvalido ? styles.inputErro : ''}`}
+                type="text"
+                value={cpf}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                onChange={(e) => verificarCpf(e.target.value)}
+              />
+              {cpfExiste && <span className={styles.erroTexto}>Este CPF ja esta cadastrado.</span>}
+              {cpfInvalido && !cpfExiste && <span className={styles.erroTexto}>Cpf invalido.</span>}
             </div>
 
             <div className={styles.inputWrapper}>
@@ -354,7 +556,10 @@ export default function Page() {
             </div>
 
             <div className={styles.botoes}>
-              <button className={styles.cancelar} onClick={() => setModalCadastro(false)}>Cancel</button>
+              <button className={styles.cancelar} onClick={() => {
+                setModalCadastro(false);
+                limparFormularioCadastro();
+              }}>Cancel</button>
               <button className={styles.confirmar} onClick={handleClick}>Confirm</button>
             </div>
           </div>
@@ -364,12 +569,29 @@ export default function Page() {
       {modalAtualizar && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalConteudo}>
-            <button className={styles.botaoFecharModal} onClick={() => setModalAtualizar(false)}>×</button>
+            <button className={styles.botaoFecharModal} onClick={() => {
+              setModalAtualizar(false);
+              limparFormularioEdicao();
+            }}>×</button>
             <h2 className={styles.tituloModal}>Atualizar Usuário</h2>
 
             <div className={styles.inputWrapper}>
               <label>Nome</label>
               <input className={styles.inputStyle} type="text" value={nomeEdit} onChange={(e) => setNomeEdit(e.target.value)} />
+            </div>
+
+            <div className={styles.inputWrapper}>
+              <label>CPF</label>
+              <input
+                className={`${styles.inputStyle} ${cpfExisteEdit || cpfInvalidoEdit ? styles.inputErro : ''}`}
+                type="text"
+                value={cpfEdit}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                onChange={(e) => verificarCpfEdit(e.target.value)}
+              />
+              {cpfExisteEdit && <span className={styles.erroTexto}>Este CPF ja esta cadastrado.</span>}
+              {cpfInvalidoEdit && !cpfExisteEdit && <span className={styles.erroTexto}>Cpf invalido.</span>}
             </div>
 
             <div className={styles.inputWrapper}>
@@ -408,12 +630,49 @@ export default function Page() {
             </div>
 
             <div className={styles.botoes}>
-              <button className={styles.cancelar} onClick={() => setModalAtualizar(false)}>Cancel</button>
+              <button className={styles.cancelar} onClick={() => {
+                setModalAtualizar(false);
+                limparFormularioEdicao();
+              }}>Cancel</button>
               <button className={styles.confirmar} onClick={atualizarUsuario}>Confirm</button>
             </div>
           </div>
         </div>
       )}
+
+      {toast.visible && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          padding: '16px 24px',
+          borderRadius: '10px',
+          backgroundColor: toast.type === 'success' ? '#10b981' : '#ef4444',
+          color: '#fff',
+          fontWeight: 600,
+          fontSize: '14px',
+          boxShadow: '0 10px 30px rgba(1, 38, 67, 0.15)',
+          animation: 'slideIn 0.3s ease',
+          zIndex: 10000,
+          maxWidth: '400px',
+          wordWrap: 'break-word'
+        }}>
+          {toast.message}
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
 
     </div>
   );

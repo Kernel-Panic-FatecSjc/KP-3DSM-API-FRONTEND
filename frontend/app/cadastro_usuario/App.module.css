@@ -111,6 +111,17 @@
   font-size: 14px;
 }
 
+.inputErro {
+  border-color: #ef4444;
+  background-color: #fff5f5;
+}
+
+.erroTexto {
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .botoes {
   display: flex;
   gap: 12px;
@@ -280,6 +291,7 @@
     height: 56px;
     font-size: 28px;
   }
+
 }
 
 .paginacao {
