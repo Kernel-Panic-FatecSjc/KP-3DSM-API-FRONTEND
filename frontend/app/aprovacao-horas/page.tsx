@@ -13,6 +13,8 @@ interface HorasExibirDTO {
     id: number;
     tarefaId: number | null;
     usuarioId: number;
+    projetoId?: number;
+    idProjeto?: number;
     tituloSessao: string;
     tipoAtividade: string;
     descricao: string | null;
@@ -41,8 +43,10 @@ interface Sessao {
 }
 
 interface Projeto {
-    id: number;
+    id?: number;
+    idProjeto?: number;
     nome?: string;
+    nomeProjeto?: string;
 }
 
 interface Usuario {
@@ -139,6 +143,8 @@ export default function Page() {
     const [abrirProfissionais, setAbrirProfissionais] = useState(false);
     const [abrirProjetos, setAbrirProjetos] = useState(false);
     const [abrirPeriodo, setAbrirPeriodo] = useState(false);
+    const [periodoSelecionado, setPeriodoSelecionado] = useState<'7dias' | 'mes' | 'ano' | ''>('');
+    const [projetosDisponiveis, setProjetosDisponiveis] = useState<string[]>([]);
 
     const [usuarioSelecionado, setUsuarioSelecionado] = useState<Sessao | null>(null);
     const [modalInformacao, setModalInformacao] = useState(false);
@@ -183,7 +189,12 @@ export default function Page() {
             const projetos = normalizarLista<Projeto>(projetosRaw);
             const usuarios = normalizarLista<Usuario>(usuariosRaw);
 
-            const tarefaIds = [...new Set(dados.filter(h => h.tarefaId).map(h => h.tarefaId as number))];
+            const tarefaIds = [...new Set(
+                dados
+                    .filter(h => h.tarefaId !== null && h.tarefaId !== undefined)
+                    .map(h => Number(h.tarefaId))
+                    .filter(Boolean)
+            )];
             const tarefas: Tarefa[] = [];
             for (const tid of tarefaIds) {
                 try {
@@ -193,13 +204,13 @@ export default function Page() {
             }
 
             const mapeado: Sessao[] = dados.map(h => {
-                const tarefa = tarefas.find(t => t.id === h.tarefaId);
-                const projetoId = tarefa?.idProjeto ?? tarefa?.projetoId;
-                const projeto = projetoId ? projetos.find(p => p.id === projetoId) : null;
+                const tarefa = tarefas.find(t => Number(t.id) === Number(h.tarefaId));
+                const projetoId = Number(tarefa?.idProjeto ?? tarefa?.projetoId ?? h.projetoId ?? h.idProjeto ?? 0);
+                const projeto = projetoId ? projetos.find(p => Number(p.id ?? p.idProjeto) === projetoId) : null;
                 const usuario = usuarios.find(u => u.id === h.usuarioId);
                 return {
                     id: h.id,
-                    nomeProjeto: projeto?.nome ?? '-',
+                    nomeProjeto: projeto?.nome ?? projeto?.nomeProjeto ?? '-',
                     tituloSessao: h.tituloSessao,
                     descricao: h.descricao ?? '',
                     responsavel: usuario?.nome ?? String(h.usuarioId),
@@ -213,6 +224,9 @@ export default function Page() {
                 };
             });
             setSessoes(mapeado);
+            setProjetosDisponiveis(
+                [...new Set(projetos.map(p => p.nome ?? p.nomeProjeto ?? ''))].filter(Boolean)
+            );
         } catch {
             setErro('Não foi possível carregar os registros.');
         } finally {
@@ -293,10 +307,34 @@ export default function Page() {
         );
     };
 
+    const isInPeriodo = (data: string, periodo: '7dias' | 'mes' | 'ano' | '') => {
+        if (!data || periodo === '') return true;
+        const dataLancamento = new Date(data);
+        if (Number.isNaN(dataLancamento.getTime())) return true;
+        const hoje = new Date();
+
+        if (periodo === '7dias') {
+            const seteDiasAtras = new Date(hoje);
+            seteDiasAtras.setDate(hoje.getDate() - 7);
+            return dataLancamento >= seteDiasAtras && dataLancamento <= hoje;
+        }
+
+        if (periodo === 'mes') {
+            return dataLancamento.getFullYear() === hoje.getFullYear() && dataLancamento.getMonth() === hoje.getMonth();
+        }
+
+        if (periodo === 'ano') {
+            return dataLancamento.getFullYear() === hoje.getFullYear();
+        }
+
+        return true;
+    };
+
     const sessoesFiltradas = sessoes.filter(s => {
         const profOk = profissionaisSelecionados.length === 0 || profissionaisSelecionados.includes(s.responsavel);
         const projOk = projetosSelecionados.length === 0 || projetosSelecionados.includes(s.nomeProjeto);
-        return profOk && projOk;
+        const periodoOk = isInPeriodo(s.dataLancamento, periodoSelecionado);
+        return profOk && projOk && periodoOk;
     });
 
     const indiceUltimoItem = paginaAtual * itensPorPagina;
@@ -305,7 +343,9 @@ export default function Page() {
     const totalPaginas = Math.ceil(sessoesFiltradas.length / itensPorPagina);
 
     const profissionais = [...new Set(sessoes.map(s => s.responsavel))];
-    const projetos = [...new Set(sessoes.map(s => s.nomeProjeto))];
+    const projetos = projetosDisponiveis.length > 0
+        ? projetosDisponiveis
+        : [...new Set(sessoes.map(s => s.nomeProjeto))];
 
     const toggleSelecionado = (id: number) => {
         setSelecionados(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -397,14 +437,35 @@ export default function Page() {
                     </button>
                     {abrirPeriodo && (
                         <div className={styles.dropdownLista}>
-                            <label className={styles.itemDropdown}><input type="checkbox" />Nos últimos 7 dias</label>
-                            <label className={styles.itemDropdown}><input type="checkbox" />Esse mês</label>
-                            <label className={styles.itemDropdown}><input type="checkbox" />Esse ano</label>
+                            <label className={styles.itemDropdown}>
+                                <input
+                                    type="checkbox"
+                                    checked={periodoSelecionado === '7dias'}
+                                    onChange={() => setPeriodoSelecionado(prev => prev === '7dias' ? '' : '7dias')}
+                                />
+                                Nos últimos 7 dias
+                            </label>
+                            <label className={styles.itemDropdown}>
+                                <input
+                                    type="checkbox"
+                                    checked={periodoSelecionado === 'mes'}
+                                    onChange={() => setPeriodoSelecionado(prev => prev === 'mes' ? '' : 'mes')}
+                                />
+                                Esse mês
+                            </label>
+                            <label className={styles.itemDropdown}>
+                                <input
+                                    type="checkbox"
+                                    checked={periodoSelecionado === 'ano'}
+                                    onChange={() => setPeriodoSelecionado(prev => prev === 'ano' ? '' : 'ano')}
+                                />
+                                Esse ano
+                            </label>
                         </div>
                     )}
                 </div>
 
-                <button className={styles.btnLimpar} onClick={() => { setProfissionaisSelecionados([]); setProjetosSelecionados([]); }}>Limpar</button>
+                <button className={styles.btnLimpar} onClick={() => { setProfissionaisSelecionados([]); setProjetosSelecionados([]); setPeriodoSelecionado(''); }}>Limpar</button>
 
                 <div className={styles.botoesLote}>
                     {modoLote === 'aprovar' ? (
