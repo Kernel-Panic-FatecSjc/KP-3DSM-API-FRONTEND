@@ -340,14 +340,6 @@ export default function Page() {
         window.dispatchEvent(new Event('usuarioAtualizado'));
       }
 
-      const usuarioLogadoId = localStorage.getItem('usuarioId');
-
-      if (usuarioLogadoId === String(usuarioSelecionado.id)) {
-        localStorage.setItem('nome', nomeEdit);
-        localStorage.setItem('cargo', cargoEdit);
-        window.dispatchEvent(new Event('usuarioAtualizado'));
-      }
-
       setModalAtualizar(false);
       mostrarToast('Usuario atualizado com sucesso!', 'success');
       limparFormularioEdicao();
