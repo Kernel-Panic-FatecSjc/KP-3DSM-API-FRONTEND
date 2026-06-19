@@ -82,6 +82,19 @@ export default function Page() {
     const nomeDoProjeto = (id: number) =>
         projetos.find((p) => p.id === id)?.nome ?? `Projeto ${id}`;
 
+    // Une projetos do projeto-service (nome real) com qualquer projeto que já
+    // tenha tarefa carregada, garantindo que nada suma se o 8082 vier incompleto.
+    const projetosDropdown = (() => {
+        const map = new Map<number, string>();
+        tarefas.forEach((t) => {
+            if (t.projetoId != null) map.set(t.projetoId, `Projeto ${t.projetoId}`);
+        });
+        projetos.forEach((p) => map.set(p.id, p.nome));
+        return [...map.entries()]
+            .map(([id, nome]) => ({ id, nome }))
+            .sort((a, b) => a.nome.localeCompare(b.nome));
+    })();
+
     const tarefasFiltradas = tarefas.filter((t) => {
         const matchResponsavel = t.idResponsaveis?.includes(uid);
         const matchProjeto = filtroProjeto === '' || String(t.projetoId) === filtroProjeto;
@@ -143,7 +156,7 @@ export default function Page() {
                 <div className={styles.filtros}>
                     <select value={filtroProjeto} onChange={(e) => setFiltroProjeto(e.target.value)}>
                         <option value="">Projeto ▾</option>
-                        {projetos.map((p) => (
+                        {projetosDropdown.map((p) => (
                             <option key={String(p.id)} value={String(p.id)}>{p.nome}</option>
                         ))}
                     </select>
