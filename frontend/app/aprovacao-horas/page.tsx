@@ -15,6 +15,8 @@ interface HorasExibirDTO {
     usuarioId: number;
     projetoId?: number;
     idProjeto?: number;
+    nomeProjeto?: string;
+    projetoNome?: string;
     tituloSessao: string;
     tipoAtividade: string;
     descricao: string | null;
@@ -47,8 +49,10 @@ interface Sessao {
 interface Projeto {
     id?: number;
     idProjeto?: number;
+    projetoId?: number;
     nome?: string;
     nomeProjeto?: string;
+    projetoNome?: string;
 }
 
 interface Usuario {
@@ -60,6 +64,31 @@ interface Tarefa {
     id: number;
     idProjeto?: number;
     projetoId?: number;
+    nomeProjeto?: string;
+    projetoNome?: string;
+}
+
+function numeroCampo(obj: unknown, campos: string[]): number | null {
+    if (!obj || typeof obj !== 'object') return null;
+    const registro = obj as Record<string, unknown>;
+    for (const campo of campos) {
+        const valor = registro[campo];
+        if (valor !== null && valor !== undefined && valor !== '') {
+            const numero = Number(valor);
+            if (!Number.isNaN(numero) && numero > 0) return numero;
+        }
+    }
+    return null;
+}
+
+function textoCampo(obj: unknown, campos: string[]): string {
+    if (!obj || typeof obj !== 'object') return '';
+    const registro = obj as Record<string, unknown>;
+    for (const campo of campos) {
+        const valor = registro[campo];
+        if (typeof valor === 'string' && valor.trim()) return valor.trim();
+    }
+    return '';
 }
 
 function normalizarLista<T>(data: unknown): T[] {
@@ -204,22 +233,41 @@ export default function Page() {
                     .map(h => Number(h.tarefaId))
                     .filter(Boolean)
             )];
-            const tarefas: Tarefa[] = [];
+            const tarefasMap = new Map<number, Tarefa>();
             for (const tid of tarefaIds) {
                 try {
                     const t = await getJson<Tarefa>(`${TASK_URL}/tarefas/${tid}`);
-                    tarefas.push(t);
+                    tarefasMap.set(Number(t.id), t);
+                } catch { }
+            }
+
+            const usuarioIds = [...new Set(dados.map(h => Number(h.usuarioId)).filter(Boolean))];
+            for (const uid of usuarioIds) {
+                try {
+                    const lista = normalizarLista<Tarefa>(
+                        await getJson<unknown>(`${TASK_URL}/tarefas/funcionario/${uid}`)
+                    );
+                    lista.forEach(t => tarefasMap.set(Number(t.id), t));
                 } catch { }
             }
 
             const mapeado: Sessao[] = dados.map(h => {
-                const tarefa = tarefas.find(t => Number(t.id) === Number(h.tarefaId));
-                const projetoId = Number(tarefa?.idProjeto ?? tarefa?.projetoId ?? h.projetoId ?? h.idProjeto ?? 0);
-                const projeto = projetoId ? projetos.find(p => Number(p.id ?? p.idProjeto) === projetoId) : null;
+                const tarefa = h.tarefaId ? tarefasMap.get(Number(h.tarefaId)) : undefined;
+                const projetoId =
+                    numeroCampo(h, ['projetoId', 'idProjeto']) ??
+                    numeroCampo(tarefa, ['projetoId', 'idProjeto']);
+                const projeto = projetoId
+                    ? projetos.find(p => numeroCampo(p, ['id', 'projetoId', 'idProjeto']) === projetoId)
+                    : null;
+                const nomeProjeto =
+                    textoCampo(h, ['nomeProjeto', 'projetoNome']) ||
+                    textoCampo(tarefa, ['nomeProjeto', 'projetoNome']) ||
+                    textoCampo(projeto, ['nome', 'nomeProjeto', 'projetoNome']) ||
+                    (projetoId ? `Projeto ${projetoId}` : '-');
                 const usuario = usuarios.find(u => u.id === h.usuarioId);
                 return {
                     id: h.id,
-                    nomeProjeto: projeto?.nome ?? projeto?.nomeProjeto ?? '-',
+                    nomeProjeto,
                     tituloSessao: h.tituloSessao,
                     descricao: h.descricao ?? '',
                     responsavel: usuario?.nome ?? String(h.usuarioId),
@@ -235,7 +283,7 @@ export default function Page() {
             });
             setSessoes(mapeado);
             setProjetosDisponiveis(
-                [...new Set(projetos.map(p => p.nome ?? p.nomeProjeto ?? ''))].filter(Boolean)
+                [...new Set(mapeado.map(s => s.nomeProjeto))].filter((nome) => Boolean(nome) && nome !== '-')
             );
         } catch {
             setErro('Não foi possível carregar os registros.');
