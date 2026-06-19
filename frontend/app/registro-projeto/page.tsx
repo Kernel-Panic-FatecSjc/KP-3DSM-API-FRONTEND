@@ -79,7 +79,7 @@ function Page() {
 
         const fetchProjetos = async () => {
             try {
-                const response = await fetch('http://localhost:8082/projeto/todos');
+                const response = await fetch('http://localhost:8082/projeto');
                 const data = await response.json();
                 setProjetos(Array.isArray(data) ? data : data.content ?? data.projetos ?? []);
             } catch (error) {
@@ -187,7 +187,18 @@ function Page() {
             });
 
             if (response.ok) {
-                const projetoCriado = await response.json();
+                const listaResponse = await fetch('http://localhost:8082/projeto');
+                const lista = await listaResponse.json();
+                const projetosLista: Projeto[] = Array.isArray(lista) ? lista : lista.content ?? lista.projetos ?? [];
+                const projetoCriado = projetosLista
+                    .filter((p) => p.nome.toLowerCase() === nomeProjeto.toLowerCase())
+                    .sort((a, b) => Number(b.id) - Number(a.id))[0];
+
+                if (!projetoCriado) {
+                    mostrarToast('Projeto criado, mas não foi possível localizar para vincular ao cliente.', 'error');
+                    return;
+                }
+
                 const token = localStorage.getItem('token');
                 const vinculoResponse = await fetch(`http://localhost:8083/clientes/${clienteSelecionado.id}/projetos`, {
                     method: 'POST',
@@ -207,7 +218,7 @@ function Page() {
                 mostrarToast('Projeto criado com sucesso!', 'success');
                 limparFormulario();
             } else {
-                const erro = await response.json();
+                const erro = await response.json().catch(() => null);
                 console.error('Erro do back-end:', erro);
                 mostrarToast(`Erro ${response.status}: ${JSON.stringify(erro)}`, 'error');
             }
@@ -285,7 +296,7 @@ function Page() {
 
                 {usuariosCarregados && usuarios.length === 0 && (
                     <p style={{ color: '#ef4444', fontSize: 13, marginTop: -8 }}>
-                        Nenhum usu�rio encontrado. Cadastre usu�rios antes de criar um projeto.
+                        Nenhum usuário encontrado. Cadastre usuários antes de criar um projeto.
                     </p>
                 )}
 
