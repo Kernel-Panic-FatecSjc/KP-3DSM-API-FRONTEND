@@ -77,7 +77,7 @@ export default function Auditoria() {
   const [filtroProfissionalId, setFiltroProfissionalId] = useState<string>("");
   const [filtroProjetoId, setFiltroProjetoId]           = useState<string>("");
   const [filtroStatusSelect, setFiltroStatusSelect]     = useState<string>("todos");
-  const [filtroPrioridade, setFiltroPrioridade]         = useState<string>("todas");
+  //const [filtroPrioridade, setFiltroPrioridade]         = useState<string>("todas");
 
   const [token, setToken]   = useState<string>("");
   const [userId, setUserId] = useState<string>("");
@@ -105,7 +105,7 @@ export default function Auditoria() {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [token, userId, dataInicio, dataFim, filtroProfissionalId, filtroProjetoId, filtroStatusSelect, filtroPrioridade]);
+  }, [token, userId, dataInicio, dataFim, filtroProfissionalId, filtroProjetoId, filtroStatusSelect]); //filtroPrioridade]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -147,8 +147,9 @@ export default function Auditoria() {
       const alteracoesParams = new URLSearchParams();
       alteracoesParams.append('dataInicio', dataInicio);
       alteracoesParams.append('dataFim', dataFim);
-      if (filtroPrioridade !== "todas") alteracoesParams.append('prioridade', filtroPrioridade);
+      //if (filtroPrioridade !== "todas") alteracoesParams.append('prioridade', filtroPrioridade);
       if (filtroProjetoId && filtroProjetoId !== "todos") alteracoesParams.append('projetoId', filtroProjetoId);
+      
       const alteracoesResponse = await fetch(resolveApiUrl(`/api/tarefas/alteracoes?${alteracoesParams.toString()}`), { headers });
 
       const projetosRaw    = projetosResponse.ok    ? await projetosResponse.json()    : [];
@@ -345,7 +346,7 @@ export default function Auditoria() {
     setFiltroProfissionalId("");
     setFiltroProjetoId("");
     setFiltroStatusSelect("todos");
-    setFiltroPrioridade("todas");
+    //setFiltroPrioridade("todas");
     const hoje = new Date();
     const trintaDiasAtras = new Date();
     trintaDiasAtras.setDate(hoje.getDate() - 30);
@@ -413,7 +414,7 @@ export default function Auditoria() {
           />
 
           <DropdownStatus    onSelect={setFiltroStatusSelect} />
-          <DropdownPrioridade onSelect={setFiltroPrioridade} />
+         {/* <DropdownPrioridade onSelect={setFiltroPrioridade} /> */}
 
           <button className={styles.btnLimpar} onClick={limparFiltros}>
              Limpar filtros
@@ -521,7 +522,6 @@ export default function Auditoria() {
                   <th>Valor anterior</th>
                   <th>Valor novo</th>
                   <th>Data</th>
-                  <th>Usuário</th>
                 </tr>
               </thead>
               <tbody>
