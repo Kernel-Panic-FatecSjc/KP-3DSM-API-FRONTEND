@@ -272,6 +272,7 @@ function Page() {
                         options={responsaveisOptions}
                         styles={customStyles}
                         placeholder="Selecione um responsável"
+                        value={responsaveisOptions.find((option) => String(option.value) === String(responsavelId)) ?? null}
                         onChange={(selected: unknown) => setResponsavelId(String((selected as SelectOption | null)?.value ?? ''))}
                         required
                     />
@@ -284,6 +285,7 @@ function Page() {
                         options={desenvolvedoresOptions}
                         styles={customStyles}
                         placeholder="Selecione os desenvolvedores"
+                        value={desenvolvedoresOptions.filter((option) => devsIds.includes(Number(option.value)))}
                         onChange={(selected: unknown) => {
                             const ids = Array.isArray(selected)
                                 ? selected.map((item) => Number((item as SelectOption).value))

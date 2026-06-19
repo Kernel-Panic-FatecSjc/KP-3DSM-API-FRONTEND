@@ -1,7 +1,8 @@
 "use client";
 import styles from './App.module.css';
 import { useEffect, useState } from 'react';
-import Select, { SingleValue } from 'react-select';
+import Select from 'react-select';
+import type { StylesConfig } from 'react-select';
 import axios from 'axios';
 
 type Option = {
@@ -13,7 +14,7 @@ type Tarefa = {
   id: number;
   nome: string;
   descricao: string;
-  projetoId: number;  // ← CORRIGIDO
+  projetoId: number;
   idResponsaveis: number[];
   status: string;
   bloqueada?: boolean;
@@ -206,28 +207,38 @@ export default function Page() {
     return matchResp && matchStatus;
   });
 
-  const selectStyles = {
-    control: (b: any) => ({ ...b, backgroundColor: "#012643", border: "none", borderRadius: "8px", minHeight: "40px" }),
-    singleValue: (b: any) => ({ ...b, color: "#fff" }),
-    placeholder: (b: any) => ({ ...b, color: "#fff" }),
-    menu: (b: any) => ({ ...b, backgroundColor: "#012643" }),
-    option: (b: any, s: any) => ({ ...b, backgroundColor: s.isFocused ? "#033763" : "#012643", color: "#fff" })
+  const selectStyles: StylesConfig<Option, false> = {
+    control: (b) => ({ ...b, backgroundColor: "#012643", border: "none", borderRadius: "8px", minHeight: "40px" }),
+    singleValue: (b) => ({ ...b, color: "#fff" }),
+    placeholder: (b) => ({ ...b, color: "#fff" }),
+    menu: (b) => ({ ...b, backgroundColor: "#012643" }),
+    option: (b, s) => ({ ...b, backgroundColor: s.isFocused ? "#033763" : "#012643", color: "#fff" })
   };
 
-  const tableSelectStyles = {
-    control: (b: any) => ({ ...b, backgroundColor: "#fff", minHeight: "32px" }),
-    singleValue: (b: any) => ({ ...b, color: "#333" }),
+  const tableSelectStyles: StylesConfig<Option, false> = {
+    control: (b) => ({ ...b, backgroundColor: "#fff", minHeight: "32px" }),
+    singleValue: (b) => ({ ...b, color: "#333" }),
+    menu: (b) => ({ ...b, zIndex: 9999 }),
+    menuPortal: (b) => ({ ...b, zIndex: 9999 }),
   };
 
-  const modalSelectStyles = {
-    control: (b: any) => ({ ...b, backgroundColor: "#fff", border: "1px solid #ccc", borderRadius: "8px", minHeight: "40px" }),
-    singleValue: (b: any) => ({ ...b, color: "#333" }),
-    placeholder: (b: any) => ({ ...b, color: "#888" }),
-    menu: (b: any) => ({ ...b, backgroundColor: "#fff" }),
-    option: (b: any, s: any) => ({ ...b, backgroundColor: s.isFocused ? "#E8EFF9" : "#fff", color: "#012643" }),
-    multiValue: (b: any) => ({ ...b, backgroundColor: "#E8EFF9" }),
-    multiValueLabel: (b: any) => ({ ...b, color: "#012643" }),
-    multiValueRemove: (b: any) => ({ ...b, color: "#012643" }),
+  const modalSingleSelectStyles: StylesConfig<Option, false> = {
+    control: (b) => ({ ...b, backgroundColor: "#fff", border: "1px solid #ccc", borderRadius: "8px", minHeight: "40px" }),
+    singleValue: (b) => ({ ...b, color: "#333" }),
+    placeholder: (b) => ({ ...b, color: "#888" }),
+    menu: (b) => ({ ...b, backgroundColor: "#fff" }),
+    option: (b, s) => ({ ...b, backgroundColor: s.isFocused ? "#E8EFF9" : "#fff", color: "#012643" }),
+  };
+
+  const modalMultiSelectStyles: StylesConfig<Option, true> = {
+    control: (b) => ({ ...b, backgroundColor: "#fff", border: "1px solid #ccc", borderRadius: "8px", minHeight: "40px" }),
+    singleValue: (b) => ({ ...b, color: "#333" }),
+    placeholder: (b) => ({ ...b, color: "#888" }),
+    menu: (b) => ({ ...b, backgroundColor: "#fff" }),
+    option: (b, s) => ({ ...b, backgroundColor: s.isFocused ? "#E8EFF9" : "#fff", color: "#012643" }),
+    multiValue: (b) => ({ ...b, backgroundColor: "#E8EFF9" }),
+    multiValueLabel: (b) => ({ ...b, color: "#012643" }),
+    multiValueRemove: (b) => ({ ...b, color: "#012643" }),
   };
 
   return (
@@ -290,6 +301,8 @@ export default function Page() {
                     value={statusOptions.find(o => o.value === statusEfetivo(t))}
                     onChange={(s) => atualizarStatus(t.id, s!.value)}
                     styles={tableSelectStyles}
+                    menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                    menuPosition="fixed"
                   />
                 </td>
                 <td>
@@ -331,7 +344,7 @@ export default function Page() {
                 setProjetoModal(s);
                 setResponsaveisModal([]);
               }}
-              styles={modalSelectStyles}
+              styles={modalSingleSelectStyles}
               placeholder="Selecione o projeto"
             />
             <Select
@@ -340,7 +353,7 @@ export default function Page() {
               options={responsaveisDoProjeto(projetoModal ? Number(projetoModal.value) : null)}
               value={responsaveisModal}
               onChange={(s) => setResponsaveisModal(s as Option[])}
-              styles={modalSelectStyles}
+              styles={modalMultiSelectStyles}
               placeholder={projetoModal ? "Selecione os responsáveis" : "Selecione um projeto primeiro"}
               noOptionsMessage={() => projetoModal ? "Nenhum profissional alocado neste projeto" : "Selecione um projeto primeiro"}
             />
@@ -364,7 +377,7 @@ export default function Page() {
               options={responsaveisDoProjeto(tarefaEditando.projetoId)}  // ← CORRIGIDO
               value={responsaveisEdit}
               onChange={(s) => setResponsaveisEdit(s as Option[])}
-              styles={modalSelectStyles}
+              styles={modalMultiSelectStyles}
               noOptionsMessage={() => "Nenhum profissional alocado neste projeto"}
             />
             <div className={styles.modalButtons}>
