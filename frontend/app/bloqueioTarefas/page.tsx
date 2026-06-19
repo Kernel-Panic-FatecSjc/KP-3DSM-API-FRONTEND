@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './App.module.css';
 
 const API_URL = 'http://localhost:8085';
+const PROJETO_URL = 'http://localhost:8082';
 
 type Status = 'To Do' | 'Doing' | 'Done';
 
@@ -17,7 +18,10 @@ type Tarefa = {
     idResponsaveis?: number[];
 };
 
-
+type Projeto = {
+    id: number;
+    nome: string;
+};
 
 const CATEGORIAS = [
     'Erro de Analista',
@@ -29,6 +33,7 @@ const CATEGORIAS = [
 
 export default function Page() {
     const [tarefas, setTarefas] = useState<Tarefa[]>([]);
+    const [projetos, setProjetos] = useState<Projeto[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [filtroProjeto, setFiltroProjeto] = useState('');
@@ -52,8 +57,19 @@ export default function Page() {
         }
     };
 
+    const carregarProjetos = async () => {
+        try {
+            const res = await fetch(`${PROJETO_URL}/projeto`);
+            const data = await res.json();
+            setProjetos((data ?? []).map((p: any) => ({ id: p.id, nome: p.nome ?? `Projeto ${p.id}` })));
+        } catch {
+            setProjetos([]);
+        }
+    };
+
     useEffect(() => {
         carregarTarefas();
+        carregarProjetos();
     }, []);
 
     const [uid, setUid] = useState(0);
@@ -62,6 +78,9 @@ export default function Page() {
         const usuarioId = localStorage.getItem('usuarioId');
         setUid(Number(usuarioId || '0'));
     }, []);
+
+    const nomeDoProjeto = (id: number) =>
+        projetos.find((p) => p.id === id)?.nome ?? `Projeto ${id}`;
 
     const tarefasFiltradas = tarefas.filter((t) => {
         const matchResponsavel = t.idResponsaveis?.includes(uid);
@@ -124,8 +143,8 @@ export default function Page() {
                 <div className={styles.filtros}>
                     <select value={filtroProjeto} onChange={(e) => setFiltroProjeto(e.target.value)}>
                         <option value="">Projeto ▾</option>
-                        {[...new Set(tarefas.map(t => t.projetoId))].map((id) => (
-                            <option key={String(id)} value={String(id)}>Projeto {id}</option>
+                        {projetos.map((p) => (
+                            <option key={String(p.id)} value={String(p.id)}>{p.nome}</option>
                         ))}
                     </select>
                 </div>
@@ -169,7 +188,7 @@ export default function Page() {
                                     </div>
                                 </td>
                                 <td>{tarefa.descricao}</td>
-                                <td>{tarefa.nomeProjeto || `Projeto ${tarefa.projetoId}`}</td>
+                                <td>{nomeDoProjeto(tarefa.projetoId)}</td>
                                 <td>
                                     <span className={`${styles.statusBadge} ${tarefa.status === 'To Do' ? styles.statusToDo
                                             : tarefa.status === 'Doing' ? styles.statusDoing
