@@ -28,6 +28,7 @@ export interface HorasExibirDTO {
 
 export interface HorasCadastrarDTO {
   usuarioId: number;
+  projetoId?: number | null;
   tarefaId?: number | null;
   tituloSessao: string;
   tipoAtividade: string;
@@ -41,6 +42,7 @@ export interface HorasCadastrarDTO {
 
 export interface HorasAtualizarDTO {
   id: number;
+  projetoId?: number | null;
   tarefaId?: number | null;
   tituloSessao: string;
   tipoAtividade: string;
@@ -416,6 +418,7 @@ export default function Page() {
       if (cardEditando) {
         await editarHora({
           id: cardEditando.id,
+          projetoId: form.projetoId ? Number(form.projetoId) : null,
           tarefaId: form.tipoAtividade ? Number(form.tipoAtividade) : null,
           tituloSessao: form.tituloSessao,
           descricao: form.descricao,
@@ -429,6 +432,7 @@ export default function Page() {
       } else {
         await criarHora({
           usuarioId: usuarioId,
+          projetoId: form.projetoId ? Number(form.projetoId) : null,
           tarefaId: form.tipoAtividade ? Number(form.tipoAtividade) : null,
           tituloSessao: form.tituloSessao,
           descricao: form.descricao,
