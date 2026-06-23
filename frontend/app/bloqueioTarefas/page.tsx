@@ -5,15 +5,12 @@ import styles from './App.module.css';
 const API_URL = 'http://localhost:8085';
 const PROJETO_URL = 'http://localhost:8082';
 
-type Status = 'To Do' | 'Doing' | 'Done';
-
 type Tarefa = {
     id: number;
     nome: string;
     descricao: string;
-    projetoId: number;
-    nomeProjeto: string;
-    status: Status;
+    idProjeto: number;
+    status: string; // TO_DO | DOING | DONE | BLOCKED
     bloqueada: boolean;
     idResponsaveis?: number[];
 };
@@ -45,9 +42,9 @@ export default function Page() {
     const [descricaoImpedimento, setDescricaoImpedimento] = useState('');
     const [salvando, setSalvando] = useState(false);
 
-    const carregarTarefas = async () => {
+    const carregarTarefas = async (userId: number) => {
         try {
-            const res = await fetch(`${API_URL}/tarefas`);
+            const res = await fetch(`${API_URL}/tarefas/funcionario/${userId}`);
             const data = await res.json();
             setTarefas(data);
         } catch {
@@ -67,27 +64,26 @@ export default function Page() {
         }
     };
 
-    useEffect(() => {
-        carregarTarefas();
-        carregarProjetos();
-    }, []);
-
     const [uid, setUid] = useState(0);
 
     useEffect(() => {
-        const usuarioId = localStorage.getItem('usuarioId');
-        setUid(Number(usuarioId || '0'));
+        const usuarioId = Number(localStorage.getItem('usuarioId') || '0');
+        setUid(usuarioId);
     }, []);
+
+    useEffect(() => {
+        if (uid === 0) return;
+        carregarTarefas(uid);
+        carregarProjetos();
+    }, [uid]);
 
     const nomeDoProjeto = (id: number) =>
         projetos.find((p) => p.id === id)?.nome ?? `Projeto ${id}`;
 
-    // Une projetos do projeto-service (nome real) com qualquer projeto que já
-    // tenha tarefa carregada, garantindo que nada suma se o 8082 vier incompleto.
     const projetosDropdown = (() => {
         const map = new Map<number, string>();
         tarefas.forEach((t) => {
-            if (t.projetoId != null) map.set(t.projetoId, `Projeto ${t.projetoId}`);
+            if (t.idProjeto != null) map.set(t.idProjeto, `Projeto ${t.idProjeto}`);
         });
         projetos.forEach((p) => map.set(p.id, p.nome));
         return [...map.entries()]
@@ -96,10 +92,9 @@ export default function Page() {
     })();
 
     const tarefasFiltradas = tarefas.filter((t) => {
-        const matchResponsavel = t.idResponsaveis?.includes(uid);
-        const matchProjeto = filtroProjeto === '' || String(t.projetoId) === filtroProjeto;
+        const matchProjeto = filtroProjeto === '' || String(t.idProjeto) === filtroProjeto;
         const matchStatus = filtroStatus === '' || t.status === filtroStatus;
-        return matchResponsavel && matchProjeto && matchStatus;
+        return matchProjeto && matchStatus;
     });
 
     const abrirModalBloquear = (tarefa: Tarefa) => {
@@ -126,7 +121,7 @@ export default function Page() {
             });
             if (!res.ok) { const msg = await res.text(); throw new Error(msg); }
             setModalBloquear(false);
-            await carregarTarefas();
+            await carregarTarefas(uid);
         } catch (err: any) {
             alert(err.message || 'Erro ao bloquear');
         } finally {
@@ -142,7 +137,7 @@ export default function Page() {
                 body: JSON.stringify({ usuarioId: uid })
             });
             if (!res.ok) { const msg = await res.text(); throw new Error(msg); }
-            await carregarTarefas();
+            await carregarTarefas(uid);
         } catch (err: any) {
             alert(err.message || 'Erro ao desbloquear');
         }
@@ -165,9 +160,9 @@ export default function Page() {
                 <div className={styles.filtros}>
                     <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}>
                         <option value="">Status ▾</option>
-                        <option value="To Do">To Do</option>
-                        <option value="Doing">Doing</option>
-                        <option value="Done">Done</option>
+                        <option value="TO_DO">To Do</option>
+                        <option value="DOING">Doing</option>
+                        <option value="DONE">Done</option>
                     </select>
                 </div>
             </div>
@@ -190,28 +185,30 @@ export default function Page() {
                         {!loading && tarefasFiltradas.length === 0 && (
                             <tr><td colSpan={5}>Nenhuma tarefa encontrada</td></tr>
                         )}
-                        {tarefasFiltradas.map((tarefa) => (
-                            <tr key={tarefa.id} className={tarefa.bloqueada ? styles.linhaBloqueada : ''}>
+                        {tarefasFiltradas.map((tarefa) => {
+                            const estaBloqueada = tarefa.bloqueada || tarefa.status === 'BLOCKED';
+                            return (
+                            <tr key={tarefa.id} className={estaBloqueada ? styles.linhaBloqueada : ''}>
                                 <td>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {tarefa.bloqueada && (
+                                        {estaBloqueada && (
                                             <span className={styles.badgeBloqueada}>BLOQUEADA</span>
                                         )}
                                         {tarefa.nome}
                                     </div>
                                 </td>
                                 <td>{tarefa.descricao}</td>
-                                <td>{nomeDoProjeto(tarefa.projetoId)}</td>
+                                <td>{nomeDoProjeto(tarefa.idProjeto)}</td>
                                 <td>
-                                    <span className={`${styles.statusBadge} ${tarefa.status === 'To Do' ? styles.statusToDo
-                                            : tarefa.status === 'Doing' ? styles.statusDoing
+                                    <span className={`${styles.statusBadge} ${tarefa.status === 'TO_DO' ? styles.statusToDo
+                                            : tarefa.status === 'DOING' ? styles.statusDoing
                                                 : styles.statusDone
                                         }`}>
-                                        {tarefa.status}
+                                        {tarefa.status === 'TO_DO' ? 'To Do' : tarefa.status === 'DOING' ? 'Doing' : tarefa.status === 'DONE' ? 'Done' : tarefa.status}
                                     </span>
                                 </td>
                                 <td>
-                                    {tarefa.bloqueada ? (
+                                    {estaBloqueada ? (
                                         <button className={styles.btnDesbloquear} onClick={() => desbloquear(tarefa)}>
                                             Desbloquear
                                         </button>
@@ -222,7 +219,8 @@ export default function Page() {
                                     )}
                                 </td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

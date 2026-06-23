@@ -144,13 +144,15 @@ export default function Page() {
 
   const atualizarTarefa = async () => {
     if (!tarefaEditando) return;
+    const uid = Number(localStorage.getItem('usuarioId') || '0') || null;
     try {
       await axios.patch(`${API}/${tarefaEditando.id}`, {
         nome: nomeEdit,
         descricao: descricaoEdit,
         idProjeto: tarefaEditando.projetoId,  // ← CORRIGIDO
         idResponsaveis: responsaveisEdit.map(r => Number(r.value)),
-        statusTarefa: statusEfetivo(tarefaEditando)
+        statusTarefa: statusEfetivo(tarefaEditando),
+        usuarioId: uid
       });
       setModalEditar(false);
       setTarefaEditando(null);
@@ -174,8 +176,9 @@ export default function Page() {
   };
 
   const atualizarStatus = async (id: number, value: string) => {
+    const uid = Number(localStorage.getItem('usuarioId') || '0') || null;
     try {
-      await axios.patch(`${API}/${id}`, { statusTarefa: value });
+      await axios.patch(`${API}/${id}`, { statusTarefa: value, usuarioId: uid });
       fetchTarefas();
     } catch (e) {
       console.error(e);

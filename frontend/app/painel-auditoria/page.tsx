@@ -147,6 +147,7 @@ export default function Auditoria() {
       const alteracoesParams = new URLSearchParams();
       alteracoesParams.append('dataInicio', dataInicio);
       alteracoesParams.append('dataFim', dataFim);
+      alteracoesParams.append('usuarioId', profId);
       //if (filtroPrioridade !== "todas") alteracoesParams.append('prioridade', filtroPrioridade);
       if (filtroProjetoId && filtroProjetoId !== "todos") alteracoesParams.append('projetoId', filtroProjetoId);
       
@@ -447,7 +448,7 @@ export default function Auditoria() {
           <div className={styles.kpiCard}>
             <span className={styles.kpiIcon}></span>
             <div className={styles.kpiInfo}>
-              <span className={styles.kpiLabel}>Alterações</span>
+              <span className={styles.kpiLabel}>Alterações gerais</span>
               <strong className={styles.kpiValue}>{dashboardData?.totalAlteracoes || 0}</strong>
             </div>
           </div>
